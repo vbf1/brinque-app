@@ -123,6 +123,51 @@ let currentUser=null,companyId=null,companyRole=null,recoveryFlowActive=false,re
 function isAdmin(){return ['owner','admin'].includes(companyRole)}
 function applyRoleUI(){document.querySelectorAll('[data-admin-only]').forEach(el=>el.classList.toggle('hidden',!isAdmin()))}
 function authMessage(msg,isError=false){const el=document.getElementById('authMessage');el.textContent=msg;el.style.color=isError?'#c94b4b':'var(--muted)'}
+function translateError(error){
+ const raw=String(error?.message||error?.details||error||'').trim();
+ const code=String(error?.code||error?.status||'').toLowerCase();
+ const value=raw.toLowerCase();
+ const messages={
+  invalid_credentials:'E-mail ou senha incorretos.',
+  email_not_confirmed:'Seu e-mail ainda não foi confirmado. Verifique sua caixa de entrada.',
+  user_already_exists:'Este e-mail já está cadastrado.',
+  weak_password:'A senha é muito fraca. Escolha uma senha com pelo menos 6 caracteres e mais segura.',
+  same_password:'A nova senha precisa ser diferente da senha atual.',
+  otp_expired:'Este link de recuperação expirou ou já foi utilizado. Solicite um novo link.',
+  otp_disabled:'A recuperação por este link não está disponível. Solicite um novo link.',
+  flow_state_expired:'A sessão de recuperação expirou. Solicite um novo link e abra-o novamente.',
+  bad_code_verifier:'Não foi possível validar o link de recuperação. Solicite um novo link e abra-o novamente.',
+  session_not_found:'Sua sessão expirou. Entre novamente na sua conta.',
+  refresh_token_not_found:'Sua sessão expirou. Entre novamente na sua conta.',
+  over_email_send_rate_limit:'Muitas solicitações de e-mail em pouco tempo. Aguarde alguns minutos e tente novamente.',
+  email_address_invalid:'O endereço de e-mail informado é inválido.',
+  signup_disabled:'O cadastro de novos usuários está desativado.',
+  user_not_found:'Não foi possível localizar essa conta. Confira o e-mail informado.',
+  '23505':'Este registro já existe. Confira as informações e tente novamente.',
+  '23503':'Não foi possível concluir porque existe uma informação relacionada que não foi encontrada.',
+  '23502':'Preencha todos os campos obrigatórios.',
+  '23514':'Um dos valores informados não é permitido. Confira os dados.',
+  '42501':'Você não tem permissão para realizar esta ação.',
+  '22p02':'Um dos dados informados está em formato inválido.',
+  '42p01':'O recurso solicitado não foi encontrado no banco de dados.',
+  '42703':'O sistema encontrou um campo que não existe. Avise o suporte.',
+  'pgrst116':'O registro solicitado não foi encontrado ou não está disponível.'
+ };
+ if(messages[code])return messages[code];
+ if(/invalid login credentials|invalid email or password|email or password is incorrect/.test(value))return messages.invalid_credentials;
+ if(/email not confirmed/.test(value))return messages.email_not_confirmed;
+ if(/password should be at least|weak password|password is too short/.test(value))return messages.weak_password;
+ if(/same password|new password should be different/.test(value))return messages.same_password;
+ if(/expired|invalid.*(otp|token)|token.*(expired|invalid)|otp.*expired/.test(value))return messages.otp_expired;
+ if(/rate limit|too many requests|too many.*email/.test(value))return messages.over_email_send_rate_limit;
+ if(/already registered|already exists/.test(value))return messages.user_already_exists;
+ if(/permission denied|not authorized|row-level security|rls/.test(value))return messages['42501'];
+ if(/failed to fetch|network request failed|fetch error|load failed/.test(value))return 'Não foi possível conectar ao servidor. Verifique sua internet e tente novamente.';
+ if(!raw)return 'Não foi possível concluir a operação. Tente novamente.';
+ if(/[ãõáéíóúâêôç]/i.test(raw)||/^(informe|esta conta|o link|não |somente |usuário |preencha|esta senha|a senha)/i.test(raw))return raw;
+ return 'Não foi possível concluir a operação. Confira os dados e tente novamente.';
+}
+
 function showRecoveryScreen(){showApp(false);document.getElementById('forgotPasswordPanel').classList.add('hidden');document.getElementById('recoveryPanel').classList.remove('hidden');document.getElementById('loginFields').classList.add('hidden');document.getElementById('recoveryMessage').textContent='Link de recuperação reconhecido. Defina sua nova senha abaixo.';}
 function showForgotPassword(){document.getElementById('loginFields').classList.add('hidden');document.getElementById('recoveryPanel').classList.add('hidden');document.getElementById('forgotPasswordPanel').classList.remove('hidden');const email=document.getElementById('loginEmail').value.trim();if(email)document.getElementById('recoveryEmail').value=email;document.getElementById('forgotMessage').textContent='';}
 function showLoginScreen(message=''){document.getElementById('recoveryPanel').classList.add('hidden');document.getElementById('forgotPasswordPanel').classList.add('hidden');document.getElementById('loginFields').classList.remove('hidden');if(message)authMessage(message);}
@@ -131,7 +176,7 @@ async function requestPasswordReset(){
  if(!email){msg.textContent='Informe o e-mail cadastrado.';return;}
  btn.disabled=true;btn.textContent='Enviando...';msg.textContent='Solicitando o link de recuperação...';
  try{const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:'https://vbf1.github.io/brinque-app/'});if(error)throw error;msg.style.color='var(--green)';msg.textContent='Se o e-mail estiver cadastrado, você receberá um link para redefinir a senha. Confira também a caixa de spam.';}
- catch(e){msg.style.color='var(--red)';msg.textContent=e.message||'Não foi possível enviar o link. Tente novamente.';}
+ catch(e){msg.style.color='var(--red)';msg.textContent=translateError(e);}
  finally{btn.disabled=false;btn.textContent='Enviar link de recuperação';}
 }
 async function ensureRecoverySession(){
@@ -146,7 +191,7 @@ async function saveNewPassword(){
  if(password!==confirm){msg.textContent='As senhas não são iguais. Confira e tente novamente.';return;}
  btn.disabled=true;btn.textContent='Salvando...';msg.textContent='Validando o link e atualizando sua senha...';
  try{await ensureRecoverySession();const {error}=await sb.auth.updateUser({password});if(error)throw error;recoveryFlowActive=false;recoveryUserId=null;await sb.auth.signOut({scope:'local'});document.getElementById('newPassword').value='';document.getElementById('confirmPassword').value='';showLoginScreen('Senha alterada com sucesso! Agora entre com sua nova senha.');}
- catch(e){msg.textContent=e.message||'Não foi possível alterar a senha. Solicite um novo link.';}
+ catch(e){msg.textContent=translateError(e);}
  finally{btn.disabled=false;btn.textContent='Salvar nova senha';}
 }
 function showApp(show){document.getElementById('authGate').style.display=show?'none':'grid';document.querySelector('header').style.display=show?'':'none';document.querySelector('main').style.display=show?'':'none';document.getElementById('menuBackdrop').style.display=show?'':'none';document.getElementById('menuPanel').style.display=show?'':'none'}
@@ -198,7 +243,7 @@ async function loginApp(){
   companyId=members[0].company_id;companyRole=members[0].role;
   const {data:co,error:ce}=await sb.from('companies').select('id,name').eq('id',companyId).single();if(ce)throw ce;
   document.getElementById('company').value=co.name;await loadCloudData();showApp(true);render();go('inicio');toast('Conectado à nuvem com sucesso.');
- }catch(e){authMessage(e.message||'Não foi possível entrar.',true);await sb.auth.signOut().catch(()=>{});}finally{btn.disabled=false;btn.textContent='Entrar';}
+ }catch(e){authMessage(translateError(e),true);await sb.auth.signOut().catch(()=>{});}finally{btn.disabled=false;btn.textContent='Entrar';}
 }
 async function logoutApp(){
  try{await sb.auth.signOut({scope:'local'});}catch(e){console.warn('Falha ao encerrar sessão:',e);}
@@ -256,11 +301,11 @@ async function saveRental(){
   const rows=items.map(i=>({company_id:companyId,rental_id:rental.id,product_id:i.productId,quantity:i.quantity,unit_price:i.unitPrice,subtotal:i.quantity*i.unitPrice}));
   const saved=await sb.from('rental_items').insert(rows);if(saved.error){await sb.from('rentals').delete().eq('id',rental.id);throw saved.error;}
   await loadCloudData();go('locacoes');toast('Locação salva na nuvem.');
- }catch(e){toast('Erro ao salvar locação: '+(e.message||'verifique sua conexão'));}
+ }catch(e){toast('Erro ao salvar locação: '+translateError(e));}
 }
-async function saveClient(){if(!fName.value.trim())return toast('Informe o nome.');try{await cloudError(await sb.from('customers').insert({company_id:companyId,name:fName.value.trim(),phone:fPhone.value.trim(),address:fAddress.value.trim()}));await loadCloudData();go('clientes');toast('Cliente salvo na nuvem!')}catch(e){toast('Erro ao salvar cliente: '+e.message)}}
-async function saveProduct(){if(!fProduct.value.trim()||!fTotal.value||Number(fTotal.value)<1)return toast('Confira os dados.');try{await cloudError(await sb.from('products').insert({company_id:companyId,name:fProduct.value.trim(),inventory_mode:fMode.value==='Individual'?'individual':'quantity',total_quantity:Number(fTotal.value),daily_price:Number(fPPrice.value||0)}));await loadCloudData();go('estoque');toast('Brinquedo salvo na nuvem!')}catch(e){toast('Erro ao salvar brinquedo: '+e.message)}}
-async function saveTransaction(){if(!isAdmin())return toast('Acesso financeiro restrito ao proprietário e administradores.');if(!fDesc.value.trim()||Number(fValue.value)<=0)return toast('Informe descrição e valor.');try{await cloudError(await sb.from('financial_transactions').insert({company_id:companyId,transaction_type:fType.value==='Entrada'?'income':'expense',description:fDesc.value.trim(),amount:Number(fValue.value),status:'paid',paid_at:new Date().toISOString().slice(0,10),created_by:currentUser.id}));await loadCloudData();go('financeiro');toast('Lançamento salvo na nuvem!')}catch(e){toast('Erro ao salvar lançamento: '+e.message)}}
+async function saveClient(){if(!fName.value.trim())return toast('Informe o nome.');try{await cloudError(await sb.from('customers').insert({company_id:companyId,name:fName.value.trim(),phone:fPhone.value.trim(),address:fAddress.value.trim()}));await loadCloudData();go('clientes');toast('Cliente salvo na nuvem!')}catch(e){toast('Erro ao salvar cliente: '+translateError(e))}}
+async function saveProduct(){if(!fProduct.value.trim()||!fTotal.value||Number(fTotal.value)<1)return toast('Confira os dados.');try{await cloudError(await sb.from('products').insert({company_id:companyId,name:fProduct.value.trim(),inventory_mode:fMode.value==='Individual'?'individual':'quantity',total_quantity:Number(fTotal.value),daily_price:Number(fPPrice.value||0)}));await loadCloudData();go('estoque');toast('Brinquedo salvo na nuvem!')}catch(e){toast('Erro ao salvar brinquedo: '+translateError(e))}}
+async function saveTransaction(){if(!isAdmin())return toast('Acesso financeiro restrito ao proprietário e administradores.');if(!fDesc.value.trim()||Number(fValue.value)<=0)return toast('Informe descrição e valor.');try{await cloudError(await sb.from('financial_transactions').insert({company_id:companyId,transaction_type:fType.value==='Entrada'?'income':'expense',description:fDesc.value.trim(),amount:Number(fValue.value),status:'paid',paid_at:new Date().toISOString().slice(0,10),created_by:currentUser.id}));await loadCloudData();go('financeiro');toast('Lançamento salvo na nuvem!')}catch(e){toast('Erro ao salvar lançamento: '+translateError(e))}}
 
 function render(){
  applyRoleUI();
@@ -282,10 +327,10 @@ function render(){
  document.getElementById('transactionList').innerHTML=transactions.length?transactions.map(t=>`<div class="item"><div><b>${t.name}</b><div class="muted">${t.type}</div></div><b style="color:${t.type==='Entrada'?'#16845b':'#c94b4b'}">${t.type==='Entrada'?'+':'−'} ${money(t.value)}</b></div>`).join(''):'<div class="muted">Nenhuma movimentação cadastrada ainda.</div>';
  document.getElementById('bars').innerHTML='';
 }
-async function saveCompany(){if(!isAdmin())return toast('Somente proprietário e administradores podem alterar configurações.');try{const name=document.getElementById('company').value.trim();if(!name)return toast('Informe o nome da empresa.');await cloudError(await sb.from('companies').update({name}).eq('id',companyId));toast('Nome da empresa atualizado na nuvem.')}catch(e){toast('Erro ao atualizar empresa: '+e.message)}}
+async function saveCompany(){if(!isAdmin())return toast('Somente proprietário e administradores podem alterar configurações.');try{const name=document.getElementById('company').value.trim();if(!name)return toast('Informe o nome da empresa.');await cloudError(await sb.from('companies').update({name}).eq('id',companyId));toast('Nome da empresa atualizado na nuvem.')}catch(e){toast('Erro ao atualizar empresa: '+translateError(e))}}
 render();
 showApp(false);
-async function resumeSession(){const {data}=await sb.auth.getSession();if(!data.session)return;try{currentUser=data.session.user;const {data:members,error}=await sb.from('company_members').select('company_id,role').eq('user_id',currentUser.id);if(error)throw error;if(!members?.length)throw new Error('Usuário sem vínculo com empresa.');companyId=members[0].company_id;companyRole=members[0].role;const {data:co,error:ce}=await sb.from('companies').select('id,name').eq('id',companyId).single();if(ce)throw ce;document.getElementById('company').value=co.name;await loadCloudData();showApp(true);render();go('inicio');}catch(e){await sb.auth.signOut({scope:'local'});currentUser=null;companyId=null;companyRole=null;products=[];clients=[];rentals=[];transactions=[];showApp(false);authMessage(e.message||'Faça login novamente.',true)}}
+async function resumeSession(){const {data}=await sb.auth.getSession();if(!data.session)return;try{currentUser=data.session.user;const {data:members,error}=await sb.from('company_members').select('company_id,role').eq('user_id',currentUser.id);if(error)throw error;if(!members?.length)throw new Error('Usuário sem vínculo com empresa.');companyId=members[0].company_id;companyRole=members[0].role;const {data:co,error:ce}=await sb.from('companies').select('id,name').eq('id',companyId).single();if(ce)throw ce;document.getElementById('company').value=co.name;await loadCloudData();showApp(true);render();go('inicio');}catch(e){await sb.auth.signOut({scope:'local'});currentUser=null;companyId=null;companyRole=null;products=[];clients=[];rentals=[];transactions=[];showApp(false);authMessage(translateError(e),true)}}
 initializeAuthFlow();
 if('serviceWorker' in navigator && location.protocol.startsWith('http'))navigator.serviceWorker.register('sw.js').catch(()=>{});
 </script>
