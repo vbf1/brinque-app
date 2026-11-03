@@ -118,12 +118,12 @@ let transactions=JSON.parse(localStorage.getItem('brq_transactions')||'[]');
 function persist(){localStorage.setItem('brq_products',JSON.stringify(products));localStorage.setItem('brq_clients',JSON.stringify(clients));localStorage.setItem('brq_rentals',JSON.stringify(rentals));localStorage.setItem('brq_transactions',JSON.stringify(transactions))}
 const SUPABASE_URL='https://wcxvswomcfpeuhnbxivh.supabase.co';
 const SUPABASE_ANON_KEY='sb_publishable_hC1UBMmLe0U41oUHfFxfMQ_mYrsel51';
-const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
-let currentUser=null,companyId=null,companyRole=null;
+const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+let currentUser=null,companyId=null,companyRole=null,recoveryFlowActive=false,recoveryUserId=null;
 function isAdmin(){return ['owner','admin'].includes(companyRole)}
 function applyRoleUI(){document.querySelectorAll('[data-admin-only]').forEach(el=>el.classList.toggle('hidden',!isAdmin()))}
 function authMessage(msg,isError=false){const el=document.getElementById('authMessage');el.textContent=msg;el.style.color=isError?'#c94b4b':'var(--muted)'}
-function showRecoveryScreen(){showApp(false);document.getElementById('recoveryPanel').classList.remove('hidden');document.getElementById('loginFields').classList.add('hidden');document.getElementById('recoveryMessage').textContent='Link de recuperação reconhecido. Defina sua nova senha abaixo.';}
+function showRecoveryScreen(){showApp(false);document.getElementById('forgotPasswordPanel').classList.add('hidden');document.getElementById('recoveryPanel').classList.remove('hidden');document.getElementById('loginFields').classList.add('hidden');document.getElementById('recoveryMessage').textContent='Link de recuperação reconhecido. Defina sua nova senha abaixo.';}
 function showForgotPassword(){document.getElementById('loginFields').classList.add('hidden');document.getElementById('recoveryPanel').classList.add('hidden');document.getElementById('forgotPasswordPanel').classList.remove('hidden');const email=document.getElementById('loginEmail').value.trim();if(email)document.getElementById('recoveryEmail').value=email;document.getElementById('forgotMessage').textContent='';}
 function showLoginScreen(message=''){document.getElementById('recoveryPanel').classList.add('hidden');document.getElementById('forgotPasswordPanel').classList.add('hidden');document.getElementById('loginFields').classList.remove('hidden');if(message)authMessage(message);}
 async function requestPasswordReset(){
@@ -135,21 +135,9 @@ async function requestPasswordReset(){
  finally{btn.disabled=false;btn.textContent='Enviar link de recuperação';}
 }
 async function ensureRecoverySession(){
- let {data,error}=await sb.auth.getSession();if(error)throw error;if(data.session)return data.session;
- const hashParams=new URLSearchParams(window.location.hash.replace(/^#/,''));
- const accessToken=hashParams.get('access_token'),refreshToken=hashParams.get('refresh_token');
- if(accessToken&&refreshToken){
-  const {data:setData,error:setError}=await sb.auth.setSession({access_token:accessToken,refresh_token:refreshToken});
-  if(setError)throw setError;if(setData.session)return setData.session;
- }
- const code=new URLSearchParams(window.location.search).get('code');
- if(code){
-  const {data:exchangeData,error:exchangeError}=await sb.auth.exchangeCodeForSession(code);
-  if(!exchangeError&&exchangeData.session)return exchangeData.session;
-  const latest=await sb.auth.getSession();if(latest.data?.session)return latest.data.session;
-  if(exchangeError)throw exchangeError;
- }
- throw new Error('O link de recuperação não está mais conectado à sua sessão. Volte ao login, solicite um novo link e abra-o novamente no mesmo navegador.');
+ const {data,error}=await sb.auth.getSession();if(error)throw error;
+ if(!recoveryFlowActive||!data.session||!recoveryUserId||data.session.user.id!==recoveryUserId)throw new Error('A sessão de recuperação não está válida. Solicite um novo link e abra-o novamente.');
+ return data.session;
 }
 async function saveNewPassword(){
  const password=document.getElementById('newPassword').value,confirm=document.getElementById('confirmPassword').value;
@@ -157,13 +145,44 @@ async function saveNewPassword(){
  if(password.length<6){msg.textContent='A senha precisa ter pelo menos 6 caracteres.';return;}
  if(password!==confirm){msg.textContent='As senhas não são iguais. Confira e tente novamente.';return;}
  btn.disabled=true;btn.textContent='Salvando...';msg.textContent='Validando o link e atualizando sua senha...';
- try{await ensureRecoverySession();const {error}=await sb.auth.updateUser({password});if(error)throw error;await sb.auth.signOut();document.getElementById('newPassword').value='';document.getElementById('confirmPassword').value='';showLoginScreen('Senha alterada com sucesso! Agora entre com sua nova senha.');}
+ try{await ensureRecoverySession();const {error}=await sb.auth.updateUser({password});if(error)throw error;recoveryFlowActive=false;recoveryUserId=null;await sb.auth.signOut({scope:'local'});document.getElementById('newPassword').value='';document.getElementById('confirmPassword').value='';showLoginScreen('Senha alterada com sucesso! Agora entre com sua nova senha.');}
  catch(e){msg.textContent=e.message||'Não foi possível alterar a senha. Solicite um novo link.';}
  finally{btn.disabled=false;btn.textContent='Salvar nova senha';}
 }
 function showApp(show){document.getElementById('authGate').style.display=show?'none':'grid';document.querySelector('header').style.display=show?'':'none';document.querySelector('main').style.display=show?'':'none';document.getElementById('menuBackdrop').style.display=show?'':'none';document.getElementById('menuPanel').style.display=show?'':'none'}
 // O Supabase emite PASSWORD_RECOVERY quando o link de redefinição é aberto.
 sb.auth.onAuthStateChange((event,session)=>{if(event==='PASSWORD_RECOVERY'){currentUser=session?.user||null;showRecoveryScreen();}});
+// Links de recuperação têm prioridade sobre qualquer sessão antiga salva no aparelho.
+sb.auth.onAuthStateChange((event,session)=>{
+ if(event==='PASSWORD_RECOVERY'&&session?.user){recoveryFlowActive=true;recoveryUserId=session.user.id;currentUser=session.user;showRecoveryScreen();}
+});
+async function initializeAuthFlow(){
+ const hash=new URLSearchParams(window.location.hash.replace(/^#/,''));
+ const query=new URLSearchParams(window.location.search);
+ const code=query.get('code'),tokenHash=query.get('token_hash'),type=query.get('type')||hash.get('type');
+ const accessToken=hash.get('access_token'),refreshToken=hash.get('refresh_token');
+ const hasRecoveryLink=type==='recovery'||!!code||!!tokenHash||!!(accessToken&&refreshToken);
+ if(hasRecoveryLink){
+  recoveryFlowActive=true;showApp(false);
+  try{
+   await sb.auth.signOut({scope:'local'});
+   let session=null;
+   if(code){const {data,error}=await sb.auth.exchangeCodeForSession(code);if(error)throw error;session=data.session;}
+   else if(tokenHash){const {data,error}=await sb.auth.verifyOtp({token_hash:tokenHash,type:'recovery'});if(error)throw error;session=data.session;}
+   else if(accessToken&&refreshToken){const {data,error}=await sb.auth.setSession({access_token:accessToken,refresh_token:refreshToken});if(error)throw error;session=data.session;}
+   if(!session){const {data,error}=await sb.auth.getSession();if(error)throw error;session=data.session;}
+   if(!session?.user)throw new Error('O link não criou uma sessão de recuperação válida.');
+   recoveryUserId=session.user.id;currentUser=session.user;
+   window.history.replaceState({},document.title,window.location.pathname);
+   showRecoveryScreen();
+  }catch(e){
+   recoveryFlowActive=false;recoveryUserId=null;await sb.auth.signOut({scope:'local'}).catch(()=>{});
+   showLoginScreen();authMessage('Não foi possível validar esse link. Solicite um novo link de recuperação e abra-o novamente.',true);
+  }
+  return;
+ }
+ await resumeSession();
+}
 async function loginApp(){
  const email=document.getElementById('loginEmail').value.trim(),password=document.getElementById('loginPassword').value;
  if(!email||!password)return authMessage('Informe seu e-mail e sua senha.',true);
@@ -176,7 +195,18 @@ async function loginApp(){
   document.getElementById('company').value=co.name;await loadCloudData();showApp(true);render();go('inicio');toast('Conectado à nuvem com sucesso.');
  }catch(e){authMessage(e.message||'Não foi possível entrar.',true);await sb.auth.signOut().catch(()=>{});}finally{btn.disabled=false;btn.textContent='Entrar';}
 }
-async function logoutApp(){await sb.auth.signOut();currentUser=null;companyId=null;showApp(false);authMessage('Você saiu da sua conta. Entre novamente para acessar os dados.')}
+async function logoutApp(){
+ try{await sb.auth.signOut({scope:'local'});}catch(e){console.warn('Falha ao encerrar sessão:',e);}
+ currentUser=null;companyId=null;companyRole=null;recoveryFlowActive=false;recoveryUserId=null;
+ products=[];clients=[];rentals=[];transactions=[];
+ try{localStorage.clear();sessionStorage.clear();}catch(e){console.warn('Falha ao limpar armazenamento local:',e);}
+ try{if('caches' in window){const keys=await caches.keys();await Promise.all(keys.filter(k=>k.startsWith('brinque-app-')).map(k=>caches.delete(k)));}}catch(e){console.warn('Falha ao limpar cache:',e);}
+ document.getElementById('company').value='';
+ document.querySelectorAll('#authGate input, main input, main textarea').forEach(el=>{el.value='';});
+ document.getElementById('newPassword').value='';document.getElementById('confirmPassword').value='';
+ showLoginScreen();showApp(false);render();
+ authMessage('Você saiu. Sessão, dados locais e cache do aplicativo limpos. Os dados da empresa continuam salvos na nuvem.');
+}
 async function loadCloudData(){
  if(!localStorage.getItem('brq_legacy_backup_v1')){localStorage.setItem('brq_legacy_backup_v1',JSON.stringify({products:localStorage.getItem('brq_products'),clients:localStorage.getItem('brq_clients'),rentals:localStorage.getItem('brq_rentals'),transactions:localStorage.getItem('brq_transactions'),company:localStorage.getItem('brq_company')}));}
  const [cr,pr,rr,tr]=await Promise.all([
@@ -250,8 +280,8 @@ function render(){
 async function saveCompany(){if(!isAdmin())return toast('Somente proprietário e administradores podem alterar configurações.');try{const name=document.getElementById('company').value.trim();if(!name)return toast('Informe o nome da empresa.');await cloudError(await sb.from('companies').update({name}).eq('id',companyId));toast('Nome da empresa atualizado na nuvem.')}catch(e){toast('Erro ao atualizar empresa: '+e.message)}}
 render();
 showApp(false);
-async function resumeSession(){const {data}=await sb.auth.getSession();if(!data.session)return;try{currentUser=data.session.user;const {data:members,error}=await sb.from('company_members').select('company_id,role').eq('user_id',currentUser.id);if(error)throw error;if(!members?.length)throw new Error('Usuário sem vínculo com empresa.');companyId=members[0].company_id;companyRole=members[0].role;const {data:co,error:ce}=await sb.from('companies').select('id,name').eq('id',companyId).single();if(ce)throw ce;document.getElementById('company').value=co.name;await loadCloudData();showApp(true);render();go('inicio');}catch(e){await sb.auth.signOut();authMessage(e.message||'Faça login novamente.',true)}}
-resumeSession();
+async function resumeSession(){const {data}=await sb.auth.getSession();if(!data.session)return;try{currentUser=data.session.user;const {data:members,error}=await sb.from('company_members').select('company_id,role').eq('user_id',currentUser.id);if(error)throw error;if(!members?.length)throw new Error('Usuário sem vínculo com empresa.');companyId=members[0].company_id;companyRole=members[0].role;const {data:co,error:ce}=await sb.from('companies').select('id,name').eq('id',companyId).single();if(ce)throw ce;document.getElementById('company').value=co.name;await loadCloudData();showApp(true);render();go('inicio');}catch(e){await sb.auth.signOut({scope:'local'});currentUser=null;companyId=null;companyRole=null;products=[];clients=[];rentals=[];transactions=[];showApp(false);authMessage(e.message||'Faça login novamente.',true)}}
+initializeAuthFlow();
 if('serviceWorker' in navigator && location.protocol.startsWith('http'))navigator.serviceWorker.register('sw.js').catch(()=>{});
 </script>
 </body></html>
