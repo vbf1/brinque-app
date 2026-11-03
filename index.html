@@ -558,7 +558,44 @@ function openForm(type,recordId=null){
  if(type==='client'){title.textContent=record?'Editar cliente':'Novo cliente';body.innerHTML=`<label>Nome</label><input id="fName" placeholder="Nome completo" value="${record?employeeEscape(record.name):''}"><label>Telefone</label><input id="fPhone" placeholder="Telefone" value="${record?employeeEscape(record.phone):''}"><label>Endereço</label><input id="fAddress" placeholder="Endereço" value="${record?employeeEscape(record.address):''}"><button class="full" onclick="saveClient()">${record?'Salvar alterações':'Salvar cliente'}</button>`}
  if(type==='product'){title.textContent=record?'Editar brinquedo':'Novo brinquedo';body.innerHTML=`<label>Nome do brinquedo</label><input id="fProduct" placeholder="Ex.: Tobogã inflável" value="${record?employeeEscape(record.name):''}"><label>Tipo de controle</label><select id="fMode" ${record?'disabled':''}><option ${!record||record.mode==='Individual'?'selected':''}>Individual</option><option ${record&&record.mode==='Quantidade'?'selected':''}>Quantidade</option></select>${record?'<p class="muted">O tipo de controle não pode ser alterado após a criação para preservar o histórico do estoque.</p>':''}<div class="formgrid"><div><label>Quantidade total</label><input id="fTotal" type="number" min="1" placeholder="Quantidade" value="${record?record.total:''}"></div><div><label>Preço da diária</label><input id="fPPrice" type="number" min="0" step="0.01" placeholder="0,00" value="${record?record.price:''}"></div></div><button class="full" onclick="saveProduct()">${record?'Salvar alterações':'Salvar brinquedo'}</button>`}
  if(type==='transaction'){title.textContent=record?'Editar lançamento':'Novo lançamento';body.innerHTML=`<label>Descrição</label><input id="fDesc" placeholder="Ex.: Combustível" value="${record?employeeEscape(record.name):''}"><label>Tipo</label><select id="fType"><option ${!record||record.type==='Entrada'?'selected':''}>Entrada</option><option ${record&&record.type==='Saída'?'selected':''}>Saída</option></select><label>Valor (R$)</label><input id="fValue" type="number" min="0" step="0.01" placeholder="0,00" value="${record?record.value:''}"><button class="full" onclick="saveTransaction()">${record?'Salvar alterações':'Salvar lançamento'}</button>`}
+
+ if(record&&['rental','client','product','transaction'].includes(type)){
+  body.insertAdjacentHTML('beforeend', '<div style="border-top:1px solid var(--line);margin-top:18px;padding-top:14px"><button type="button" class="btn-light full" style="color:#c94b4b;border-color:#e7b5b5" onclick="deleteRecord(\\''+type+'\\',\\''+record.id+'\\')">Excluir cadastro</button><p class="muted" style="margin:7px 0 0;text-align:center">Essa ação exige confirmação.</p></div>');
+ }
 }
+
+async function deleteRecord(type,recordId){
+ if(!recordId)return toast('Não foi possível identificar o cadastro.');
+ if(type==='transaction'&&!isAdmin())return toast('Acesso financeiro restrito ao proprietário e administradores.');
+ const labels={rental:'locação',client:'cliente',product:'brinquedo',transaction:'lançamento financeiro'};
+ const label=labels[type];if(!label)return;
+ if(type==='product'){
+  const hasActiveRental=rentals.some(r=>['pending','confirmed','ongoing'].includes(r.dbStatus)&&(r.items||[]).some(i=>i.productId===recordId));
+  if(hasActiveRental)return toast('Este brinquedo possui locações pendentes, confirmadas ou em andamento. Finalize ou cancele essas locações antes de arquivá-lo.');
+ }
+ let message='Deseja realmente excluir este '+label+'? Esta ação não poderá ser desfeita.';
+ if(type==='client')message='Excluir este cliente? As locações já registradas serão preservadas, mas deixarão de ficar vinculadas a ele.';
+ if(type==='rental')message='Excluir esta locação? Os itens e eventos vinculados a ela serão removidos. Lançamentos financeiros e pagamentos relacionados serão preservados.';
+ if(type==='transaction')message='Excluir este lançamento financeiro? Eventuais registros de pagamento vinculados serão preservados, mas deixarão de apontar para este lançamento.';
+ if(type==='product')message='Remover este brinquedo do estoque ativo? Ele será arquivado para preservar o histórico de locações, unidades e movimentações.';
+ if(!confirm(message))return;
+ try{
+  let result;
+  if(type==='product'){
+   result=await sb.from('products').update({active:false}).eq('id',recordId).eq('company_id',companyId).eq('active',true).select('id').maybeSingle();
+  }else{
+   const table=type==='rental'?'rentals':type==='client'?'customers':'financial_transactions';
+   result=await sb.from(table).delete().eq('id',recordId).eq('company_id',companyId).select('id').maybeSingle();
+  }
+  if(result.error)throw result.error;
+  if(!result.data)throw new Error('O cadastro não foi encontrado ou você não tem permissão para excluí-lo.');
+  await loadCloudData();
+  editingRecordId=null;
+  go(type==='rental'?'locacoes':type==='client'?'clientes':type==='product'?'estoque':'financeiro');
+  toast(type==='product'?'Brinquedo arquivado e removido do estoque ativo.':'Cadastro excluído com sucesso.');
+ }catch(e){toast('Não foi possível excluir '+label+': '+translateError(e))}
+}
+
 async function saveRentalDetails(){
  const customerId=document.getElementById('fClient').value,date=document.getElementById('fDate').value,endDate=document.getElementById('fEndDate').value,price=Number(document.getElementById('fPrice').value),status=document.getElementById('fStatus').value,mode=document.getElementById('fMode').value;
  if(!editingRecordId||!customerId||!date||!endDate||endDate<date||price<=0)return toast('Confira cliente, período e valor.');
