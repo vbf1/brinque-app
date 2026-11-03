@@ -86,7 +86,7 @@ Deno.serve(async (req) => {
           invited_by_name: inviterName,
           invited_by_email: authData.user.email || "",
           invited_role: roleLabel,
-          app_name: "Brinque App",
+          app_name: "KidsLoc App",
         },
         redirectTo: "https://vbf1.github.io/brinque-app/",
       });
