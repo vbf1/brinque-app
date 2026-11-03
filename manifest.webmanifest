@@ -1,6 +1,6 @@
 {
-  "name": "Brinque App - Gestão de Locações",
-  "short_name": "Brinque App",
+  "name": "KidsLoc App - Gestão de Locações",
+  "short_name": "KidsLoc App",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#f2f5fa",
