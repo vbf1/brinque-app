@@ -88,7 +88,7 @@ Deno.serve(async (req) => {
           invited_role: roleLabel,
           app_name: "KidsLoc App",
         },
-        redirectTo: "https://vbf1.github.io/brinque-app/",
+        redirectTo: "https://vbf1.github.io/kidsloc-app/",
       });
       if (inviteError) {
         const lower = inviteError.message.toLowerCase();
