@@ -16,7 +16,13 @@ self.addEventListener('push',event=>{
  const title=data.title||'Brinque App';
  const options={
   body:data.body||'Há uma atualização na equipe da sua empresa.',
+  icon:'https://vbf1.github.io/brinque-app/notification-icon.svg',
+  badge:'https://vbf1.github.io/brinque-app/notification-icon.svg',
+  lang:'pt-BR',
+  dir:'auto',
   tag:data.tag||'brinque-notification',
+  timestamp:Date.now(),
+  vibrate:[120,60,120],
   data:{url:data.url||'https://vbf1.github.io/brinque-app/'},
   renotify:false
  };
