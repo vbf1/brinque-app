@@ -332,6 +332,168 @@ Deno.serve(async (req: Request) => {
     if (!suppliedSecret || !expectedSecret || suppliedSecret !== expectedSecret) {
       return reply({ error: "Webhook não autorizado." }, 401);
     }
+    if (body?.action === "event_reminders") {
+      // Cron is authenticated with the same Vault-backed secret as the existing
+      // database webhook. No user session or paid notification provider is used.
+      const now = new Date();
+      const dateParts = new Intl.DateTimeFormat("en-CA", {
+        timeZone: "America/Sao_Paulo",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+      }).formatToParts(now);
+      const datePart = (type: string) => dateParts.find((part) => part.type === type)?.value || "";
+      const today = datePart("year") + "-" + datePart("month") + "-" + datePart("day");
+      const timeParts = new Intl.DateTimeFormat("en-GB", {
+        timeZone: "America/Sao_Paulo",
+        hour: "2-digit",
+        minute: "2-digit",
+        hourCycle: "h23",
+      }).formatToParts(now);
+      const timePart = (type: string) => Number(timeParts.find((part) => part.type === type)?.value || 0);
+      const currentMinutes = timePart("hour") * 60 + timePart("minute");
+      const dateAtUtc = (value: string) => {
+        const [year, month, day] = value.split("-").map(Number);
+        return Date.UTC(year, month - 1, day);
+      };
+      const maxDateObject = new Date(dateAtUtc(today) + 30 * 86400000);
+      const maxDate = maxDateObject.toISOString().slice(0, 10);
+
+      // Recover a processing reservation left behind by a terminated invocation.
+      await admin.from("rental_event_reminder_deliveries")
+        .delete().eq("status", "processing")
+        .lt("created_at", new Date(Date.now() - 10 * 60 * 1000).toISOString());
+
+      const [
+        { data: globalSettings, error: settingsError },
+        { data: overrides, error: overridesError },
+        { data: rentals, error: rentalsError },
+      ] = await Promise.all([
+        admin.from("company_event_reminder_settings").select("company_id,enabled,days_before,notifications_per_day"),
+        admin.from("rental_event_reminder_settings").select("rental_id,company_id,enabled,days_before,notifications_per_day"),
+        admin.from("rentals").select("id,company_id,start_date,status,customers(name)")
+          .in("status", ["confirmed", "ongoing"])
+          .gte("start_date", today).lte("start_date", maxDate),
+      ]);
+      if (settingsError) throw settingsError;
+      if (overridesError) throw overridesError;
+      if (rentalsError) throw rentalsError;
+
+      const rentalIds = (rentals || []).map((rental) => rental.id);
+      const companyIds = [...new Set((rentals || []).map((rental) => rental.company_id))];
+      const [{ data: adminMembers, error: adminMembersError }, { data: responsibleRows, error: responsibleError }] =
+        rentalIds.length
+          ? await Promise.all([
+              admin.from("company_members").select("company_id,user_id")
+                .in("company_id", companyIds).in("role", ["owner", "admin"]),
+              admin.from("rental_responsibles").select("rental_id,user_id")
+                .in("rental_id", rentalIds).not("user_id", "is", null),
+            ])
+          : [{ data: [], error: null }, { data: [], error: null }];
+      if (adminMembersError) throw adminMembersError;
+      if (responsibleError) throw responsibleError;
+      const adminsByCompany = new Map<string, Set<string>>();
+      for (const member of adminMembers || []) {
+        if (!adminsByCompany.has(member.company_id)) adminsByCompany.set(member.company_id, new Set());
+        adminsByCompany.get(member.company_id)?.add(member.user_id);
+      }
+      const responsiblesByRental = new Map<string, Set<string>>();
+      for (const responsible of responsibleRows || []) {
+        if (!responsiblesByRental.has(responsible.rental_id)) responsiblesByRental.set(responsible.rental_id, new Set());
+        responsiblesByRental.get(responsible.rental_id)?.add(responsible.user_id);
+      }
+
+      const globalByCompany = new Map((globalSettings || []).map((item) => [item.company_id, item]));
+      const overrideByRental = new Map((overrides || []).map((item) => [item.rental_id, item]));
+      const slotHoursByFrequency: Record<number, number[]> = {
+        1: [9],
+        2: [9, 19],
+        3: [9, 14, 19],
+        4: [9, 12, 16, 19],
+      };
+      let sent = 0;
+      let evaluated = 0;
+      let skipped = 0;
+
+      for (const rental of rentals || []) {
+        const override = overrideByRental.get(rental.id);
+        const global = globalByCompany.get(rental.company_id);
+        const reminder = override
+          ? (override.enabled ? override : null)
+          : (global?.enabled ? global : null);
+        if (!reminder) {
+          skipped++;
+          continue;
+        }
+
+        const daysUntilEvent = Math.round((dateAtUtc(rental.start_date) - dateAtUtc(today)) / 86400000);
+        if (daysUntilEvent < 1 || daysUntilEvent > Number(reminder.days_before)) continue;
+        evaluated++;
+
+        const slots = slotHoursByFrequency[Number(reminder.notifications_per_day)] || [9];
+        for (let index = 0; index < slots.length; index++) {
+          const slotMinute = slots[index] * 60;
+          // Each slot has a one-hour retry window. The delivery ledger ensures
+          // only one successful notification per event and slot.
+          if (currentMinutes < slotMinute || currentMinutes >= slotMinute + 60) continue;
+
+          const reservation = await admin.from("rental_event_reminder_deliveries")
+            .upsert({
+              company_id: rental.company_id,
+              rental_id: rental.id,
+              reminder_date: today,
+              slot_index: index + 1,
+              status: "processing",
+            }, {
+              onConflict: "rental_id,reminder_date,slot_index",
+              ignoreDuplicates: true,
+            })
+            .select("id")
+            .maybeSingle();
+          if (reservation.error) throw reservation.error;
+          if (!reservation.data?.id) continue;
+
+          const customerName = String(rental.customers?.name || "Cliente");
+          const dayText = daysUntilEvent === 1 ? "amanhã" : "daqui a " + daysUntilEvent + " dias";
+          // Send only to company administrators and staff explicitly assigned
+          // to this rental, so private event details are never broadcast to all staff.
+          const recipients = new Set([
+            ...(adminsByCompany.get(rental.company_id) || []),
+            ...(responsiblesByRental.get(rental.id) || []),
+          ]);
+          let sentForEvent = 0;
+          for (const userId of recipients) {
+            const result = await sendFcmNotifications(
+              admin,
+              rental.company_id,
+              "Evento se aproximando",
+              customerName + " tem uma locação " + dayText + ". Confira os detalhes no KidsLoc.",
+              userId,
+            );
+            sentForEvent += result.sent;
+          }
+
+          if (sentForEvent > 0) {
+            const { error: deliveryError } = await admin.from("rental_event_reminder_deliveries")
+              .update({
+                status: "sent",
+                device_count: sentForEvent,
+                sent_at: new Date().toISOString(),
+              })
+              .eq("id", reservation.data.id);
+            if (deliveryError) throw deliveryError;
+            sent += sentForEvent;
+          } else {
+            // Keep the slot eligible for retry if Firebase or the device is unavailable.
+            await admin.from("rental_event_reminder_deliveries")
+              .delete().eq("id", reservation.data.id);
+          }
+        }
+      }
+
+      return reply({ ok: true, date: today, evaluated, sent, skipped });
+    }
+
     const config = await getPushConfig(admin);
 
     const record = body?.record;
