@@ -1,4 +1,4 @@
-# Brinque App — Sonho Kids Brinquedos
+# KidsLoc App — Sonho Kids Brinquedos
 
 Aplicativo web instalável (PWA), preparado para publicação no GitHub Pages e conexão com Supabase.
 
