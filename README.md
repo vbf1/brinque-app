@@ -22,7 +22,7 @@ A aplicação usa a URL do projeto e a chave pública `publishable` no navegador
 As contas precisam existir em **Authentication → Users** e estar vinculadas à empresa em `company_members`.
 
 ## Recuperação de senha
-Ao abrir o link de recuperação enviado pelo Supabase, o aplicativo reconhece o evento `PASSWORD_RECOVERY` e exibe o formulário para cadastrar e confirmar uma nova senha. O endereço do GitHub Pages deve estar cadastrado em **Authentication → URL Configuration → Redirect URLs**.
+Ao abrir o link de recuperação enviado pelo Supabase, o aplicativo reconhece o evento `PASSWORD_RECOVERY` e exibe o formulário para cadastrar e confirmar uma nova senha. O endereço `https://vbf1.github.io/kidsloc-app/` deve estar cadastrado em **Authentication → URL Configuration → Site URL** e em **Redirect URLs**.
 
 ## Limitações importantes desta etapa
 - A locação registra o intervalo como um único dia (data do evento).
