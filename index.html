@@ -243,7 +243,7 @@ async function loginApp(){
  const email=document.getElementById('loginEmail').value.trim(),password=document.getElementById('loginPassword').value;
  if(!email||!password)return authMessage('Informe seu e-mail e sua senha.',true);
  const btn=document.getElementById('loginButton');btn.disabled=true;btn.textContent='Entrando...';authMessage('Validando seu acesso...');
- try{const {data,error}=await sb.auth.signInWithPassword({email,password});if(error)throw error;currentUser=data.user;
+ try{const {data,error}=await sb.auth.signInWithPassword({email,password});if(error)throw error;currentUser=data.user;updateGreetingUser(currentUser);
   const {data:members,error:me}=await sb.from('company_members').select('company_id,role').eq('user_id',currentUser.id);
   if(me)throw me;if(!members||!members.length){await sb.auth.signOut();throw new Error('Esta conta ainda não está vinculada a uma empresa. Peça ao proprietário para conferir o cadastro do funcionário.');}
   companyId=members[0].company_id;companyRole=members[0].role;
