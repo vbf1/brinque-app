@@ -892,7 +892,7 @@ function renderPagedList(id,items,renderer,emptyMessage,options={}){
  let state=listPaginationState[id];
  if(!state)state=listPaginationState[id]={page:1,pageSize:6,signature:''};
  if(state.signature!==signature){state.page=1;state.signature=signature}
- const total=items.length,totalPages=Math.max(1,Math.ceil(total/state.pageSize));
+ state.items=items;state.renderer=renderer;state.emptyMessage=emptyMessage;state.options=options;\n const total=items.length,totalPages=Math.max(1,Math.ceil(total/state.pageSize));
  state.page=Math.min(Math.max(1,state.page),totalPages);
  const start=(state.page-1)*state.pageSize,visible=items.slice(start,start+state.pageSize);
  if(!total){el.innerHTML='<div class="empty-state">'+employeeEscape(emptyMessage)+'</div>';return}
@@ -912,8 +912,8 @@ function renderPagedList(id,items,renderer,emptyMessage,options={}){
  const controls=total>state.pageSize?'<div class="pagination-controls"><div class="pagination-summary">Mostrando <b>'+first+'–'+last+'</b> de <b>'+total+'</b></div><div class="pagination-actions"><label class="pagination-size-label">Por página <select aria-label="Quantidade por página" onchange="setListPageSize(\''+id+'\',this.value)">'+pageSizeOptions.map(n=>'<option value="'+n+'" '+(state.pageSize===n?'selected':'')+'>'+n+'</option>').join('')+'</select></label><div class="pagination-nav"><button type="button" class="pagination-arrow" '+(state.page===1?'disabled':'')+' onclick="setListPage(\''+id+'\','+(state.page-1)+')" aria-label="Página anterior">‹</button>'+pageButtons.join('')+'<button type="button" class="pagination-arrow" '+(state.page===totalPages?'disabled':'')+' onclick="setListPage(\''+id+'\','+(state.page+1)+')" aria-label="Próxima página">›</button></div></div></div>':'<div class="pagination-controls pagination-single"><div class="pagination-summary">'+total+' '+(total===1?'registro':'registros')+'</div><label class="pagination-size-label">Por página <select aria-label="Quantidade por página" onchange="setListPageSize(\''+id+'\',this.value)">'+pageSizeOptions.map(n=>'<option value="'+n+'" '+(state.pageSize===n?'selected':'')+'>'+n+'</option>').join('')+'</select></label></div>';
  el.innerHTML=content+controls;
 }
-function setListPage(id,page){const state=listPaginationState[id];if(!state)return;state.page=Number(page)||1;render()}
-function setListPageSize(id,size){const state=listPaginationState[id];if(!state)return;state.pageSize=Math.max(1,Number(size)||6);state.page=1;render()}
+function setListPage(id,page){const state=listPaginationState[id];if(!state)return;state.page=Number(page)||1;renderPagedList(id,state.items||[],state.renderer||(()=>''),state.emptyMessage||'Nenhum registro encontrado.',state.options||{})}
+function setListPageSize(id,size){const state=listPaginationState[id];if(!state)return;state.pageSize=Math.max(1,Number(size)||6);state.page=1;renderPagedList(id,state.items||[],state.renderer||(()=>''),state.emptyMessage||'Nenhum registro encontrado.',state.options||{})}
 function render(){
  applyRoleUI();
  const sumType=type=>transactions.filter(t=>t.type===type).reduce((s,t)=>s+Number(t.value||0),0);
