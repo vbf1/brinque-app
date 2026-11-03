@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <script>
-if(location.hostname==='localhost'||location.protocol==='capacitor:'){document.write('<script src="capacitor.js"></'+'script>');}
+if(location.hostname==='localhost'||location.protocol==='capacitor:'){document.write('<script src="capacitor.js"></'+'script>');document.write('<script src="native-push.bundle.js"></'+'script>');}
 </script>
 <meta name="theme-color" content="#172b4d">
 <title>KidsLoc App | Gestão</title>
@@ -673,9 +673,7 @@ function urlBase64ToUint8Array(value){
 function withPushTimeout(promise,milliseconds,message){let timer;return Promise.race([Promise.resolve(promise),new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error(message)),milliseconds)})]).finally(()=>clearTimeout(timer))}
 async function getNativePushPlugin(){
  if(!window.Capacitor?.isNativePlatform?.()||window.Capacitor?.getPlatform?.()!=='android')return null;
- if(window.KidsLocPushNotifications)return window.KidsLocPushNotifications;
- if(window.__kidsLocNativePushReady)await withPushTimeout(window.__kidsLocNativePushReady,10000,'O módulo nativo de notificações demorou para carregar. Feche e abra o app novamente.');
- if(!window.KidsLocPushNotifications)throw new Error('O módulo de notificações Android não foi carregado. Feche e abra o app novamente.');
+ if(!window.KidsLocPushNotifications)throw new Error('O módulo nativo de notificações não foi inicializado. Reinicie o app; se persistir, será necessário reinstalar a versão atualizada.');
  return window.KidsLocPushNotifications;
 }
 let nativePushListenersReady=false;
@@ -1359,15 +1357,5 @@ async function resumeSession(){
 initializeAuthFlow();
 if('serviceWorker' in navigator && location.protocol.startsWith('http'))navigator.serviceWorker.register('sw.js').catch(()=>{});
 </script>
-<script>
-if(window.Capacitor?.isNativePlatform?.()){
- window.__kidsLocNativePushReady=new Promise((resolve,reject)=>{
-  const loader=document.createElement('script');
-  loader.src='native-push.bundle.js';
-  loader.onload=resolve;
-  loader.onerror=()=>reject(new Error('Falha ao carregar módulo de notificações Android.'));
-  document.head.appendChild(loader);
- });
-}
-</script>
+
 </body></html>
