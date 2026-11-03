@@ -562,7 +562,22 @@ async function loadCloudData(){
   :{data:[],error:null};
  if(profileResult.error)throw profileResult.error;
  const profileNames=new Map((profileResult.data||[]).map(profile=>[profile.id,profile.full_name]));
- companyEmployees=memberRows.map(m=>({id:m.user_id,name:profileNames.get(m.user_id)?.trim()||'Funcionário',role:m.role}));
+ // Administradores podem consultar a lista segura da Edge Function, que já retorna o e-mail de cada membro.
+ // Isso permite identificar membros sem nome cadastrado sem expor e-mails por consultas públicas ao Auth.
+ let memberDetailsById=new Map();
+ if(isAdmin()){
+  try{
+   const employeeData=await employeeApi({action:'list'});
+   memberDetailsById=new Map((employeeData.members||[]).map(member=>[member.user_id,member]));
+  }catch(error){console.warn('Não foi possível carregar e-mails da equipe para identificação:',error)}
+ }
+ companyEmployees=memberRows.map(m=>{
+  const details=memberDetailsById.get(m.user_id)||{};
+  const profileName=String(profileNames.get(m.user_id)||'').trim();
+  const fullName=String(details.full_name||'').trim();
+  const email=String(details.email||'').trim();
+  return {id:m.user_id,name:profileName||fullName||email||'Funcionário',email,role:m.role};
+ });
  rentalResponsibleRows=ar.data||[];
  clients=(cr.data||[]).map(c=>({id:c.id,name:c.name,phone:c.phone||'',address:c.address||''}));
  productUnits=ur.data||[];
