@@ -30,7 +30,13 @@ input,select,textarea{width:100%;padding:12px;border:1px solid var(--line);borde
 label{font-size:12px;color:var(--muted);font-weight:650}.formgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .panel{background:var(--surface);border:1px solid var(--line);border-radius:17px;padding:16px;margin:12px 0}
 .bar{height:10px;background:var(--line);border-radius:10px;overflow:hidden;margin:9px 0}.bar i{display:block;height:100%;background:var(--blue);border-radius:10px}
-.hidden{display:none!important}.toast{position:fixed;top:15px;left:50%;transform:translateX(-50%);background:#172b4d;color:white;padding:12px 16px;border-radius:12px;z-index:20;box-shadow:0 5px 20px #0003;max-width:90%;font-size:13px}
+.hidden{display:none!important}
+.toast{position:fixed;top:auto;right:auto;left:50%;bottom:calc(24px + env(safe-area-inset-bottom, 0px));transform:translate(-50%,14px);display:flex;align-items:center;gap:10px;width:max-content;max-width:min( calc(100vw - 32px), 440px);box-sizing:border-box;padding:13px 18px;border:1px solid #ffffff24;border-radius:16px;background:#172b4d;color:#fff;z-index:10000;box-shadow:0 10px 32px #172b4d38;font-size:13px;font-weight:650;line-height:1.45;text-align:left;opacity:0;visibility:hidden;pointer-events:none;transition:opacity .2s ease,transform .2s ease,visibility .2s}
+.toast:not(.hidden){opacity:1;visibility:visible;transform:translate(-50%,0)}
+.toast::before{content:"✓";display:grid;place-items:center;flex:0 0 23px;width:23px;height:23px;border-radius:50%;background:#ffffff20;color:#a7f3d0;font-size:14px;font-weight:800}
+.toast.toast-error::before{content:"!";background:#ffffff20;color:#fecaca}
+.toast.toast-info::before{content:"i";background:#ffffff20;color:#bfdbfe}
+@media(prefers-reduced-motion:reduce){.toast{transition:none}}
 @media(min-width:700px){main{padding:25px 24px 40px}.grid{grid-template-columns:repeat(4,1fr)}.actions{grid-template-columns:repeat(6,1fr)}}
 
 /* Padronização visual e alinhamento geral */
@@ -290,7 +296,7 @@ body.modal-open{overflow:hidden}
 <section id="config" class="hidden"><div class="section-title">Configurações</div><div class="panel"><label>Nome da empresa</label><input id="company" placeholder="Digite o nome da sua empresa"><button onclick="saveCompany()">Salvar dados</button><p class="muted">Os dados operacionais são carregados e salvos na nuvem quando você está conectado.</p></div></section>
 <section id="form" class="hidden"><div class="section-title"><span id="formTitle">Novo cadastro</span><button class="btn-light" onclick="closeForm()">Fechar</button></div><div class="panel" id="formBody"></div></section>
 </main>
-<div id="toast" class="toast hidden"></div>
+<div id="toast" class="toast hidden" role="status" aria-live="polite" aria-atomic="true"></div>
 <script>
 // Mantém os dados locais antigos como cópia de segurança; a fonte principal passa a ser o Supabase.
 let productImages=[];
@@ -500,7 +506,7 @@ async function cloudError(result){if(result?.error)throw result.error;return res
 
 function money(v){return Number(v).toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}
 function dateBR(d){if(!d)return '';let [y,m,day]=d.split('-');return `${day}/${m}/${y}`}
-function toast(s){let t=document.getElementById('toast');t.textContent=s;t.classList.remove('hidden');setTimeout(()=>t.classList.add('hidden'),2400)}
+let toastTimer=null;function toast(s,type='success'){const t=document.getElementById('toast');if(!t)return;clearTimeout(toastTimer);t.textContent=String(s||'');t.classList.remove('toast-error','toast-info','hidden');if(type==='error'||/falha|erro|não foi possível|não foi poss[ií]vel/i.test(String(s)))t.classList.add('toast-error');else if(type==='info')t.classList.add('toast-info');toastTimer=setTimeout(()=>t.classList.add('hidden'),3200)}
 let menuScrollY=0;function toggleMenu(force){const panel=document.getElementById('menuPanel'),backdrop=document.getElementById('menuBackdrop'),btn=document.querySelector('.menu-trigger');const open=typeof force==='boolean'?force:panel.classList.contains('hidden');if(open&&!document.body.classList.contains('menu-open')){menuScrollY=window.scrollY||window.pageYOffset;document.body.style.top=`-${menuScrollY}px`;document.body.classList.add('menu-open')}panel.classList.toggle('hidden',!open);backdrop.classList.toggle('hidden',!open);btn.setAttribute('aria-expanded',String(open));if(!open&&document.body.classList.contains('menu-open')){document.body.classList.remove('menu-open');document.body.style.top='';window.scrollTo(0,menuScrollY)}}
 
 function employeeEscape(value){return String(value||'').replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
