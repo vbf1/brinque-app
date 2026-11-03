@@ -560,7 +560,7 @@ function openForm(type,recordId=null){
  if(type==='transaction'){title.textContent=record?'Editar lançamento':'Novo lançamento';body.innerHTML=`<label>Descrição</label><input id="fDesc" placeholder="Ex.: Combustível" value="${record?employeeEscape(record.name):''}"><label>Tipo</label><select id="fType"><option ${!record||record.type==='Entrada'?'selected':''}>Entrada</option><option ${record&&record.type==='Saída'?'selected':''}>Saída</option></select><label>Valor (R$)</label><input id="fValue" type="number" min="0" step="0.01" placeholder="0,00" value="${record?record.value:''}"><button class="full" onclick="saveTransaction()">${record?'Salvar alterações':'Salvar lançamento'}</button>`}
 
  if(record&&['rental','client','product','transaction'].includes(type)){
-  body.insertAdjacentHTML('beforeend', '<div style="border-top:1px solid var(--line);margin-top:18px;padding-top:14px"><button type="button" class="btn-light full" style="color:#c94b4b;border-color:#e7b5b5" onclick="deleteRecord(\\''+type+'\\',\\''+record.id+'\\')">Excluir cadastro</button><p class="muted" style="margin:7px 0 0;text-align:center">Essa ação exige confirmação.</p></div>');
+  body.insertAdjacentHTML('beforeend', '<div style="border-top:1px solid var(--line);margin-top:18px;padding-top:14px"><button type="button" class="btn-light full" style="color:#c94b4b;border-color:#e7b5b5" onclick="deleteRecord(&quot;'+type+'&quot;,&quot;'+record.id+'&quot;)">Excluir cadastro</button><p class="muted" style="margin:7px 0 0;text-align:center">Essa ação exige confirmação.</p></div>');
  }
 }
 
