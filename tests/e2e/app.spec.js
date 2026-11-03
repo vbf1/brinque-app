@@ -20,7 +20,7 @@ test('autentica no backend isolado e carrega o painel', async ({ page }) => {
   await expect(page.locator('#inicio')).toBeVisible();
   await expect(page.locator('#greetingName')).toContainText('Conta');
 });
-test('todas as telas principais abrem pelo menu sem erro de JavaScript', async ({ page }) => {
+test('todas as telas principais abrem pelo menu e mantêm a navegação funcional', async ({ page }) => {
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
   await page.locator('#loginEmail').fill('owner@test.invalid');
