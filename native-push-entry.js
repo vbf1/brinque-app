@@ -1,9 +1,9 @@
 import { Capacitor } from '@capacitor/core';
-import { PushNotifications } from '@capacitor/push-notifications';
+import { FirebaseMessaging } from '@capacitor-firebase/messaging';
 import { App } from '@capacitor/app';
 
 window.Capacitor = window.Capacitor || Capacitor;
-window.KidsLocPushNotifications = PushNotifications;
+window.KidsLocFirebaseMessaging = FirebaseMessaging;
 window.KidsLocApp = App;
 
 App.addListener('backButton', ({ canGoBack }) => {
