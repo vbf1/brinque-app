@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#172b4d">
-<title>Brinque App | Gestão</title>
+<title>KidsLoc App | Gestão</title>
 <link rel="manifest" href="manifest.webmanifest">
 <style>
 :root{--bg:#f2f5fa;--surface:#fff;--ink:#172b4d;--muted:#718096;--line:#e3e9f2;--blue:#3478e5;--navy:#172b4d;--green:#16845b;--yellow:#ffd34e;--red:#c94b4b}
@@ -234,7 +234,7 @@ body.modal-open{overflow:hidden}
 <body>
 <div id="authGate" style="position:fixed;inset:0;z-index:50;background:var(--bg);display:grid;place-items:center;padding:22px">
  <div class="panel" style="width:min(430px,100%);margin:0">
-  <div style="font-size:22px;font-weight:850;color:var(--ink);margin-bottom:5px">BRINQUE APP</div>
+  <div style="font-size:22px;font-weight:850;color:var(--ink);margin-bottom:5px">KIDSLOC APP</div>
   <div class="muted" style="margin-bottom:18px">Acesse sua empresa Sonho Kids Brinquedos</div>
   <div id="loginFields">
    <label>E-mail</label><input id="loginEmail" type="email" autocomplete="username" placeholder="seuemail@exemplo.com">
@@ -276,7 +276,7 @@ body.modal-open{overflow:hidden}
  </section>
 </div>
 <header>
- <div class="headrow"><div class="brand"><div class="logo">✦</div><div>BRINQUE APP<div class="sub">GESTÃO DE LOCAÇÕES</div></div></div><div class="head-actions"><button class="btn-small" onclick="toggleTheme()">◐ Tema</button><nav id="nav" aria-label="Navegação principal"><button class="menu-trigger" onclick="toggleMenu()" aria-label="Abrir menu" aria-expanded="false"><span class="menu-icon"><i></i><i></i><i></i></span></button></nav></div></div>
+ <div class="headrow"><div class="brand"><div class="logo">✦</div><div>KIDSLOC APP<div class="sub">GESTÃO DE LOCAÇÕES</div></div></div><div class="head-actions"><button class="btn-small" onclick="toggleTheme()">◐ Tema</button><nav id="nav" aria-label="Navegação principal"><button class="menu-trigger" onclick="toggleMenu()" aria-label="Abrir menu" aria-expanded="false"><span class="menu-icon"><i></i><i></i><i></i></span></button></nav></div></div>
  <div class="greeting">Olá, <span id="greetingName">Bem-vindo</span> 👋<small>Sonho Kids Brinquedos · Gestão de locações sincronizada.</small></div>
 </header>
 <div id="menuBackdrop" class="menu-backdrop hidden" onclick="toggleMenu(false)"></div>
@@ -399,7 +399,7 @@ function showPasswordSetupScreen(flowType='recovery'){
  document.getElementById('loginFields').classList.add('hidden');
  const invite=flowType==='invite';
  document.getElementById('passwordSetupTitle').textContent=invite?'Aceitar convite e criar senha':'Criar nova senha';
- document.getElementById('passwordSetupDescription').textContent=invite?'Seu convite foi validado. Crie uma senha para ativar seu acesso ao Brinque App.':'Seu link de recuperação foi validado. Escolha uma nova senha para sua conta.';
+ document.getElementById('passwordSetupDescription').textContent=invite?'Seu convite foi validado. Crie uma senha para ativar seu acesso ao KidsLoc App.':'Seu link de recuperação foi validado. Escolha uma nova senha para sua conta.';
  document.getElementById('recoveryMessage').textContent=invite?'Defina sua senha para concluir o cadastro.':'Defina sua nova senha abaixo.';
 }
 function showForgotPassword(){
@@ -461,7 +461,7 @@ sb.auth.onAuthStateChange((event,session)=>{
   currentUser=null;companyId=null;companyRole=null;passwordSetupFlowActive=false;passwordSetupUserId=null;updateGreetingUser(null);
   products=[];productImages=[];clients=[];rentals=[];transactions=[];
   try{localStorage.clear();sessionStorage.clear();}catch(e){}
-  if('caches' in window)caches.keys().then(keys=>Promise.all(keys.filter(k=>k.startsWith('brinque-app-')).map(k=>caches.delete(k)))).catch(()=>{});
+  if('caches' in window)caches.keys().then(keys=>Promise.all(keys.filter(k=>k.startsWith('kidsloc-app-')).map(k=>caches.delete(k)))).catch(()=>{});
   if(document.getElementById('authGate')){showApp(false);render();}
  }
 });
@@ -509,7 +509,7 @@ async function logoutApp(){
  currentUser=null;companyId=null;companyRole=null;passwordSetupFlowActive=false;passwordSetupUserId=null;
  products=[];clients=[];rentals=[];transactions=[];companyEmployees=[];rentalResponsibleRows=[];occurrenceReports=[];editingOccurrenceId=null;
  try{localStorage.clear();sessionStorage.clear();}catch(e){console.warn('Falha ao limpar armazenamento local:',e);}
- try{if('caches' in window){const keys=await caches.keys();await Promise.all(keys.filter(k=>k.startsWith('brinque-app-')).map(k=>caches.delete(k)));}}catch(e){console.warn('Falha ao limpar cache:',e);}
+ try{if('caches' in window){const keys=await caches.keys();await Promise.all(keys.filter(k=>k.startsWith('kidsloc-app-')).map(k=>caches.delete(k)));}}catch(e){console.warn('Falha ao limpar cache:',e);}
  document.getElementById('company').value='';
  document.querySelectorAll('#authGate input, main input, main textarea').forEach(el=>{el.value='';});
  document.getElementById('newPassword').value='';document.getElementById('confirmPassword').value='';
