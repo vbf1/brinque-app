@@ -173,10 +173,9 @@ async function initializeAuthFlow(){
   recoveryFlowActive=true;showApp(false);
   try{
    let session=null;
-   if(code){const {data,error}=await sb.auth.exchangeCodeForSession(code);if(error){const latest=await sb.auth.getSession();if(latest.error||!latest.data.session)throw error;session=latest.data.session;}else session=data.session;}
+   if(code){const {data,error}=await sb.auth.exchangeCodeForSession(code);if(error)throw error;session=data.session;}
    else if(tokenHash){const {data,error}=await sb.auth.verifyOtp({token_hash:tokenHash,type:'recovery'});if(error)throw error;session=data.session;}
    else if(accessToken&&refreshToken){const {data,error}=await sb.auth.setSession({access_token:accessToken,refresh_token:refreshToken});if(error)throw error;session=data.session;}
-   if(!session){const {data,error}=await sb.auth.getSession();if(error)throw error;session=data.session;}
    if(!session?.user)throw new Error('O link não criou uma sessão de recuperação válida.');
    recoveryUserId=session.user.id;currentUser=session.user;
    window.history.replaceState({},document.title,window.location.pathname);
