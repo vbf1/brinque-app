@@ -473,7 +473,8 @@ async function loadEmployees(){
    let actions='';
    if(canManage&&companyRole==='owner')actions+='<button class="btn-light" onclick="changeEmployeeRole(\''+m.user_id+'\',\''+(m.role==='admin'?'staff':'admin')+'\')">'+(m.role==='admin'?'Tornar funcionário':'Tornar administrador')+'</button>';
    if(canManage)actions+='<button class="btn-light" style="color:#c94b4b" onclick="removeEmployee(\''+m.user_id+'\')">Remover acesso</button>';
-   return '<div class="item" style="align-items:flex-start"><div style="display:block!important;min-width:0;width:100%;flex:1 1 100%"><b style="display:block">'+name+'</b><div class="muted" style="display:block;width:100%;overflow-wrap:anywhere">'+email+'</div><span class="tag">'+roleLabel+'</span></div>'+(actions?'<div style="display:grid;gap:6px;min-width:112px">'+actions+'</div>':'')+'</div>';
+   if(companyRole==='owner'&&m.role!=='owner')actions+='<details style="border:1px solid var(--line);border-radius:10px;padding:8px;margin-top:3px"><summary style="cursor:pointer;font-size:12px;font-weight:700;color:var(--blue)">Alterar senha</summary><label style="margin-top:9px">Nova senha</label><input id="employeePassword-'+m.user_id+'" type="password" autocomplete="new-password" minlength="8" placeholder="Mínimo de 8 caracteres"><label>Confirmar nova senha</label><input id="employeePasswordConfirm-'+m.user_id+'" type="password" autocomplete="new-password" minlength="8" placeholder="Repita a senha"><button class="full btn-small" onclick="changeEmployeePassword(\\''+m.user_id+'\\')">Salvar nova senha</button></details>';
+   return '<div class="item" style="align-items:flex-start"><div style="display:block!important;min-width:0;width:100%;flex:1 1 100%"><b style="display:block">'+name+'</b><div class="muted" style="display:block;width:100%;overflow-wrap:anywhere">'+email+'</div><span class="tag">'+roleLabel+'</span></div>'+(actions?'<div style="display:grid;gap:6px;min-width:112px;width:100%">'+actions+'</div>':'')+'</div>';
   }).join(''):'<p class="muted">Nenhum membro cadastrado.</p>';
   lists.forEach(list=>list.innerHTML=html);
  }catch(e){
@@ -497,6 +498,21 @@ async function removeEmployee(userId){
  if(!isAdmin())return;if(!confirm('Remover o acesso desta pessoa à Sonho Kids Brinquedos? A conta dela no Supabase não será apagada.'))return;
  try{const data=await employeeApi({action:'remove',user_id:userId});toast(data.message||'Acesso removido.');await loadEmployees()}catch(e){toast(translateError(e))}
 }
+async function changeEmployeePassword(userId){
+ if(companyRole!=='owner')return toast('Somente o proprietário pode alterar senhas de outros usuários.');
+ const password=document.getElementById('employeePassword-'+userId)?.value||'';
+ const confirmation=document.getElementById('employeePasswordConfirm-'+userId)?.value||'';
+ if(password.length<8)return toast('A nova senha deve ter pelo menos 8 caracteres.');
+ if(password!==confirmation)return toast('As senhas não coincidem.');
+ if(!confirm('Definir esta nova senha para o funcionário selecionado?'))return;
+ try{
+  const data=await employeeApi({action:'change_password',user_id:userId,password});
+  const first=document.getElementById('employeePassword-'+userId),second=document.getElementById('employeePasswordConfirm-'+userId);
+  if(first)first.value='';if(second)second.value='';
+  toast(data.message||'Senha alterada com sucesso.');
+ }catch(e){toast('Não foi possível alterar a senha: '+translateError(e))}
+}
+
 
 let currentPage='inicio';
 let editingRecordId=null;
