@@ -615,17 +615,37 @@ async function loginApp(){
  }catch(e){console.error('Falha ao entrar ou carregar a empresa:',e);const {data:sessionData}=await sb.auth.getSession().catch(()=>({data:{session:null}}));if(sessionData?.session){showApp(false);authMessage('A autenticação foi concluída, mas houve uma falha ao carregar os dados da empresa. Sua sessão foi preservada. Toque em “Tentar restaurar minha sessão”.',true);document.getElementById('restoreSessionButton')?.classList.remove('hidden');}else{authMessage(translateError(e),true);}}finally{btn.disabled=false;btn.textContent='Entrar';}
 }
 async function logoutApp(){
- try{await removeNativePushRegistration(true);}catch(e){console.warn('Falha ao remover registro FCM:',e);}
- try{await sb.auth.signOut({scope:'local'});}catch(e){console.warn('Falha ao encerrar sessão:',e);}
+ const logoutButton=document.getElementById('menuLogoutButton');
+ if(logoutButton?.disabled)return;
+ const originalButtonHTML=logoutButton?.innerHTML;
+ if(logoutButton){logoutButton.disabled=true;logoutButton.innerHTML='<span>↪</span>Saindo...';}
+ try{toggleMenu(false);}catch(e){console.warn('Não foi possível fechar o menu:',e);}
+ // A limpeza do FCM é auxiliar: nunca deve impedir o encerramento da sessão.
+ try{
+  await Promise.race([
+   removeNativePushRegistration(true),
+   new Promise(resolve=>setTimeout(resolve,1200))
+  ]);
+ }catch(e){console.warn('Limpeza de notificações ignorada durante o logout:',e);}
+ try{
+  const result=await Promise.race([
+   sb.auth.signOut({scope:'local'}),
+   new Promise((_,reject)=>setTimeout(()=>reject(new Error('Tempo limite ao encerrar a sessão local.')),3000))
+  ]);
+  if(result?.error)throw result.error;
+ }catch(e){console.error('Falha ao encerrar sessão no Supabase:',e);}
  currentUser=null;companyId=null;companyRole=null;passwordSetupFlowActive=false;passwordSetupUserId=null;
- products=[];clients=[];rentals=[];transactions=[];companyEmployees=[];rentalResponsibleRows=[];occurrenceReports=[];editingOccurrenceId=null;
+ products=[];productImages=[];clients=[];rentals=[];transactions=[];companyEmployees=[];rentalResponsibleRows=[];occurrenceReports=[];editingOccurrenceId=null;
  try{localStorage.clear();sessionStorage.clear();}catch(e){console.warn('Falha ao limpar armazenamento local:',e);}
- try{if('caches' in window){const keys=await caches.keys();await Promise.all(keys.filter(k=>k.startsWith('kidsloc-app-')).map(k=>caches.delete(k)));}}catch(e){console.warn('Falha ao limpar cache:',e);}
+ try{
+  if('caches' in window)caches.keys().then(keys=>Promise.all(keys.filter(k=>k.startsWith('kidsloc-app-')).map(k=>caches.delete(k)))).catch(e=>console.warn('Falha ao limpar cache:',e));
+ }catch(e){console.warn('Falha ao iniciar limpeza do cache:',e);}
  document.getElementById('company').value='';
  document.querySelectorAll('#authGate input, main input, main textarea').forEach(el=>{el.value='';});
  document.getElementById('newPassword').value='';document.getElementById('confirmPassword').value='';
  showLoginScreen();showApp(false);render();
- authMessage('Você saiu. Sessão, dados locais e cache do aplicativo limpos. Os dados da empresa continuam salvos na nuvem.');
+ authMessage('Você saiu. Sessão local encerrada. Os dados da empresa continuam salvos na nuvem.');
+ if(logoutButton){logoutButton.disabled=false;logoutButton.innerHTML=originalButtonHTML||'<span>↪</span>Sair';}
 }
 async function loadCloudData(){
  if(!localStorage.getItem('brq_legacy_backup_v1')){localStorage.setItem('brq_legacy_backup_v1',JSON.stringify({products:localStorage.getItem('brq_products'),clients:localStorage.getItem('brq_clients'),rentals:localStorage.getItem('brq_rentals'),transactions:localStorage.getItem('brq_transactions'),company:localStorage.getItem('brq_company')}));}
