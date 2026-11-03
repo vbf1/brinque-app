@@ -93,7 +93,7 @@ label{font-size:12px;color:var(--muted);font-weight:650}.formgrid{display:grid;g
  </div>
  
  <div class="panel"><div class="section-title">Próximas locações <button class="btn-small" onclick="go('locacoes')">Ver todas</button></div><div class="list" id="homeRentals"></div></div>
- <div class="panel" data-admin-only><div class="section-title">Equipe cadastrada <button class="btn-small" onclick="go('funcionarios')">Gerenciar equipe</button></div><div id="homeEmployeeList" style="margin-top:12px"><p class="muted">Carregando equipe...</p></div><div style="display:flex;flex-wrap:wrap;align-items:center;gap:9px;margin-top:14px"><button class="btn-small" id="pushEnableButton" onclick="enablePushNotifications()">Ativar notificações</button><button class="btn-light btn-small hidden" id="pushDisableButton" onclick="disablePushNotifications()">Desativar</button><span class="muted" id="pushStatus" aria-live="polite">Receba avisos de novos funcionários, mesmo com o app fechado.</span></div></div>
+ <div class="panel" data-admin-only><div class="section-title">Equipe cadastrada <button class="btn-small" onclick="go('funcionarios')">Gerenciar equipe</button></div><div id="homeEmployeeList" style="margin-top:12px"><p class="muted">Carregando equipe...</p></div><div style="display:flex;flex-wrap:wrap;align-items:center;gap:9px;margin-top:14px"><button class="btn-small" id="pushEnableButton" onclick="enablePushNotifications()">Ativar notificações</button><button class="btn-light btn-small hidden" id="pushTestButton" onclick="testPushNotification()">Testar</button><button class="btn-light btn-small hidden" id="pushDisableButton" onclick="disablePushNotifications()">Desativar</button><span class="muted" id="pushStatus" aria-live="polite">Receba avisos de novos funcionários, mesmo com o app fechado.</span></div></div>
 </section>
 <section id="agenda" class="hidden"><div class="section-title">Agenda de eventos</div><div class="panel"><label>Consultar data</label><input type="date" id="agendaDate"><div class="muted">As reservas cadastradas aparecem abaixo.</div><div class="list" id="agendaList"></div></div></section>
 <section id="locacoes" class="hidden"><div class="section-title">Locações <button onclick="openForm('rental')">＋ Nova</button></div><div class="panel"><input id="rentalSearch" placeholder="Buscar cliente ou brinquedo..." oninput="render()"><div class="list" id="rentalList"></div></div></section>
@@ -301,8 +301,10 @@ async function employeeApi(payload){
 function employeeMessage(message,isError=false){const el=document.getElementById('employeeMessage');if(el){el.textContent=message;el.style.color=isError?'#c94b4b':'var(--green)'}}
 function updatePushUI(active,message){
  const enable=document.getElementById('pushEnableButton'),disable=document.getElementById('pushDisableButton'),status=document.getElementById('pushStatus');
+ const test=document.getElementById('pushTestButton');
  if(enable)enable.classList.toggle('hidden',!!active);
  if(disable)disable.classList.toggle('hidden',!active);
+ if(test)test.classList.toggle('hidden',!active);
  if(status)status.textContent=message||(active?'Notificações ativadas neste aparelho.':'Receba avisos de novos funcionários, mesmo com o app fechado.');
 }
 function urlBase64ToUint8Array(value){
@@ -337,6 +339,14 @@ async function enablePushNotifications(){
   toast('Notificações ativadas com sucesso!');
  }catch(e){updatePushUI(false,'Não foi possível ativar: '+translateError(e));toast('Falha ao ativar notificações: '+translateError(e))}
  finally{if(button){button.disabled=false;button.textContent='Ativar notificações'}}
+}
+async function testPushNotification(){
+ try{
+  const {data,error}=await sb.functions.invoke('send-employee-push',{body:{action:'test',company_id:companyId}});
+  if(error)throw error;
+  if(!data||!data.sent)throw new Error(data?.error||'Não foi possível enviar o teste.');
+  toast('Notificação de teste enviada para este aparelho.');
+ }catch(e){toast('Falha no teste: '+translateError(e))}
 }
 async function disablePushNotifications(){
  try{
