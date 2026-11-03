@@ -388,7 +388,7 @@ sb.auth.onAuthStateChange((event,session)=>{
  }
  if(event==='SIGNED_OUT'){
   currentUser=null;companyId=null;companyRole=null;passwordSetupFlowActive=false;passwordSetupUserId=null;updateGreetingUser(null);
-  products=[];clients=[];rentals=[];transactions=[];
+  products=[];productImages=[];clients=[];rentals=[];transactions=[];
   try{localStorage.clear();sessionStorage.clear();}catch(e){}
   if('caches' in window)caches.keys().then(keys=>Promise.all(keys.filter(k=>k.startsWith('brinque-app-')).map(k=>caches.delete(k)))).catch(()=>{});
   if(document.getElementById('authGate')){showApp(false);render();}
