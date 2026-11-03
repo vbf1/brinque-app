@@ -1030,7 +1030,7 @@ async function changeEmployeePassword(userId){
 }
 
 
-let activeTeamConversationId=null,activeTeamChannel=null,teamConversationCache=[];
+let activeTeamConversationId=null,activeTeamChannel=null,teamConversationCache=[],activeTeamRefreshVersion=0;
 function teamMemberName(userId){return companyEmployees.find(m=>m.id===userId)?.name||'Membro da equipe'}
 async function ensureTeamGroup(){
  const result=await sb.rpc('ensure_team_group',{p_company_id:companyId});
@@ -1083,20 +1083,30 @@ async function openTeamChat(conversationId){
  if(!conversation)return;
  if(activeTeamChannel){await sb.removeChannel(activeTeamChannel);activeTeamChannel=null}
  activeTeamConversationId=conversationId;
+ ++activeTeamRefreshVersion;
+ const area=document.getElementById('teamChatMessages');
+ area.innerHTML='<div class="empty-state">Carregando mensagens...</div>';
  const [membersResult]=await Promise.all([sb.from('team_conversation_members').select('user_id').eq('conversation_id',conversationId)]);
+ if(activeTeamConversationId!==conversationId)return;
  if(membersResult.error)throw membersResult.error;
- const peers=(membersResult.data||[]).map(m=>m.user_id).filter(id=>id!==currentUser.id),title=conversation.conversation_type==='team'?'Grupo da equipe':(peers.length?teamMemberName(peers[0]):'Conversa');
+ const viewerId=currentUser?.id,peers=(membersResult.data||[]).map(m=>m.user_id).filter(id=>id!==viewerId),title=conversation.conversation_type==='team'?'Grupo da equipe':(peers.length?teamMemberName(peers[0]):'Conversa');
  document.getElementById('teamChatTitle').textContent=title;document.getElementById('teamChatSubtitle').textContent=conversation.conversation_type==='team'?'Mensagens visíveis para toda a equipe':'Conversa privada';
  document.getElementById('teamChatListPanel').classList.add('hidden');document.getElementById('teamChatStart').classList.add('hidden');document.getElementById('teamChatWindow').classList.remove('hidden');
+ // Estabelece o realtime antes da leitura inicial para não perder mensagens enviadas durante a abertura.
+ activeTeamChannel=sb.channel('team-chat-'+conversationId)
+  .on('postgres_changes',{event:'INSERT',schema:'public',table:'team_messages',filter:'conversation_id=eq.'+conversationId},()=>{if(activeTeamConversationId===conversationId)refreshTeamMessages()})
+  .subscribe(status=>{if(status==='SUBSCRIBED'&&activeTeamConversationId===conversationId)refreshTeamMessages()});
  await refreshTeamMessages();
- activeTeamChannel=sb.channel('team-chat-'+conversationId).on('postgres_changes',{event:'INSERT',schema:'public',table:'team_messages',filter:'conversation_id=eq.'+conversationId},payload=>{if(payload.new?.sender_id!==currentUser.id)refreshTeamMessages()}).subscribe();
 }
 async function refreshTeamMessages(){
- if(!activeTeamConversationId)return;
- const area=document.getElementById('teamChatMessages'),id=activeTeamConversationId;
+ const id=activeTeamConversationId,viewerId=currentUser?.id;
+ if(!id||!viewerId)return;
+ const area=document.getElementById('teamChatMessages'),requestVersion=++activeTeamRefreshVersion;
  const result=await sb.from('team_messages').select('id,sender_id,body,created_at').eq('conversation_id',id).order('created_at',{ascending:true}).limit(300);
+ // Descarta respostas atrasadas de outra conversa ou de uma atualização mais recente.
+ if(id!==activeTeamConversationId||requestVersion!==activeTeamRefreshVersion||viewerId!==currentUser?.id)return;
  if(result.error){area.innerHTML='<div class="empty-state">'+employeeEscape(translateError(result.error))+'</div>';return}
- area.innerHTML=result.data.length?result.data.map(m=>'<div class="team-chat-bubble '+(m.sender_id===currentUser.id?'mine':'')+'">'+(m.sender_id===currentUser.id?'':'<b>'+employeeEscape(teamMemberName(m.sender_id))+'</b>')+employeeEscape(m.body)+'<time>'+new Date(m.created_at).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})+'</time></div>').join(''):'<div class="empty-state">Nenhuma mensagem ainda. Envie a primeira!</div>';
+ area.innerHTML=result.data.length?result.data.map(m=>{const mine=m.sender_id===viewerId;return '<div class="team-chat-bubble'+(mine?' mine':'')+'" data-sender="'+(mine?'self':'other')+'">'+(mine?'':'<b>'+employeeEscape(teamMemberName(m.sender_id))+'</b>')+employeeEscape(m.body)+'<time>'+new Date(m.created_at).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})+'</time></div>'}).join(''):'<div class="empty-state">Nenhuma mensagem ainda. Envie a primeira!</div>';
  area.scrollTop=area.scrollHeight;
 }
 async function sendTeamMessage(){
@@ -1106,7 +1116,7 @@ async function sendTeamMessage(){
  catch(e){toast('Não foi possível enviar: '+translateError(e))}
  finally{button.disabled=false;input.focus()}
 }
-async function closeTeamChat(){if(activeTeamChannel){await sb.removeChannel(activeTeamChannel);activeTeamChannel=null}activeTeamConversationId=null;document.getElementById('teamChatWindow').classList.add('hidden');document.getElementById('teamChatListPanel').classList.remove('hidden');document.getElementById('teamChatStart').classList.remove('hidden');await loadTeamChats()}
+async function closeTeamChat(){++activeTeamRefreshVersion;if(activeTeamChannel){await sb.removeChannel(activeTeamChannel);activeTeamChannel=null}activeTeamConversationId=null;document.getElementById('teamChatWindow').classList.add('hidden');document.getElementById('teamChatListPanel').classList.remove('hidden');document.getElementById('teamChatStart').classList.remove('hidden');await loadTeamChats()}
 
 let currentPage='inicio';
 let editingRecordId=null;
