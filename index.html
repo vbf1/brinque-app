@@ -1371,8 +1371,8 @@ function render(scope='all'){
  }
  if(shouldRender('financeiro')){
  renderPagedList('transactionList',transactions,t=>`<article class="record-card" role="button" tabindex="0" title="Toque para editar lançamento" aria-label="Editar lançamento ${employeeEscape(t.name)}" onclick="openForm('transaction','${t.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openForm('transaction','${t.id}')}" ><div class="record-card-top"><div class="record-card-icon ${t.type==='Entrada'?'record-card-icon-green':'record-card-icon-red'}">${t.type==='Entrada'?'↗':'↘'}</div><div class="record-card-content"><b>${employeeEscape(t.name)}</b><div class="record-card-meta">${employeeEscape(t.type)}</div></div><strong class="record-amount" style="color:${t.type==='Entrada'?'var(--green)':'var(--red)'}">${t.type==='Entrada'?'+':'−'} ${money(t.value)}</strong></div><div class="record-card-footer"><span class="record-card-hint">Toque para editar lançamento</span></div></article>`,'Nenhuma movimentação cadastrada ainda.');
- }
  document.getElementById('bars').innerHTML='';
+ }
 }
 }
 async function saveCompany(){if(!isAdmin())return toast('Somente proprietário e administradores podem alterar configurações.');try{const name=document.getElementById('company').value.trim();if(!name)return toast('Informe o nome da empresa.');await cloudError(await sb.from('companies').update({name}).eq('id',companyId));toast('Nome da empresa atualizado na nuvem.')}catch(e){toast('Erro ao atualizar empresa: '+translateError(e))}}
