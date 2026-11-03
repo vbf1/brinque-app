@@ -1573,13 +1573,20 @@ async function resumeSession(){
   const {data:co,error:ce}=await sb.from('companies').select('id,name,logo_url,home_image_url').eq('id',companyId).single();
   if(ce)throw ce;
   document.getElementById('company').value=co.name;applyCompanyBranding(co);
-  await loadCloudData();
+  // Libera a interface assim que a sessão e a empresa forem confirmadas.
+  // O carregamento completo dos dados acontece em segundo plano.
   showApp(true);render();go('inicio',null,true);
-  if(isAdmin())Promise.all([loadEmployees(),refreshPushStatus()]).catch(error=>console.warn('Falha ao atualizar recursos em segundo plano:',error));
+  loadCloudData().then(()=>{
+   render(currentPage||'inicio');
+   if(isAdmin())return Promise.all([loadEmployees(),refreshPushStatus()]);
+  }).catch(error=>{
+   console.error('Falha ao sincronizar os dados após restaurar a sessão:',error);
+   toast('Não foi possível atualizar alguns dados. Confira sua conexão e tente novamente.','error');
+  }).catch(error=>console.warn('Falha ao atualizar recursos em segundo plano:',error));
   return true;
  }catch(e){
-  console.error('Não foi possível restaurar os dados da sessão:',e);
-  showApp(false);showLoginScreen('Sua sessão foi preservada, mas não foi possível carregar os dados. Verifique a internet e toque em “Tentar restaurar minha sessão”.');
+  console.error('Não foi possível restaurar a sessão:',e);
+  showApp(false);showLoginScreen('Não foi possível confirmar sua sessão. Verifique a conexão e tente restaurar novamente.');
   document.getElementById('restoreSessionButton')?.classList.remove('hidden');
   return false;
  }}
