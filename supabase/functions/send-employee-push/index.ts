@@ -98,7 +98,7 @@ async function getFirebaseAccessToken(): Promise<{ token: string; projectId: str
     exp: now + 3600,
   }));
   const unsigned = header + "." + claim;
-  const pem = String(account.private_key).replaceAll("-----BEGIN PRIVATE KEY-----", "").replaceAll("-----END PRIVATE KEY-----", "").replaceAll("\\n", "").replaceAll("\\r", "").replaceAll(" ", "").replaceAll("\\t", "");
+  const pem = String(account.private_key).replaceAll("-----BEGIN PRIVATE KEY-----", "").replaceAll("-----END PRIVATE KEY-----", "").replaceAll(String.fromCharCode(10), "").replaceAll(String.fromCharCode(13), "").replaceAll(String.fromCharCode(9), "").replaceAll(" ", "");
   const keyBytes = Uint8Array.from(atob(pem), (character) => character.charCodeAt(0));
   const privateKey = await crypto.subtle.importKey(
     "pkcs8",
