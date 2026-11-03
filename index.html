@@ -1577,7 +1577,7 @@ async function resumeSession(){
   // O carregamento completo dos dados acontece em segundo plano.
   showApp(true);render();go('inicio',null,true);
   loadCloudData().then(()=>{
-   render();
+   render(currentPage||'inicio');
    if(isAdmin())return Promise.all([loadEmployees(),refreshPushStatus()]);
   }).catch(error=>{
    console.error('Falha ao sincronizar os dados após restaurar a sessão:',error);
