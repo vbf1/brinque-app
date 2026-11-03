@@ -134,13 +134,30 @@ async function requestPasswordReset(){
  catch(e){msg.style.color='var(--red)';msg.textContent=e.message||'Não foi possível enviar o link. Tente novamente.';}
  finally{btn.disabled=false;btn.textContent='Enviar link de recuperação';}
 }
+async function ensureRecoverySession(){
+ let {data,error}=await sb.auth.getSession();if(error)throw error;if(data.session)return data.session;
+ const hashParams=new URLSearchParams(window.location.hash.replace(/^#/,''));
+ const accessToken=hashParams.get('access_token'),refreshToken=hashParams.get('refresh_token');
+ if(accessToken&&refreshToken){
+  const {data:setData,error:setError}=await sb.auth.setSession({access_token:accessToken,refresh_token:refreshToken});
+  if(setError)throw setError;if(setData.session)return setData.session;
+ }
+ const code=new URLSearchParams(window.location.search).get('code');
+ if(code){
+  const {data:exchangeData,error:exchangeError}=await sb.auth.exchangeCodeForSession(code);
+  if(!exchangeError&&exchangeData.session)return exchangeData.session;
+  const latest=await sb.auth.getSession();if(latest.data?.session)return latest.data.session;
+  if(exchangeError)throw exchangeError;
+ }
+ throw new Error('O link de recuperação não está mais conectado à sua sessão. Volte ao login, solicite um novo link e abra-o novamente no mesmo navegador.');
+}
 async function saveNewPassword(){
  const password=document.getElementById('newPassword').value,confirm=document.getElementById('confirmPassword').value;
  const msg=document.getElementById('recoveryMessage'),btn=document.getElementById('savePasswordButton');
  if(password.length<6){msg.textContent='A senha precisa ter pelo menos 6 caracteres.';return;}
  if(password!==confirm){msg.textContent='As senhas não são iguais. Confira e tente novamente.';return;}
- btn.disabled=true;btn.textContent='Salvando...';msg.textContent='Atualizando sua senha com segurança...';
- try{const {error}=await sb.auth.updateUser({password});if(error)throw error;await sb.auth.signOut();document.getElementById('newPassword').value='';document.getElementById('confirmPassword').value='';showLoginScreen('Senha alterada com sucesso! Agora entre com sua nova senha.');}
+ btn.disabled=true;btn.textContent='Salvando...';msg.textContent='Validando o link e atualizando sua senha...';
+ try{await ensureRecoverySession();const {error}=await sb.auth.updateUser({password});if(error)throw error;await sb.auth.signOut();document.getElementById('newPassword').value='';document.getElementById('confirmPassword').value='';showLoginScreen('Senha alterada com sucesso! Agora entre com sua nova senha.');}
  catch(e){msg.textContent=e.message||'Não foi possível alterar a senha. Solicite um novo link.';}
  finally{btn.disabled=false;btn.textContent='Salvar nova senha';}
 }
