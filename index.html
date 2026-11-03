@@ -439,7 +439,7 @@ let transactions=JSON.parse(localStorage.getItem('brq_transactions')||'[]');
 function persist(){localStorage.setItem('brq_products',JSON.stringify(products));localStorage.setItem('brq_clients',JSON.stringify(clients));localStorage.setItem('brq_rentals',JSON.stringify(rentals));localStorage.setItem('brq_transactions',JSON.stringify(transactions))}
 const SUPABASE_URL='https://wcxvswomcfpeuhnbxivh.supabase.co';
 const SUPABASE_ANON_KEY='sb_publishable_hC1UBMmLe0U41oUHfFxfMQ_mYrsel51';
-const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:false,lock:async(_name,_acquireTimeout,fn)=>await fn()}});
+const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}});
 let currentUser=null,companyId=null,companyRole=null,passwordSetupFlowActive=false,passwordSetupUserId=null;
 function isAdmin(){return ['owner','admin'].includes(companyRole)}
 // Native FCM registration is handled by the Android push bridge.
