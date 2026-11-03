@@ -65,8 +65,30 @@ Deno.serve(async (req) => {
       if (!["staff", "admin"].includes(role)) return reply({ error: "Perfil solicitado inválido." }, 400);
       if (role === "admin" && caller.role !== "owner") return reply({ error: "Somente o proprietário pode cadastrar administradores." }, 403);
 
+      const [{ data: company, error: companyError }, { data: inviterProfile }] = await Promise.all([
+        admin.from("companies").select("name").eq("id", companyId).maybeSingle(),
+        admin.from("profiles").select("full_name").eq("id", authData.user.id).maybeSingle(),
+      ]);
+      if (companyError) throw companyError;
+      const companyName = String(company?.name || "Sua empresa").trim();
+      const inviterName = String(
+        inviterProfile?.full_name ||
+        authData.user.user_metadata?.full_name ||
+        authData.user.email ||
+        "Equipe da empresa"
+      ).trim();
+      const roleLabel = role === "admin" ? "Administrador" : "Funcionário";
+
       const { data: invited, error: inviteError } = await admin.auth.admin.inviteUserByEmail(email, {
-        data: { full_name: name }, redirectTo: "https://vbf1.github.io/brinque-app/",
+        data: {
+          full_name: name,
+          company_name: companyName,
+          invited_by_name: inviterName,
+          invited_by_email: authData.user.email || "",
+          invited_role: roleLabel,
+          app_name: "Brinque App",
+        },
+        redirectTo: "https://vbf1.github.io/brinque-app/",
       });
       if (inviteError) {
         const lower = inviteError.message.toLowerCase();
