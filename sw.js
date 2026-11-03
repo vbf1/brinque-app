@@ -20,7 +20,7 @@ self.addEventListener('push',event=>{
   badge:'https://vbf1.github.io/brinque-app/notification-icon.svg',
   lang:'pt-BR',
   dir:'auto',
-  tag:data.tag||'brinque-notification',
+  tag:data.tag||'kidsloc-notification',
   timestamp:Date.now(),
   vibrate:[120,60,120],
   data:{url:data.url||'https://vbf1.github.io/brinque-app/'},
