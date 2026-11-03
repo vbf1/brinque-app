@@ -66,7 +66,7 @@ label{font-size:12px;color:var(--muted);font-weight:650}.formgrid{display:grid;g
  </div>
 </div>
 <header>
- <div class="headrow"><div class="brand"><div class="logo">✦</div><div>BRINQUE APP<div class="sub">GESTÃO DE LOCAÇÕES</div></div></div><div class="head-actions"><button class="btn-small" onclick="toggleTheme()">◐ Tema</button><button class="btn-small" onclick="logoutApp()">Sair</button><nav id="nav" aria-label="Navegação principal"><button class="menu-trigger" onclick="toggleMenu()" aria-label="Abrir menu" aria-expanded="false"><span class="menu-icon"><i></i><i></i><i></i></span></button></nav></div></div>
+ <div class="headrow"><div class="brand"><div class="logo">✦</div><div>BRINQUE APP<div class="sub">GESTÃO DE LOCAÇÕES</div></div></div><div class="head-actions"><button class="btn-small" onclick="toggleTheme()">◐ Tema</button><nav id="nav" aria-label="Navegação principal"><button class="menu-trigger" onclick="toggleMenu()" aria-label="Abrir menu" aria-expanded="false"><span class="menu-icon"><i></i><i></i><i></i></span></button></nav></div></div>
  <div class="greeting">Olá! Bem-vindo 👋<small>Sonho Kids Brinquedos · Gestão de locações sincronizada.</small></div>
 </header>
 <div id="menuBackdrop" class="menu-backdrop hidden" onclick="toggleMenu(false)"></div>
@@ -80,6 +80,7 @@ label{font-size:12px;color:var(--muted);font-weight:650}.formgrid{display:grid;g
  <button data-admin-only data-page="funcionarios" onclick="go('funcionarios')"><span>♙</span>Funcionários</button>
  <button data-page="relatorios" onclick="go('relatorios')"><span>▥</span>Relatórios</button>
  <button data-admin-only data-page="config" onclick="go('config')"><span>⚙</span>Configurações</button>
+ <button onclick="logoutApp()"><span>↪</span>Sair</button>
 </div>
 <main>
 <section id="inicio">
