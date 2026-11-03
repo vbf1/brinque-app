@@ -293,7 +293,8 @@ function employeeEscape(value){return String(value||'').replace(/[&<>"']/g,funct
 async function employeeApi(payload){
  const {data,error}=await sb.functions.invoke('manage-employees',{body:{...payload,company_id:companyId}});
  if(error){
-  try{if(error.context&&typeof error.context.json==='function'){const detail=await error.context.json();if(detail&&(detail.error||detail.message))throw new Error(detail.error||detail.message)}}catch(detailError){if(detailError instanceof Error&&detailError.message!=='')throw detailError}
+  let detail=null;try{if(error.context&&typeof error.context.json==='function')detail=await error.context.json()}catch(_){ }
+  if(detail&&(detail.error||detail.message))throw new Error(detail.error||detail.message);
   throw error;
  }
  if(data&&data.error)throw new Error(data.error);return data;
