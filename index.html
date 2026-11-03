@@ -438,7 +438,7 @@ async function loadEmployees(){
    let actions='';
    if(canManage&&companyRole==='owner')actions+='<button class="btn-light" onclick="changeEmployeeRole(\''+m.user_id+'\',\''+(m.role==='admin'?'staff':'admin')+'\')">'+(m.role==='admin'?'Tornar funcionário':'Tornar administrador')+'</button>';
    if(canManage)actions+='<button class="btn-light" style="color:#c94b4b" onclick="removeEmployee(\''+m.user_id+'\')">Remover acesso</button>';
-   return '<div class="item" style="align-items:flex-start"><div style="min-width:0;flex:1"><b>'+name+'</b><div class="muted" style="overflow-wrap:anywhere">'+email+'</div><span class="tag">'+roleLabel+'</span></div>'+(actions?'<div style="display:grid;gap:6px;min-width:112px">'+actions+'</div>':'')+'</div>';
+   return '<div class="item" style="align-items:flex-start"><div style="display:block!important;min-width:0;width:100%;flex:1 1 100%"><b style="display:block">'+name+'</b><div class="muted" style="display:block;width:100%;overflow-wrap:anywhere">'+email+'</div><span class="tag">'+roleLabel+'</span></div>'+(actions?'<div style="display:grid;gap:6px;min-width:112px">'+actions+'</div>':'')+'</div>';
   }).join(''):'<p class="muted">Nenhum membro cadastrado.</p>';
   lists.forEach(list=>list.innerHTML=html);
  }catch(e){
