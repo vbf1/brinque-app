@@ -573,13 +573,14 @@ async function disablePushNotifications(){
 
 async function loadEmployees(){
  if(!isAdmin())return;
- const lists=['homeEmployeeList'].map(id=>document.getElementById(id)).filter(Boolean);
+ const lists=['homeEmployeeList','employeeList'].map(id=>document.getElementById(id)).filter(Boolean);
  if(!lists.length)return;
  lists.forEach(list=>list.innerHTML='<p class="muted">Carregando equipe...</p>');
  try{
   const data=await employeeApi({action:'list'}),members=data.members||[];
   const uniqueMembers=members.filter((member,index,array)=>array.findIndex(item=>item.user_id===member.user_id||(item.email&&member.email&&item.email.trim().toLowerCase()===member.email.trim().toLowerCase()))===index);
-  const html=uniqueMembers.length?uniqueMembers.map(function(m){
+  const htmlByMember=new Map();
+  uniqueMembers.forEach(function(m){
    const rawName=String(m.full_name||'').trim(),rawEmail=String(m.email||'').trim(),name=employeeEscape(rawName||'Nome não informado'),email=employeeEscape(rawEmail||'E-mail não disponível');
     const avatarSource=rawName||rawEmail.split('@')[0]||'U',avatarParts=avatarSource.split(/[\s._-]+/).filter(Boolean),avatarInitials=(avatarParts.length>1?avatarParts[0][0]+avatarParts[avatarParts.length-1][0]:Array.from(avatarSource)[0]).toLocaleUpperCase('pt-BR');
     const avatarPalette=['#4285F4','#EA4335','#34A853','#FBBC05','#8E63CE','#E8710A','#0097A7','#D65DB1'];
@@ -591,8 +592,10 @@ async function loadEmployees(){
    if(canManage)actions+='<button class="btn-light" style="color:#c94b4b" onclick="removeEmployee(\''+m.user_id+'\')">Remover acesso</button>';
    if(companyRole==='owner'&&m.role!=='owner')actions+='<details class="employee-password-editor" id="passwordEditor-'+m.user_id+'"><summary><span class="password-editor-icon">⌑</span><span class="password-editor-copy"><b>Alterar senha</b><small>Redefina o acesso deste funcionário</small></span><span class="password-editor-chevron">⌄</span></summary><div class="password-editor-body"><label for="employeePassword-'+m.user_id+'">Nova senha</label><input id="employeePassword-'+m.user_id+'" type="password" autocomplete="new-password" minlength="8" placeholder="Digite uma senha (mín. 8 caracteres)" onkeydown="if(event.key===\'Enter\')changeEmployeePassword(\''+m.user_id+'\')"><label for="employeePasswordConfirm-'+m.user_id+'">Confirmar nova senha</label><input id="employeePasswordConfirm-'+m.user_id+'" type="password" autocomplete="new-password" minlength="8" placeholder="Digite a senha novamente" onkeydown="if(event.key===\'Enter\')changeEmployeePassword(\''+m.user_id+'\')"><p class="password-editor-hint">Use pelo menos 8 caracteres. A alteração será aplicada imediatamente.</p><button type="button" class="full employee-password-save" id="employeePasswordSave-'+m.user_id+'" onclick="changeEmployeePassword(\''+m.user_id+'\')"><span>✓</span> Salvar nova senha</button></div></details>';
    return '<article class="record-card record-card-employee"><div class="record-card-top"><div style="min-width:0;flex:1"><div class="employee-identity"><span class="employee-avatar" style="background:'+avatarColor+'">'+employeeEscape(avatarInitials)+'</span><div class="employee-identity-copy"><b>'+name+'</b><div class="muted" style="display:block;width:100%;overflow-wrap:anywhere">'+email+'</div></div></div><span class="tag">'+roleLabel+'</span></div></div>'+(actions?'<div class="record-card-actions">'+actions+'</div>':'')+'</article>';
-  }).join(''):'<p class="muted">Nenhum membro cadastrado.</p>';
-  lists.forEach(list=>list.innerHTML=html);
+  });
+  const home=document.getElementById('homeEmployeeList'),management=document.getElementById('employeeList');
+  if(home)home.innerHTML=uniqueMembers.length?uniqueMembers.slice(0,4).map(m=>htmlByMember.get(m.user_id)||'').join('')+(uniqueMembers.length>4?'<p class="muted employee-more-note">Mostrando 4 de '+uniqueMembers.length+' funcionários. Acesse Gerenciar para ver todos.</p>':''):'<div class="empty-state">Nenhum funcionário cadastrado.</div>';
+  if(management)renderPagedList('employeeList',uniqueMembers,m=>htmlByMember.get(m.user_id)||'','Nenhum funcionário cadastrado.');
  }catch(e){
   const message='<p class="muted">'+employeeEscape(translateError(e))+'</p>';
   lists.forEach(list=>list.innerHTML=message);
