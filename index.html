@@ -124,8 +124,8 @@ button:disabled{opacity:.65;cursor:wait}
    <p id="forgotMessage" class="muted" style="margin:12px 0 0"></p>
   </div>
   <div id="recoveryPanel" class="hidden" style="margin-top:18px;border-top:1px solid var(--line);padding-top:16px">
-   <b style="display:block;margin-bottom:8px">Criar nova senha</b>
-   <p class="muted" style="margin:0 0 12px">O link foi validado. Escolha uma nova senha para sua conta.</p>
+   <b id="passwordSetupTitle" style="display:block;margin-bottom:8px">Criar senha de acesso</b>
+   <p id="passwordSetupDescription" class="muted" style="margin:0 0 12px">Escolha uma senha para acessar sua conta.</p>
    <label>Nova senha</label><input id="newPassword" type="password" autocomplete="new-password" placeholder="Digite a nova senha">
    <label>Confirme a nova senha</label><input id="confirmPassword" type="password" autocomplete="new-password" placeholder="Digite novamente">
    <button class="full" id="savePasswordButton" onclick="saveNewPassword()">Salvar nova senha</button>
@@ -192,7 +192,7 @@ function persist(){localStorage.setItem('brq_products',JSON.stringify(products))
 const SUPABASE_URL='https://wcxvswomcfpeuhnbxivh.supabase.co';
 const SUPABASE_ANON_KEY='sb_publishable_hC1UBMmLe0U41oUHfFxfMQ_mYrsel51';
 const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}});
-let currentUser=null,companyId=null,companyRole=null,recoveryFlowActive=false,recoveryUserId=null;
+let currentUser=null,companyId=null,companyRole=null,passwordSetupFlowActive=false,passwordSetupUserId=null;
 function isAdmin(){return ['owner','admin'].includes(companyRole)}
 function updateGreetingUser(user){const target=document.getElementById('greetingName');if(!target)return;const metadata=user?.user_metadata||{};const fullName=String(metadata.full_name||metadata.name||metadata.display_name||'').trim();let parts=fullName.split(/\s+/).filter(Boolean);let first='Bem-vindo';if(parts.length){first=parts[0];}else{const emailName=String(user?.email||'').split('@')[0].replace(/[._-]+/g,' ').trim();parts=emailName.split(/\s+/).filter(Boolean);if(parts.length)first=parts[0].charAt(0).toLocaleUpperCase('pt-BR')+parts[0].slice(1);}const last=fullName&&parts.length>1?` ${Array.from(parts[parts.length-1])[0].toLocaleUpperCase('pt-BR')}.`:'';target.textContent=first+last;}
 function applyRoleUI(){document.querySelectorAll('[data-admin-only]').forEach(el=>el.classList.toggle('hidden',!isAdmin()));document.querySelectorAll('[data-owner-role]').forEach(el=>el.disabled=companyRole!=='owner');if(companyRole!=='owner'&&document.getElementById('employeeRole'))document.getElementById('employeeRole').value='staff'}
@@ -242,9 +242,30 @@ function translateError(error){
  return 'Não foi possível concluir a operação. Confira os dados e tente novamente.';
 }
 
-function showRecoveryScreen(){showApp(false);document.getElementById('forgotPasswordPanel').classList.add('hidden');document.getElementById('recoveryPanel').classList.remove('hidden');document.getElementById('loginFields').classList.add('hidden');document.getElementById('recoveryMessage').textContent='Link de recuperação reconhecido. Defina sua nova senha abaixo.';}
-function showForgotPassword(){document.getElementById('loginFields').classList.add('hidden');document.getElementById('recoveryPanel').classList.add('hidden');document.getElementById('forgotPasswordPanel').classList.remove('hidden');const email=document.getElementById('loginEmail').value.trim();if(email)document.getElementById('recoveryEmail').value=email;document.getElementById('forgotMessage').textContent='';}
-function showLoginScreen(message=''){document.getElementById('recoveryPanel').classList.add('hidden');document.getElementById('forgotPasswordPanel').classList.add('hidden');document.getElementById('loginFields').classList.remove('hidden');if(message)authMessage(message);}
+function showPasswordSetupScreen(flowType='recovery'){
+ showApp(false);
+ document.getElementById('forgotPasswordPanel').classList.add('hidden');
+ document.getElementById('recoveryPanel').classList.remove('hidden');
+ document.getElementById('loginFields').classList.add('hidden');
+ const invite=flowType==='invite';
+ document.getElementById('passwordSetupTitle').textContent=invite?'Aceitar convite e criar senha':'Criar nova senha';
+ document.getElementById('passwordSetupDescription').textContent=invite?'Seu convite foi validado. Crie uma senha para ativar seu acesso ao Brinque App.':'Seu link de recuperação foi validado. Escolha uma nova senha para sua conta.';
+ document.getElementById('recoveryMessage').textContent=invite?'Defina sua senha para concluir o cadastro.':'Defina sua nova senha abaixo.';
+}
+function showForgotPassword(){
+ document.getElementById('loginFields').classList.add('hidden');
+ document.getElementById('recoveryPanel').classList.add('hidden');
+ document.getElementById('forgotPasswordPanel').classList.remove('hidden');
+ const email=document.getElementById('loginEmail').value.trim();
+ if(email)document.getElementById('recoveryEmail').value=email;
+ document.getElementById('forgotMessage').textContent='';
+}
+function showLoginScreen(message=''){
+ document.getElementById('recoveryPanel').classList.add('hidden');
+ document.getElementById('forgotPasswordPanel').classList.add('hidden');
+ document.getElementById('loginFields').classList.remove('hidden');
+ if(message)authMessage(message);
+}
 async function requestPasswordReset(){
  const email=document.getElementById('recoveryEmail').value.trim(),msg=document.getElementById('forgotMessage'),btn=document.getElementById('sendRecoveryButton');
  if(!email){msg.textContent='Informe o e-mail cadastrado.';return;}
@@ -253,9 +274,9 @@ async function requestPasswordReset(){
  catch(e){msg.style.color='var(--red)';msg.textContent=translateError(e);}
  finally{btn.disabled=false;btn.textContent='Enviar link de recuperação';}
 }
-async function ensureRecoverySession(){
+async function ensurePasswordSetupSession(){
  const {data,error}=await sb.auth.getSession();if(error)throw error;
- if(!recoveryFlowActive||!data.session||!recoveryUserId||data.session.user.id!==recoveryUserId)throw new Error('A sessão de recuperação não está válida. Solicite um novo link e abra-o novamente.');
+ if(!passwordSetupFlowActive||!data.session||!passwordSetupUserId||data.session.user.id!==passwordSetupUserId)throw new Error('A sessão para criar a senha não está válida. Solicite um novo link e abra-o novamente.');
  return data.session;
 }
 async function saveNewPassword(){
@@ -264,18 +285,30 @@ async function saveNewPassword(){
  if(password.length<6){msg.textContent='A senha precisa ter pelo menos 6 caracteres.';return;}
  if(password!==confirm){msg.textContent='As senhas não são iguais. Confira e tente novamente.';return;}
  btn.disabled=true;btn.textContent='Salvando...';msg.textContent='Validando o link e atualizando sua senha...';
- try{await ensureRecoverySession();const {error}=await sb.auth.updateUser({password});if(error)throw error;recoveryFlowActive=false;recoveryUserId=null;await sb.auth.signOut({scope:'local'});document.getElementById('newPassword').value='';document.getElementById('confirmPassword').value='';showLoginScreen('Senha alterada com sucesso! Agora entre com sua nova senha.');}
- catch(e){msg.textContent=translateError(e);}
+ try{
+  await ensurePasswordSetupSession();
+  const {error}=await sb.auth.updateUser({password});if(error)throw error;
+  passwordSetupFlowActive=false;passwordSetupUserId=null;
+  await sb.auth.signOut({scope:'local'});
+  document.getElementById('newPassword').value='';document.getElementById('confirmPassword').value='';
+  showLoginScreen('Senha definida com sucesso! Agora entre com seu e-mail e a nova senha.');
+ }catch(e){msg.textContent=translateError(e);}
  finally{btn.disabled=false;btn.textContent='Salvar nova senha';}
 }
-function showApp(show){document.getElementById('authGate').style.display=show?'none':'grid';document.querySelector('header').style.display=show?'':'none';document.querySelector('main').style.display=show?'':'none';document.getElementById('menuBackdrop').style.display=show?'':'none';document.getElementById('menuPanel').style.display=show?'':'none'}
-// O Supabase emite PASSWORD_RECOVERY quando o link de redefinição é aberto.
-sb.auth.onAuthStateChange((event,session)=>{if(event==='PASSWORD_RECOVERY'){currentUser=session?.user||null;showRecoveryScreen();}});
-// Links de recuperação têm prioridade sobre qualquer sessão antiga salva no aparelho.
+function showApp(show){
+ document.getElementById('authGate').style.display=show?'none':'grid';
+ document.querySelector('header').style.display=show?'':'none';
+ document.querySelector('main').style.display=show?'':'none';
+ document.getElementById('menuBackdrop').style.display=show?'':'none';
+ document.getElementById('menuPanel').style.display=show?'':'none';
+}
 sb.auth.onAuthStateChange((event,session)=>{
- if(event==='PASSWORD_RECOVERY'&&session?.user){recoveryFlowActive=true;recoveryUserId=session.user.id;currentUser=session.user;showRecoveryScreen();}
+ if(event==='PASSWORD_RECOVERY'&&session?.user){
+  passwordSetupFlowActive=true;passwordSetupUserId=session.user.id;currentUser=session.user;
+  showPasswordSetupScreen('recovery');
+ }
  if(event==='SIGNED_OUT'){
-  currentUser=null;companyId=null;companyRole=null;recoveryFlowActive=false;recoveryUserId=null;updateGreetingUser(null);
+  currentUser=null;companyId=null;companyRole=null;passwordSetupFlowActive=false;passwordSetupUserId=null;updateGreetingUser(null);
   products=[];clients=[];rentals=[];transactions=[];
   try{localStorage.clear();sessionStorage.clear();}catch(e){}
   if('caches' in window)caches.keys().then(keys=>Promise.all(keys.filter(k=>k.startsWith('brinque-app-')).map(k=>caches.delete(k)))).catch(()=>{});
@@ -283,25 +316,27 @@ sb.auth.onAuthStateChange((event,session)=>{
  }
 });
 async function initializeAuthFlow(){
- const hash=new URLSearchParams(window.location.hash.replace(/^#/,''));
+ const hash=new URLSearchParams(window.location.hash.replace(/^#/,'')); 
  const query=new URLSearchParams(window.location.search);
  const code=query.get('code'),tokenHash=query.get('token_hash'),type=query.get('type')||hash.get('type');
  const accessToken=hash.get('access_token'),refreshToken=hash.get('refresh_token');
- const hasRecoveryLink=type==='recovery'||!!code||!!tokenHash||!!(accessToken&&refreshToken);
- if(hasRecoveryLink){
-  recoveryFlowActive=true;showApp(false);
+ const isPasswordSetupType=type==='invite'||type==='recovery';
+ const hasPasswordSetupLink=isPasswordSetupType&&(!!code||!!tokenHash||!!(accessToken&&refreshToken));
+ if(hasPasswordSetupLink){
+  passwordSetupFlowActive=true;showApp(false);
   try{
    let session=null;
    if(code){const {data,error}=await sb.auth.exchangeCodeForSession(code);if(error)throw error;session=data.session;}
-   else if(tokenHash){const {data,error}=await sb.auth.verifyOtp({token_hash:tokenHash,type:'recovery'});if(error)throw error;session=data.session;}
+   else if(tokenHash){const {data,error}=await sb.auth.verifyOtp({token_hash:tokenHash,type});if(error)throw error;session=data.session;}
    else if(accessToken&&refreshToken){const {data,error}=await sb.auth.setSession({access_token:accessToken,refresh_token:refreshToken});if(error)throw error;session=data.session;}
-   if(!session?.user)throw new Error('O link não criou uma sessão de recuperação válida.');
-   recoveryUserId=session.user.id;currentUser=session.user;
+   if(!session?.user)throw new Error('O link não criou uma sessão válida para definir a senha.');
+   passwordSetupUserId=session.user.id;currentUser=session.user;
    window.history.replaceState({},document.title,window.location.pathname);
-   showRecoveryScreen();
+   showPasswordSetupScreen(type);
   }catch(e){
-   recoveryFlowActive=false;recoveryUserId=null;await sb.auth.signOut({scope:'local'}).catch(()=>{});
-   showLoginScreen();authMessage('Não foi possível validar esse link. Solicite um novo link de recuperação e abra-o novamente.',true);
+   passwordSetupFlowActive=false;passwordSetupUserId=null;
+   await sb.auth.signOut({scope:'local'}).catch(()=>{});
+   showLoginScreen();authMessage('Não foi possível validar esse link. Solicite um novo convite ou link de recuperação e abra-o novamente.',true);
   }
   return;
  }
@@ -321,7 +356,7 @@ async function loginApp(){
 }
 async function logoutApp(){
  try{await sb.auth.signOut({scope:'local'});}catch(e){console.warn('Falha ao encerrar sessão:',e);}
- currentUser=null;companyId=null;companyRole=null;recoveryFlowActive=false;recoveryUserId=null;
+ currentUser=null;companyId=null;companyRole=null;passwordSetupFlowActive=false;passwordSetupUserId=null;
  products=[];clients=[];rentals=[];transactions=[];
  try{localStorage.clear();sessionStorage.clear();}catch(e){console.warn('Falha ao limpar armazenamento local:',e);}
  try{if('caches' in window){const keys=await caches.keys();await Promise.all(keys.filter(k=>k.startsWith('brinque-app-')).map(k=>caches.delete(k)));}}catch(e){console.warn('Falha ao limpar cache:',e);}
