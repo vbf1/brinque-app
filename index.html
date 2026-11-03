@@ -305,8 +305,8 @@ async function loadEmployees(){
    const roleLabel=m.role==='owner'?'Proprietário':m.role==='admin'?'Administrador':'Funcionário';
    const canManage=m.role!=='owner'&&m.user_id!==currentUser.id&&(companyRole==='owner'||m.role==='staff');
    let actions='';
-   if(canManage&&companyRole==='owner')actions+='<button class="btn-light" onclick="changeEmployeeRole(\\''+m.user_id+'\\',\\''+(m.role==='admin'?'staff':'admin')+'\\')">'+(m.role==='admin'?'Tornar funcionário':'Tornar administrador')+'</button>';
-   if(canManage)actions+='<button class="btn-light" style="color:#c94b4b" onclick="removeEmployee(\\''+m.user_id+'\\')">Remover acesso</button>';
+   if(canManage&&companyRole==='owner')actions+='<button class="btn-light" onclick="changeEmployeeRole(\''+m.user_id+'\',\''+(m.role==='admin'?'staff':'admin')+'\')">'+(m.role==='admin'?'Tornar funcionário':'Tornar administrador')+'</button>';
+   if(canManage)actions+='<button class="btn-light" style="color:#c94b4b" onclick="removeEmployee(\''+m.user_id+'\')">Remover acesso</button>';
    return '<div class="item" style="align-items:flex-start"><div style="min-width:0;flex:1"><b>'+name+'</b><div class="muted" style="overflow-wrap:anywhere">'+email+'</div><span class="tag">'+roleLabel+'</span></div>'+(actions?'<div style="display:grid;gap:6px;min-width:112px">'+actions+'</div>':'')+'</div>';
   }).join(''):'<p class="muted">Nenhum membro cadastrado.</p>';
  }catch(e){list.innerHTML='<p class="muted">'+employeeEscape(translateError(e))+'</p>'}
