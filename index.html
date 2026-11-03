@@ -672,79 +672,66 @@ function urlBase64ToUint8Array(value){
 }
 function withPushTimeout(promise,milliseconds,message){let timer;return Promise.race([Promise.resolve(promise),new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error(message)),milliseconds)})]).finally(()=>clearTimeout(timer))}
 function setNativePushStage(stage){window.__kidsLocPushStage=stage;const el=document.getElementById('pushStatus');if(el)el.textContent=stage}
+function pushErrorDetails(error){
+ if(error instanceof Error)return error.message;
+ if(typeof error==='string')return error;
+ try{return JSON.stringify(error)}catch(_){return String(error)}
+}
 async function getNativePushPlugin(){
  setNativePushStage('Diagnóstico: verificando a ponte nativa do Capacitor...');
  const cap=window.Capacitor;
  if(!cap)throw new Error('Capacitor JS não foi carregado no APK (window.Capacitor ausente).');
  let native=false,platform='desconhecida';
- try{native=!!cap.isNativePlatform?.();platform=cap.getPlatform?.()||'desconhecida'}catch(error){throw new Error('A ponte Capacitor não respondeu ao identificar a plataforma: '+String(error?.message||error))}
- if(!native||platform!=='android')throw new Error('O APK não está sendo identificado como Android nativo (nativo: '+native+', plataforma: '+platform+').');
- const plugin=window.KidsLocPushNotifications||cap.Plugins?.PushNotifications;
- if(!plugin)throw new Error('A ponte Capacitor está ativa, mas o plugin PushNotifications não foi registrado no JavaScript.');
- window.KidsLocPushNotifications=plugin;
+ try{native=!!cap.isNativePlatform?.();platform=cap.getPlatform?.()||'desconhecida'}catch(error){throw new Error('A ponte Capacitor não respondeu: '+pushErrorDetails(error))}
+ if(!native||platform!=='android')throw new Error('O app não está sendo identificado como Android nativo (nativo: '+native+', plataforma: '+platform+').');
+ const plugin=window.KidsLocFirebaseMessaging;
+ if(!plugin)throw new Error('O plugin nativo FirebaseMessaging não foi carregado. Verifique o pacote @capacitor-firebase/messaging e a sincronização Android.');
+ for(const method of ['checkPermissions','requestPermissions','getToken','addListener'])if(typeof plugin[method]!=='function')throw new Error('O plugin FirebaseMessaging está incompleto: método '+method+' indisponível.');
  return plugin;
 }
 let nativePushListenersReady=false;
-let nativePushRegistrationPending=false;
-let nativePushRegistrationTimer=null;
-function finishNativePushRegistration(active,message){
- if(nativePushRegistrationTimer){clearTimeout(nativePushRegistrationTimer);nativePushRegistrationTimer=null}
- nativePushRegistrationPending=false;
- const button=document.getElementById('pushEnableButton');if(button){button.disabled=false;button.textContent='Ativar notificações'}
- updatePushUI(!!active,message);
+async function saveNativeFcmToken(token){
+ token=String(token||'').trim();
+ if(!token)throw new Error('O Firebase não retornou um token FCM.');
+ if(!currentUser?.id||!companyId)throw new Error('O token foi gerado, mas a conta ou empresa ainda não foi identificada.');
+ window.__kidsLocFcmToken=token;
+ setNativePushStage('Diagnóstico: salvando o token FCM com segurança no KidsLoc...');
+ const saved=await withPushTimeout(sb.from('fcm_device_tokens').upsert({company_id:companyId,user_id:currentUser.id,token,platform:'android'},{onConflict:'token'}),15000,'O Firebase gerou o token, mas o Supabase não confirmou o cadastro em 15 segundos.');
+ if(saved.error)throw new Error('Token FCM gerado, mas o Supabase recusou o cadastro: '+translateError(saved.error));
+ updatePushUI(true,'Notificações Android ativadas neste aparelho.');
+ return true;
 }
 async function registerNativePush(requestPermission=false){
- setNativePushStage('Diagnóstico: localizando o plugin nativo de notificações...');
  const plugin=await getNativePushPlugin();
- if(!plugin)return false;
- setNativePushStage('Diagnóstico: preparando o canal Android de notificações...');
- try{await withPushTimeout(plugin.createChannel({id:'kidsloc_notifications',name:'Avisos do KidsLoc',description:'Notificações importantes do KidsLoc App',importance:5,sound:'default',visibility:1}),6000,'O Android demorou para preparar o canal de notificações.')}catch(error){console.warn('Não foi possível criar o canal de notificações:',error)}
+ setNativePushStage('Diagnóstico: verificando se o Firebase Messaging está disponível...');
+ const support=await withPushTimeout(plugin.isSupported?.()||Promise.resolve({isSupported:true}),8000,'O Android não respondeu à verificação do Firebase Messaging.');
+ if(support&&support.isSupported===false)throw new Error('O Firebase Messaging informou que este aparelho não é compatível.');
  setNativePushStage('Diagnóstico: consultando a permissão do Android...');
- let permission=await withPushTimeout(plugin.checkPermissions(),8000,'ETAPA checkPermissions: o plugin Android não respondeu à consulta de permissão.');
- if(permission.receive!=='granted'&&requestPermission){setNativePushStage('Diagnóstico: aguardando a autorização do Android...');permission=await withPushTimeout(plugin.requestPermissions(),20000,'ETAPA requestPermissions: o Android não concluiu a solicitação de permissão. Verifique as permissões do KidsLoc nas configurações do celular.')}
- if(permission.receive!=='granted')throw new Error('Permita notificações do KidsLoc App nas configurações do Android.');
+ let permission=await withPushTimeout(plugin.checkPermissions(),10000,'ETAPA checkPermissions: o plugin FirebaseMessaging não respondeu.');
+ if(permission.receive!=='granted'&&requestPermission){
+  setNativePushStage('Diagnóstico: aguardando a autorização de notificações do Android...');
+  permission=await withPushTimeout(plugin.requestPermissions(),25000,'ETAPA requestPermissions: o Android não concluiu a solicitação de permissão.');
+ }
+ if(permission.receive!=='granted')throw new Error('Permissão de notificações não concedida. Ative nas configurações do Android e tente novamente.');
  if(!nativePushListenersReady){
-  setNativePushStage('Diagnóstico: registrando listener de token FCM...');
-  await withPushTimeout(plugin.addListener('registration',async result=>{
-   const token=String(result?.value||'').trim();
-   if(!token||!currentUser?.id||!companyId){finishNativePushRegistration(false,'O Firebase retornou um token, mas não foi possível identificar a conta ativa.');return}
-   window.__kidsLocFcmToken=token;
-   try{
-    const saved=await sb.from('fcm_device_tokens').upsert({company_id:companyId,user_id:currentUser.id,token,platform:'android'},{onConflict:'token'});
-    if(saved.error)throw saved.error;
-    finishNativePushRegistration(true,'Notificações Android ativadas neste aparelho.');
-    toast('Notificações ativadas com sucesso!');
-   }catch(error){
-    console.error('Falha ao salvar token FCM:',error);
-    finishNativePushRegistration(false,'O Android gerou o token, mas o cadastro no servidor falhou: '+translateError(error));
-   }
-  }),8000,'Não foi possível preparar o recebimento do token do Firebase.');
-  setNativePushStage('Diagnóstico: registrando listener de erros FCM...');
-  await withPushTimeout(plugin.addListener('registrationError',error=>{
-   console.error('Erro no registro FCM:',error);
-   finishNativePushRegistration(false,'Falha no registro do Firebase: '+String(error?.error||error?.message||'verifique a conexão e a configuração do Android.'));
-  }),8000,'Não foi possível preparar o tratamento de erros do Firebase.');
-  setNativePushStage('Diagnóstico: registrando listener de notificações recebidas...');
-  await withPushTimeout(plugin.addListener('pushNotificationReceived',notification=>toast(String(notification?.title||'KidsLoc App')+': '+String(notification?.body||'Você recebeu uma nova notificação.'))),8000,'Não foi possível preparar o recebimento de notificações.');
-  setNativePushStage('Diagnóstico: registrando listener de toque na notificação...');
-  await withPushTimeout(plugin.addListener('pushNotificationActionPerformed',()=>{if(typeof go==='function')go('inicio')}),8000,'Não foi possível preparar a abertura das notificações.');
+  setNativePushStage('Diagnóstico: configurando recebimento e atualização automática do token...');
+  await withPushTimeout(plugin.addListener('tokenReceived',event=>{
+   const refreshed=String(event?.token||'').trim();
+   if(refreshed&&currentUser?.id&&companyId)saveNativeFcmToken(refreshed).catch(error=>console.error('Falha ao atualizar token FCM:',error));
+  }),10000,'Não foi possível configurar a atualização automática do token Firebase.');
+  await withPushTimeout(plugin.addListener('notificationReceived',notification=>{
+   toast(String(notification?.title||'KidsLoc App')+': '+String(notification?.body||'Você recebeu uma nova notificação.'));
+  }),10000,'Não foi possível configurar o recebimento de notificações.');
+  await withPushTimeout(plugin.addListener('notificationActionPerformed',()=>{
+   if(typeof go==='function')go('inicio');
+  }),10000,'Não foi possível configurar a abertura das notificações.');
   nativePushListenersReady=true;
  }
- if(nativePushRegistrationPending)return true;
- nativePushRegistrationPending=true;
- updatePushUI(false,'Conectando ao Firebase e registrando este aparelho...');
- nativePushRegistrationTimer=setTimeout(()=>{
-  finishNativePushRegistration(false,'O Android não confirmou o registro em 20 segundos. Verifique a internet e tente novamente.');
- },20000);
- try{
-  withPushTimeout(plugin.register(),10000,'O Firebase não respondeu ao iniciar o registro deste aparelho.').catch(error=>{
-   console.error('Falha ao iniciar o registro FCM:',error);
-   finishNativePushRegistration(false,'Não foi possível iniciar o Firebase: '+String(error?.message||error));
-  });
- }catch(error){
-  finishNativePushRegistration(false,'Não foi possível iniciar o Firebase: '+String(error?.message||error));
-  throw error;
- }
+ setNativePushStage('Diagnóstico: solicitando diretamente o token ao Firebase Cloud Messaging...');
+ const result=await withPushTimeout(plugin.getToken(),30000,'O Firebase não conseguiu gerar o token FCM em 30 segundos. Verifique Google Play Services, internet e o vínculo do app no Firebase Console.');
+ const token=String(result?.token||'').trim();
+ if(!token)throw new Error('O Firebase respondeu, mas não retornou um token FCM.');
+ await saveNativeFcmToken(token);
  return true;
 }
 async function removeNativePushRegistration(unregister=true){
@@ -754,7 +741,7 @@ async function removeNativePushRegistration(unregister=true){
  if(companyId)query=query.eq('company_id',companyId);
  const result=await query;
  if(result.error)throw result.error;
- if(unregister)await plugin.unregister();
+ if(unregister)await plugin.deleteToken();
  window.__kidsLocFcmToken=null;
 }
 async function refreshPushStatus(){
@@ -794,9 +781,9 @@ async function enablePushNotifications(){
   const nativePlugin=await getNativePushPlugin();
   if(nativePlugin){
    updatePushUI(false,'Verificando a permissão de notificações do Android...');
-   await withPushTimeout(registerNativePush(true),30000,'O registro do aparelho no Firebase não foi concluído. Tente novamente.');
-   updatePushUI(false,'Solicitação enviada. Aguardando a confirmação do Firebase...');
-   toast('Solicitação enviada ao Firebase. Aguarde a confirmação neste painel.','info');
+   await withPushTimeout(registerNativePush(true),45000,'O Firebase não concluiu a geração e o cadastro do token FCM.');
+   updatePushUI(true,'Notificações Android ativadas e aparelho cadastrado no Firebase.');
+   toast('Firebase conectado! Este aparelho foi registrado para receber notificações.');
    return;
   }
   if(!('serviceWorker' in navigator)||!('PushManager' in window)||!('Notification' in window))throw new Error('Seu navegador não oferece suporte a notificações push.');
