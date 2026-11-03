@@ -713,6 +713,10 @@ async function registerNativePush(requestPermission=false){
   permission=await withPushTimeout(plugin.requestPermissions(),25000,'ETAPA requestPermissions: o Android não concluiu a solicitação de permissão.');
  }
  if(permission.receive!=='granted')throw new Error('Permissão de notificações não concedida. Ative nas configurações do Android e tente novamente.');
+ setNativePushStage('Diagnóstico: criando o canal de notificações do Android...');
+ if(typeof plugin.createChannel==='function'){
+  await withPushTimeout(plugin.createChannel({id:'kidsloc_notifications',name:'Avisos do KidsLoc',description:'Notificações importantes do KidsLoc App',importance:5,sound:'default',visibility:1}),10000,'O Android não conseguiu criar o canal de notificações.');
+ }
  if(!nativePushListenersReady){
   setNativePushStage('Diagnóstico: configurando recebimento e atualização automática do token...');
   await withPushTimeout(plugin.addListener('tokenReceived',event=>{
