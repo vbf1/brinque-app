@@ -379,9 +379,20 @@ async function saveRentalDetails(){
  const customerId=document.getElementById('fClient').value,date=document.getElementById('fDate').value,endDate=document.getElementById('fEndDate').value,price=Number(document.getElementById('fPrice').value),status=document.getElementById('fStatus').value,mode=document.getElementById('fMode').value;
  if(!editingRecordId||!customerId||!date||!endDate||endDate<date||price<=0)return toast('Confira cliente, período e valor.');
  const old=rentals.find(r=>r.id===editingRecordId);if(!old)return toast('Locação não encontrada.');
- if(date!==old.date||endDate!==old.endDate){
+ if(['pending','confirmed','ongoing'].includes(status)){
   const overlaps=rentals.filter(r=>r.id!==old.id&&['pending','confirmed','ongoing'].includes(r.dbStatus)&&r.date<=endDate&&(r.endDate||r.date)>=date);
-  for(const item of old.items||[]){const p=products.find(x=>x.id===item.productId);if(!p)continue;const used=overlaps.reduce((sum,r)=>sum+(r.items||[]).filter(i=>i.productId===p.id).reduce((n,i)=>n+Number(i.quantity||0),0),0);if(used+Number(item.quantity)>Number(p.total))return toast('Não há estoque suficiente nesse novo período para '+p.name+'.');}
+  for(const item of old.items||[]){
+   const p=products.find(x=>x.id===item.productId);if(!p)continue;
+   if(p.mode==='Individual'){
+    const assigned=new Set(overlaps.flatMap(r=>(r.items||[]).filter(i=>i.productId===p.id).flatMap(i=>i.unitIds||[])));
+    const collision=(item.unitIds||[]).some(id=>assigned.has(id));
+    const unavailable=(item.unitIds||[]).some(id=>{const unit=productUnits.find(u=>u.id===id);return !unit||unit.status!=='available'});
+    if(collision||unavailable)return toast('Uma das unidades de '+p.name+' não está disponível nesse período.');
+   }else{
+    const used=overlaps.reduce((sum,r)=>sum+(r.items||[]).filter(i=>i.productId===p.id).reduce((n,i)=>n+Number(i.quantity||0),0),0);
+    if(used+Number(item.quantity)>Number(p.total))return toast('Não há estoque suficiente nesse novo período para '+p.name+'.');
+   }
+  }
  }
  try{await cloudError(await sb.from('rentals').update({customer_id:customerId,start_date:date,end_date:endDate,total_amount:price,delivery_method:mode==='Retirada pelo cliente'?'customer_pickup':'delivery',status}).eq('id',editingRecordId).eq('company_id',companyId));await loadCloudData();editingRecordId=null;go('locacoes');toast('Locação atualizada!')}catch(e){toast('Erro ao editar locação: '+translateError(e))}
 }
