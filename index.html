@@ -118,7 +118,7 @@ let transactions=JSON.parse(localStorage.getItem('brq_transactions')||'[]');
 function persist(){localStorage.setItem('brq_products',JSON.stringify(products));localStorage.setItem('brq_clients',JSON.stringify(clients));localStorage.setItem('brq_rentals',JSON.stringify(rentals));localStorage.setItem('brq_transactions',JSON.stringify(transactions))}
 const SUPABASE_URL='https://wcxvswomcfpeuhnbxivh.supabase.co';
 const SUPABASE_ANON_KEY='sb_publishable_hC1UBMmLe0U41oUHfFxfMQ_mYrsel51';
-const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}});
 let currentUser=null,companyId=null,companyRole=null,recoveryFlowActive=false,recoveryUserId=null;
 function isAdmin(){return ['owner','admin'].includes(companyRole)}
 function applyRoleUI(){document.querySelectorAll('[data-admin-only]').forEach(el=>el.classList.toggle('hidden',!isAdmin()))}
@@ -155,6 +155,13 @@ sb.auth.onAuthStateChange((event,session)=>{if(event==='PASSWORD_RECOVERY'){curr
 // Links de recuperação têm prioridade sobre qualquer sessão antiga salva no aparelho.
 sb.auth.onAuthStateChange((event,session)=>{
  if(event==='PASSWORD_RECOVERY'&&session?.user){recoveryFlowActive=true;recoveryUserId=session.user.id;currentUser=session.user;showRecoveryScreen();}
+ if(event==='SIGNED_OUT'){
+  currentUser=null;companyId=null;companyRole=null;recoveryFlowActive=false;recoveryUserId=null;
+  products=[];clients=[];rentals=[];transactions=[];
+  try{localStorage.clear();sessionStorage.clear();}catch(e){}
+  if('caches' in window)caches.keys().then(keys=>Promise.all(keys.filter(k=>k.startsWith('brinque-app-')).map(k=>caches.delete(k)))).catch(()=>{});
+  if(document.getElementById('authGate')){showApp(false);render();}
+ }
 });
 async function initializeAuthFlow(){
  const hash=new URLSearchParams(window.location.hash.replace(/^#/,''));
@@ -165,9 +172,8 @@ async function initializeAuthFlow(){
  if(hasRecoveryLink){
   recoveryFlowActive=true;showApp(false);
   try{
-   await sb.auth.signOut({scope:'local'});
    let session=null;
-   if(code){const {data,error}=await sb.auth.exchangeCodeForSession(code);if(error)throw error;session=data.session;}
+   if(code){const {data,error}=await sb.auth.exchangeCodeForSession(code);if(error){const latest=await sb.auth.getSession();if(latest.error||!latest.data.session)throw error;session=latest.data.session;}else session=data.session;}
    else if(tokenHash){const {data,error}=await sb.auth.verifyOtp({token_hash:tokenHash,type:'recovery'});if(error)throw error;session=data.session;}
    else if(accessToken&&refreshToken){const {data,error}=await sb.auth.setSession({access_token:accessToken,refresh_token:refreshToken});if(error)throw error;session=data.session;}
    if(!session){const {data,error}=await sb.auth.getSession();if(error)throw error;session=data.session;}
