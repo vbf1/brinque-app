@@ -93,7 +93,7 @@ label{font-size:12px;color:var(--muted);font-weight:650}.formgrid{display:grid;g
  </div>
  
  <div class="panel"><div class="section-title">Próximas locações <button class="btn-small" onclick="go('locacoes')">Ver todas</button></div><div class="list" id="homeRentals"></div></div>
- <div class="panel" data-admin-only><div class="section-title">Equipe cadastrada <button class="btn-small" onclick="go('funcionarios')">Gerenciar equipe</button></div><div id="homeEmployeeList" style="margin-top:12px"><p class="muted">Carregando equipe...</p></div></div>
+ <div class="panel" data-admin-only><div class="section-title">Equipe cadastrada <button class="btn-small" onclick="go('funcionarios')">Gerenciar equipe</button></div><div id="homeEmployeeList" style="margin-top:12px"><p class="muted">Carregando equipe...</p></div><div style="display:flex;flex-wrap:wrap;align-items:center;gap:9px;margin-top:14px"><button class="btn-small" id="pushEnableButton" onclick="enablePushNotifications()">Ativar notificações</button><button class="btn-light btn-small hidden" id="pushDisableButton" onclick="disablePushNotifications()">Desativar</button><span class="muted" id="pushStatus" aria-live="polite">Receba avisos de novos funcionários, mesmo com o app fechado.</span></div></div>
 </section>
 <section id="agenda" class="hidden"><div class="section-title">Agenda de eventos</div><div class="panel"><label>Consultar data</label><input type="date" id="agendaDate"><div class="muted">As reservas cadastradas aparecem abaixo.</div><div class="list" id="agendaList"></div></div></section>
 <section id="locacoes" class="hidden"><div class="section-title">Locações <button onclick="openForm('rental')">＋ Nova</button></div><div class="panel"><input id="rentalSearch" placeholder="Buscar cliente ou brinquedo..." oninput="render()"><div class="list" id="rentalList"></div></div></section>
@@ -249,7 +249,7 @@ async function loginApp(){
   if(me)throw me;if(!members||!members.length){await sb.auth.signOut();throw new Error('Esta conta ainda não está vinculada a uma empresa. Peça ao proprietário para conferir o cadastro do funcionário.');}
   companyId=members[0].company_id;companyRole=members[0].role;
   const {data:co,error:ce}=await sb.from('companies').select('id,name').eq('id',companyId).single();if(ce)throw ce;
-  document.getElementById('company').value=co.name;await loadCloudData();showApp(true);render();go('inicio',null,true);if(isAdmin())await loadEmployees();toast('Conectado à nuvem com sucesso.');
+  document.getElementById('company').value=co.name;await loadCloudData();showApp(true);render();go('inicio',null,true);if(isAdmin()){await loadEmployees();await refreshPushStatus();}toast('Conectado à nuvem com sucesso.');
  }catch(e){authMessage(translateError(e),true);await sb.auth.signOut().catch(()=>{});}finally{btn.disabled=false;btn.textContent='Entrar';}
 }
 async function logoutApp(){
@@ -299,6 +299,53 @@ async function employeeApi(payload){
  if(data&&data.error)throw new Error(data.error);return data;
 }
 function employeeMessage(message,isError=false){const el=document.getElementById('employeeMessage');if(el){el.textContent=message;el.style.color=isError?'#c94b4b':'var(--green)'}}
+function updatePushUI(active,message){
+ const enable=document.getElementById('pushEnableButton'),disable=document.getElementById('pushDisableButton'),status=document.getElementById('pushStatus');
+ if(enable)enable.classList.toggle('hidden',!!active);
+ if(disable)disable.classList.toggle('hidden',!active);
+ if(status)status.textContent=message||(active?'Notificações ativadas neste aparelho.':'Receba avisos de novos funcionários, mesmo com o app fechado.');
+}
+function urlBase64ToUint8Array(value){
+ const padding='='.repeat((4-value.length%4)%4),base64=(value+padding).replace(/-/g,'+').replace(/_/g,'/');
+ const raw=atob(base64),output=new Uint8Array(raw.length);
+ for(let i=0;i<raw.length;i++)output[i]=raw.charCodeAt(i);
+ return output;
+}
+async function refreshPushStatus(){
+ if(!isAdmin()||!('serviceWorker' in navigator)||!('PushManager' in window)){updatePushUI(false,'Este navegador não oferece suporte a notificações push.');return}
+ try{const registration=await navigator.serviceWorker.ready;const subscription=await registration.pushManager.getSubscription();updatePushUI(!!subscription,subscription?'Notificações ativadas neste aparelho.':'Receba avisos de novos funcionários, mesmo com o app fechado.')}
+ catch(_){updatePushUI(false,'Não foi possível verificar as notificações neste aparelho.')}
+}
+async function enablePushNotifications(){
+ if(!isAdmin())return toast('Somente proprietário e administradores podem ativar notificações.');
+ if(!('serviceWorker' in navigator)||!('PushManager' in window)||!('Notification' in window))return toast('Seu navegador não oferece suporte a notificações push.');
+ const button=document.getElementById('pushEnableButton');if(button){button.disabled=true;button.textContent='Ativando...'}
+ try{
+  const permission=await Notification.requestPermission();
+  if(permission!=='granted')throw new Error(permission==='denied'?'As notificações foram bloqueadas no Chrome. Altere a permissão do site nas configurações do navegador.':'Permissão de notificação não concedida.');
+  const {data,error}=await sb.functions.invoke('send-employee-push',{body:{action:'public_key',company_id:companyId}});
+  if(error)throw error;if(!data?.publicKey)throw new Error(data?.error||'Não foi possível preparar as notificações.');
+  const registration=await navigator.serviceWorker.register('sw.js');
+  await navigator.serviceWorker.ready;
+  let subscription=await registration.pushManager.getSubscription();
+  if(!subscription)subscription=await registration.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:urlBase64ToUint8Array(data.publicKey)});
+  const json=subscription.toJSON(),keys=json.keys||{};
+  if(!keys.p256dh||!keys.auth)throw new Error('O Chrome não retornou as chaves necessárias para a inscrição.');
+  const saved=await sb.from('push_subscriptions').upsert({company_id:companyId,user_id:currentUser.id,endpoint:subscription.endpoint,p256dh:keys.p256dh,auth:keys.auth},{onConflict:'endpoint'});
+  if(saved.error)throw saved.error;
+  updatePushUI(true,'Notificações ativadas neste aparelho.');
+  toast('Notificações ativadas com sucesso!');
+ }catch(e){updatePushUI(false,'Não foi possível ativar: '+translateError(e));toast('Falha ao ativar notificações: '+translateError(e))}
+ finally{if(button){button.disabled=false;button.textContent='Ativar notificações'}}
+}
+async function disablePushNotifications(){
+ try{
+  const registration=await navigator.serviceWorker.ready,subscription=await registration.pushManager.getSubscription();
+  if(subscription){const result=await sb.from('push_subscriptions').delete().eq('endpoint',subscription.endpoint).eq('user_id',currentUser.id);if(result.error)throw result.error;await subscription.unsubscribe()}
+  updatePushUI(false,'Notificações desativadas neste aparelho.');toast('Notificações desativadas.');
+ }catch(e){toast('Não foi possível desativar: '+translateError(e))}
+}
+
 async function loadEmployees(){
  if(!isAdmin())return;
  const lists=['employeeList','homeEmployeeList'].map(id=>document.getElementById(id)).filter(Boolean);
@@ -472,7 +519,7 @@ function render(){
 async function saveCompany(){if(!isAdmin())return toast('Somente proprietário e administradores podem alterar configurações.');try{const name=document.getElementById('company').value.trim();if(!name)return toast('Informe o nome da empresa.');await cloudError(await sb.from('companies').update({name}).eq('id',companyId));toast('Nome da empresa atualizado na nuvem.')}catch(e){toast('Erro ao atualizar empresa: '+translateError(e))}}
 render();
 showApp(false);
-async function resumeSession(){const {data}=await sb.auth.getSession();if(!data.session)return;try{currentUser=data.session.user;updateGreetingUser(currentUser);const {data:members,error}=await sb.from('company_members').select('company_id,role').eq('user_id',currentUser.id);if(error)throw error;if(!members?.length)throw new Error('Usuário sem vínculo com empresa.');companyId=members[0].company_id;companyRole=members[0].role;const {data:co,error:ce}=await sb.from('companies').select('id,name').eq('id',companyId).single();if(ce)throw ce;document.getElementById('company').value=co.name;await loadCloudData();showApp(true);render();go('inicio');if(isAdmin())await loadEmployees();}catch(e){await sb.auth.signOut({scope:'local'});currentUser=null;companyId=null;companyRole=null;products=[];clients=[];rentals=[];transactions=[];showApp(false);authMessage(translateError(e),true)}}
+async function resumeSession(){const {data}=await sb.auth.getSession();if(!data.session)return;try{currentUser=data.session.user;updateGreetingUser(currentUser);const {data:members,error}=await sb.from('company_members').select('company_id,role').eq('user_id',currentUser.id);if(error)throw error;if(!members?.length)throw new Error('Usuário sem vínculo com empresa.');companyId=members[0].company_id;companyRole=members[0].role;const {data:co,error:ce}=await sb.from('companies').select('id,name').eq('id',companyId).single();if(ce)throw ce;document.getElementById('company').value=co.name;await loadCloudData();showApp(true);render();go('inicio');if(isAdmin()){await loadEmployees();await refreshPushStatus();}}catch(e){await sb.auth.signOut({scope:'local'});currentUser=null;companyId=null;companyRole=null;products=[];clients=[];rentals=[];transactions=[];showApp(false);authMessage(translateError(e),true)}}
 initializeAuthFlow();
 if('serviceWorker' in navigator && location.protocol.startsWith('http'))navigator.serviceWorker.register('sw.js').catch(()=>{});
 </script>
