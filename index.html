@@ -134,8 +134,8 @@ button:disabled{opacity:.65;cursor:wait}
 .password-editor-copy{display:grid;gap:1px;min-width:0;flex:1}
 .password-editor-copy b{font-size:13px;color:var(--ink)}
 .password-editor-copy small{font-size:11px;color:var(--muted);font-weight:500}
-.password-editor-chevron{color:var(--muted);font-size:19px;transition:transform .18s ease}
-.employee-password-editor[open] .password-editor-chevron{transform:rotate(180deg)}
+
+.employee-password-editor[open] 
 .password-editor-body{padding:2px 12px 13px;border-top:1px solid var(--line);animation:passwordEditorIn .18s ease-out}
 .password-editor-body label{font-size:11px;margin:10px 0 5px}
 .password-editor-body input{margin-bottom:8px;background:var(--bg);font-size:13px}
@@ -144,7 +144,7 @@ button:disabled{opacity:.65;cursor:wait}
 .employee-password-save:disabled{opacity:.7}
 .employee-password-save span{font-size:16px}
 @keyframes passwordEditorIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
-@media(prefers-reduced-motion:reduce){.password-editor-body,.password-editor-chevron{animation:none;transition:none}}
+@media(prefers-reduced-motion:reduce){.password-editor-body,}
 
 
 /* Modal moderno de confirmação de exclusão */
@@ -647,7 +647,7 @@ async function loadEmployees(){
    let actions='';
    if(canManage&&companyRole==='owner')actions+='<button class="btn-light" onclick="changeEmployeeRole(\''+m.user_id+'\',\''+(m.role==='admin'?'staff':'admin')+'\')">'+(m.role==='admin'?'Tornar funcionário':'Tornar administrador')+'</button>';
    if(canManage)actions+='<button class="btn-light" style="color:#c94b4b" onclick="removeEmployee(\''+m.user_id+'\')">Remover acesso</button>';
-   if(companyRole==='owner'&&m.role!=='owner')actions+='<details class="employee-password-editor" id="passwordEditor-'+m.user_id+'"><summary><span class="password-editor-icon">⌑</span><span class="password-editor-copy"><b>Alterar senha</b><small>Redefina o acesso deste funcionário</small></span><span class="password-editor-chevron">⌄</span></summary><div class="password-editor-body"><label for="employeePassword-'+m.user_id+'">Nova senha</label><input id="employeePassword-'+m.user_id+'" type="password" autocomplete="new-password" minlength="8" placeholder="Digite uma senha (mín. 8 caracteres)" onkeydown="if(event.key===\'Enter\')changeEmployeePassword(\''+m.user_id+'\')"><label for="employeePasswordConfirm-'+m.user_id+'">Confirmar nova senha</label><input id="employeePasswordConfirm-'+m.user_id+'" type="password" autocomplete="new-password" minlength="8" placeholder="Digite a senha novamente" onkeydown="if(event.key===\'Enter\')changeEmployeePassword(\''+m.user_id+'\')"><p class="password-editor-hint">Use pelo menos 8 caracteres. A alteração será aplicada imediatamente.</p><button type="button" class="full employee-password-save" id="employeePasswordSave-'+m.user_id+'" onclick="changeEmployeePassword(\''+m.user_id+'\')"><span>✓</span> Salvar nova senha</button></div></details>';
+   if(companyRole==='owner'&&m.role!=='owner')actions+='<details class="employee-password-editor" id="passwordEditor-'+m.user_id+'"><summary><span class="password-editor-icon">⌑</span><span class="password-editor-copy"><b>Alterar senha</b><small>Redefina o acesso deste funcionário</small></span></summary><div class="password-editor-body"><label for="employeePassword-'+m.user_id+'">Nova senha</label><input id="employeePassword-'+m.user_id+'" type="password" autocomplete="new-password" minlength="8" placeholder="Digite uma senha (mín. 8 caracteres)" onkeydown="if(event.key===\'Enter\')changeEmployeePassword(\''+m.user_id+'\')"><label for="employeePasswordConfirm-'+m.user_id+'">Confirmar nova senha</label><input id="employeePasswordConfirm-'+m.user_id+'" type="password" autocomplete="new-password" minlength="8" placeholder="Digite a senha novamente" onkeydown="if(event.key===\'Enter\')changeEmployeePassword(\''+m.user_id+'\')"><p class="password-editor-hint">Use pelo menos 8 caracteres. A alteração será aplicada imediatamente.</p><button type="button" class="full employee-password-save" id="employeePasswordSave-'+m.user_id+'" onclick="changeEmployeePassword(\''+m.user_id+'\')"><span>✓</span> Salvar nova senha</button></div></details>';
    htmlByMember.set(m.user_id,'<article class="record-card record-card-employee"><div class="record-card-top"><div style="min-width:0;flex:1"><div class="employee-identity"><span class="employee-avatar" style="background:'+avatarColor+'">'+employeeEscape(avatarInitials)+'</span><div class="employee-identity-copy"><b>'+name+'</b><div class="muted" style="display:block;width:100%;overflow-wrap:anywhere">'+email+'</div></div></div><span class="tag">'+roleLabel+'</span></div></div>'+(actions?'<div class="record-card-actions">'+actions+'</div>':'')+'</article>');
   });
   const home=document.getElementById('homeEmployeeList'),management=document.getElementById('employeeList');
