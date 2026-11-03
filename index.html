@@ -988,21 +988,9 @@ async function changeEmployeePassword(userId){
 let activeTeamConversationId=null,activeTeamChannel=null,teamConversationCache=[];
 function teamMemberName(userId){return companyEmployees.find(m=>m.id===userId)?.name||'Membro da equipe'}
 async function ensureTeamGroup(){
- let found=await sb.from('team_conversations').select('id,company_id,conversation_type,title,created_by,created_at').eq('company_id',companyId).eq('conversation_type','team').maybeSingle();
- if(found.error)throw found.error;
- let conversation=found.data;
- if(!conversation){
-  const created=await sb.from('team_conversations').insert({company_id:companyId,conversation_type:'team',title:'Grupo da equipe',created_by:currentUser.id}).select().single();
-  if(created.error){if(created.error.code==='23505'){found=await sb.from('team_conversations').select('id,company_id,conversation_type,title,created_by,created_at').eq('company_id',companyId).eq('conversation_type','team').maybeSingle();if(found.error)throw found.error;conversation=found.data}else throw created.error}
-  else conversation=created.data;
- }
- if(conversation&&conversation.created_by===currentUser.id){
-  const ids=[...new Set([currentUser.id,...companyEmployees.map(m=>m.id)])];
-  const rows=ids.map(user_id=>({conversation_id:conversation.id,company_id:companyId,user_id}));
-  const inserted=await sb.from('team_conversation_members').upsert(rows,{onConflict:'conversation_id,user_id',ignoreDuplicates:true});
-  if(inserted.error)throw inserted.error;
- }
- return conversation;
+ const result=await sb.rpc('ensure_team_group',{p_company_id:companyId});
+ if(result.error)throw result.error;
+ return {id:result.data,company_id:companyId,conversation_type:'team',title:'Grupo da equipe'};
 }
 async function loadTeamChats(){
  if(!currentUser?.id||!companyId)return;
@@ -1085,7 +1073,7 @@ function go(id,btn,replaceHistory=false){
  currentPage=id;
  document.querySelectorAll('main section').forEach(section=>{const isCurrent=section.id===id;section.hidden=!isCurrent;section.style.display=isCurrent?'':'none';section.classList.toggle('hidden',!isCurrent);});
  document.querySelectorAll('#menuPanel button').forEach(b=>b.classList.toggle('active',b.dataset.page===id));
- toggleMenu(false);render(id);if(id==='funcionarios')loadEmployees();window.scrollTo({top:0,behavior:'smooth'});
+ toggleMenu(false);render(id);if(id==='funcionarios')loadEmployees();if(id==='mensagens')loadTeamChats();window.scrollTo({top:0,behavior:'smooth'});
 }
 function closeForm(){if(currentPage==='form'&&history.state?.brinquePage){history.back();return}go('inicio')}
 history.replaceState({brinquePage:'inicio'},'',location.pathname+location.search);
