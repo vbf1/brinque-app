@@ -780,6 +780,70 @@ async function saveProduct(){
   await loadCloudData();editingRecordId=null;go('estoque');toast('Brinquedo salvo na nuvem!');
  }catch(e){toast('Erro ao salvar brinquedo: '+translateError(e))}
 }
+
+async function renderProductImageManager(productId){
+ const grid=document.getElementById('productImageGrid');if(!grid)return;
+ const images=productImages.filter(image=>image.product_id===productId);
+ if(!images.length){grid.innerHTML='<p class="muted" style="grid-column:1/-1">Nenhuma foto cadastrada para este brinquedo.</p>';return}
+ grid.innerHTML=images.map(image=>'<div class="product-image-card '+(image.is_cover?'is-cover':'')+'">'+(image.is_cover?'<span class="product-image-cover-tag">PRINCIPAL</span>':'')+'<img class="product-image-thumb" src="'+employeeEscape(image.url)+'" alt="'+employeeEscape(image.caption||'Foto do brinquedo')+'" onclick="previewProductImage(\''+image.id+'\')"><div class="product-image-actions"><input aria-label="Descrição da imagem" placeholder="Descrição da foto" value="'+employeeEscape(image.caption||'')+'" onchange="updateProductImageCaption(\''+image.id+'\',this.value)" style="font-size:11px;padding:7px;margin:0;min-height:34px"><button type="button" class="btn-light" '+(image.is_cover?'disabled':'')+' onclick="setProductCover(\''+image.id+'\')">'+(image.is_cover?'Foto principal':'Definir principal')+'</button><button type="button" class="btn-light" style="color:#c94b4b" onclick="deleteProductImage(\''+image.id+'\')">Excluir foto</button></div></div>').join('');
+}
+function previewProductImage(imageId){
+ const image=productImages.find(item=>item.id===imageId);if(!image||!image.url)return;
+ let modal=document.getElementById('productImageLightbox');
+ if(!modal){modal=document.createElement('div');modal.id='productImageLightbox';modal.className='image-lightbox hidden';modal.innerHTML='<button type="button" aria-label="Fechar" onclick="closeProductImagePreview()">✕ Fechar</button><img alt="Visualização da foto do brinquedo">';modal.addEventListener('click',event=>{if(event.target===modal)closeProductImagePreview()});document.body.appendChild(modal)}
+ modal.querySelector('img').src=image.url;modal.querySelector('img').alt=image.caption||'Foto do brinquedo';modal.classList.remove('hidden');
+}
+function closeProductImagePreview(){document.getElementById('productImageLightbox')?.classList.add('hidden')}
+async function refreshProductImage(productId){
+ const result=await sb.from('product_images').select('*').eq('company_id',companyId).eq('product_id',productId).order('created_at');
+ if(result.error)throw result.error;
+ const refreshed=await Promise.all((result.data||[]).map(async image=>{const signed=await sb.storage.from('product-images').createSignedUrl(image.storage_path,3600);return {...image,url:signed.error?'':signed.data?.signedUrl||''}}));
+ productImages=productImages.filter(image=>image.product_id!==productId).concat(refreshed);
+ renderProductImageManager(productId);render();
+}
+async function uploadProductImages(productId,fileList){
+ const files=Array.from(fileList||[]);if(!files.length)return;
+ const status=document.getElementById('productImageStatus'),input=document.getElementById('productImageFiles');
+ if(status)status.textContent='Enviando imagens...';if(input)input.disabled=true;
+ const uploaded=[];
+ try{
+  for(const file of files){
+   if(!['image/jpeg','image/png','image/webp','image/gif'].includes(file.type))throw new Error('Formato não permitido: '+file.name);
+   if(file.size>8*1024*1024)throw new Error('A imagem '+file.name+' ultrapassa o limite de 8 MB.');
+   const ext={'image/jpeg':'jpg','image/png':'png','image/webp':'webp','image/gif':'gif'}[file.type];
+   const path=companyId+'/'+productId+'/'+crypto.randomUUID()+'.'+ext;
+   const stored=await sb.storage.from('product-images').upload(path,file,{cacheControl:'3600',contentType:file.type,upsert:false});
+   if(stored.error)throw stored.error;
+   uploaded.push({company_id:companyId,product_id:productId,storage_path:path,caption:file.name.replace(/\.[^.]+$/,'')});
+  }
+  const saved=await sb.from('product_images').insert(uploaded);if(saved.error)throw saved.error;
+  await refreshProductImage(productId);toast(files.length+' foto(s) adicionada(s) com sucesso.');
+ }catch(e){
+  const paths=uploaded.map(item=>item.storage_path);if(paths.length)await sb.storage.from('product-images').remove(paths);
+  if(status)status.textContent='Não foi possível enviar: '+translateError(e);
+  toast('Erro ao enviar fotos: '+translateError(e));
+ }finally{if(input){input.disabled=false;input.value=''}}
+}
+async function updateProductImageCaption(imageId,caption){
+ try{const value=String(caption||'').trim().slice(0,120),result=await sb.from('product_images').update({caption:value}).eq('id',imageId).eq('company_id',companyId);if(result.error)throw result.error;const image=productImages.find(item=>item.id===imageId);if(image)image.caption=value;toast('Descrição da foto atualizada.')}catch(e){toast('Não foi possível atualizar a descrição: '+translateError(e))}
+}
+async function setProductCover(imageId){
+ const image=productImages.find(item=>item.id===imageId);if(!image)return;
+ try{
+  const clear=await sb.from('product_images').update({is_cover:false}).eq('company_id',companyId).eq('product_id',image.product_id);if(clear.error)throw clear.error;
+  const set=await sb.from('product_images').update({is_cover:true}).eq('id',imageId).eq('company_id',companyId);if(set.error)throw set.error;
+  await refreshProductImage(image.product_id);toast('Foto principal atualizada.');
+ }catch(e){toast('Não foi possível definir a foto principal: '+translateError(e))}
+}
+async function deleteProductImage(imageId){
+ const image=productImages.find(item=>item.id===imageId);if(!image)return;
+ if(!await showDeleteConfirmation('foto do brinquedo','Esta imagem será excluída permanentemente do armazenamento.'))return;
+ try{
+  const removed=await sb.storage.from('product-images').remove([image.storage_path]);if(removed.error)throw removed.error;
+  const row=await sb.from('product_images').delete().eq('id',imageId).eq('company_id',companyId);if(row.error)throw row.error;
+  await refreshProductImage(image.product_id);toast('Foto excluída.');
+ }catch(e){toast('Não foi possível excluir a foto: '+translateError(e))}
+}
 function unitRentalHistory(unitId){const records=rentals.filter(r=>(r.items||[]).some(i=>(i.unitIds||[]).includes(unitId))).sort((a,b)=>b.date.localeCompare(a.date));return records.length?records.slice(0,3).map(r=>`${employeeEscape(r.name)} · ${dateBR(r.date)} · ${r.status}`).join(' | '):'Sem locações registradas';}
 async function setUnitStatus(unitId,status){const unit=productUnits.find(u=>u.id===unitId);if(!unit)return;try{if(status==='maintenance'){const record=await sb.from('maintenance_records').insert({company_id:companyId,product_id:unit.product_id,product_unit_id:unit.id,description:'Unidade enviada para manutenção pelo controle de estoque.',status:'open'});if(record.error)throw record.error;}else if(unit.status==='maintenance'){const closed=await sb.from('maintenance_records').update({status:'completed',completed_at:new Date().toISOString().slice(0,10)}).eq('product_unit_id',unit.id).eq('company_id',companyId).eq('status','open');if(closed.error)throw closed.error;}const result=await sb.from('product_units').update({status}).eq('id',unitId).eq('company_id',companyId);if(result.error)throw result.error;await loadCloudData();render();toast(status==='maintenance'?'Unidade enviada para manutenção.':'Unidade liberada para locação.')}catch(e){toast('Não foi possível atualizar a unidade: '+translateError(e))}}
 async function saveTransaction(){if(!isAdmin())return toast('Acesso financeiro restrito ao proprietário e administradores.');if(!fDesc.value.trim()||Number(fValue.value)<=0)return toast('Informe descrição e valor.');try{const values={transaction_type:fType.value==='Entrada'?'income':'expense',description:fDesc.value.trim(),amount:Number(fValue.value)};if(editingRecordId)await cloudError(await sb.from('financial_transactions').update(values).eq('id',editingRecordId).eq('company_id',companyId));else await cloudError(await sb.from('financial_transactions').insert({company_id:companyId,...values,status:'paid',paid_at:new Date().toISOString().slice(0,10),created_by:currentUser.id}));await loadCloudData();editingRecordId=null;go('financeiro');toast('Lançamento salvo na nuvem!')}catch(e){toast('Erro ao salvar lançamento: '+translateError(e))}}
