@@ -1,36 +1,39 @@
-# KidsLoc QA — achado crítico de RLS: isolamento de locações
+# KidsLoc QA — revisão de RLS: isolamento de locações
 
 Data: 2026-11-03
 Ambiente consultado: Supabase remoto, somente leitura.
-Status: confirmado na definição das políticas; nenhuma alteração aplicada.
+Status: revisão complementar das políticas; nenhuma alteração aplicada.
 
-## Resumo
-As políticas PostgreSQL RLS são permissivas por padrão e políticas permissivas para o mesmo papel/operação são combinadas com OR. Foram encontradas políticas amplas `company_members_all` que permitem acesso a qualquer membro da empresa, coexistindo com políticas de escopo por locação. Isso pode tornar ineficaz o isolamento pretendido para funcionários.
+## Conclusão corrigida
+A presença das políticas permissivas antigas `company_members_all` inicialmente pareceu permitir que qualquer membro da empresa ultrapassasse as regras de escopo. A consulta complementar da coluna `pg_policies.permissive` e a leitura da migração `20261103120000_restrict_rental_visibility_to_assigned_staff.sql` demonstraram que as políticas de escopo relevantes foram criadas como **AS RESTRICTIVE**.
 
-## Políticas confirmadas
+No PostgreSQL, políticas RESTRICTIVE são combinadas com AND em relação às políticas permissivas. Portanto, as políticas restritivas confirmadas continuam limitando o acesso apesar da política permissiva ampla. A suspeita inicial de bypass por OR não se confirma para as operações e tabelas listadas abaixo.
 
-| Tabela | Política ampla | Escopo adicional | Risco |
-|---|---|---|---|
-| rentals | company_members_all — ALL, `is_company_member(company_id)` | rentals_scope_select, rentals_update_scope, rentals_delete_scope | SELECT e outras operações podem ser liberadas pela política ampla |
-| rental_items | company_members_all — ALL, membro da empresa | rental_items_mutation_scope e rental_items_scope_select | Acesso a itens de locações não atribuídas |
-| rental_events | company_members_all — ALL, membro da empresa | rental_events_mutation_scope e rental_events_scope_select | Acesso a eventos de locações não atribuídas |
-| rental_item_units | company_members_all — ALL, membro da empresa | rental_item_units_mutation_scope e rental_item_units_scope_select | Acesso a unidades ligadas a locações não atribuídas |
-| rental_responsibles | rental_responsibles_select_company — SELECT, membro da empresa | rental_responsibles_scope_select | Leitura de responsáveis além do escopo pretendido |
+## Políticas restritivas confirmadas no banco
 
-A consulta também confirmou que as políticas de escopo de leitura para rentals verificam owner/admin ou usuário atribuído em `rental_responsibles`, mas a política permissiva ampla permanece ativa.
+| Tabela | Política restritiva | Operações |
+|---|---|---|
+| rentals | rentals_scope_select | SELECT |
+| rentals | rentals_update_scope | UPDATE |
+| rentals | rentals_delete_scope | DELETE |
+| rental_items | rental_items_scope_select | SELECT |
+| rental_items | rental_items_mutation_scope | ALL |
+| rental_events | rental_events_scope_select | SELECT |
+| rental_events | rental_events_mutation_scope | ALL |
+| rental_item_units | rental_item_units_scope_select | SELECT |
+| rental_item_units | rental_item_units_mutation_scope | ALL |
+| rental_responsibles | rental_responsibles_scope_select | SELECT |
+| rental_responsibles | rental_responsibles_insert_scope | INSERT |
+| rental_responsibles | rental_responsibles_delete_scope | DELETE |
 
-## Impacto potencial
-Um usuário com papel staff que seja membro da empresa pode conseguir acessar diretamente pela API REST dados de locações não atribuídas, e potencialmente alterar dados em tabelas que ainda tenham a política ampla ALL. O comportamento exato por operação precisa ser validado com duas contas sintéticas em um ambiente local fiel ao esquema.
+As regras de escopo consultam `can_manage_rental` ou a visibilidade da locação pai. A função `can_manage_rental` permite owner/admin, funcionário explicitamente atribuído e, quando não há responsáveis atribuídos, o criador da locação.
 
-A interface esconder ou filtrar essas locações não é controle de segurança suficiente; a restrição precisa ser aplicada no banco.
+## O que ainda precisa de validação
+- Testes reais de RLS com duas contas staff, contas owner/admin e duas empresas sintéticas.
+- Confirmar SELECT/INSERT/UPDATE/DELETE em locações, itens, unidades, eventos e responsáveis.
+- Verificar se subconsultas e operações em lote respeitam o mesmo escopo.
+- Verificar o comportamento quando uma locação muda de responsável e quando fica sem responsáveis.
+- Confirmar que os fluxos de inventário e criação de locação continuam funcionando.
 
-## Próximas correções propostas — NÃO EXECUTADAS
-1. Reconstruir o esquema e histórico de migrações em banco local isolado.
-2. Preparar uma migração corretiva que remova/substitua apenas as políticas amplas nas tabelas afetadas, preservando acesso de owner/admin e acesso de staff às locações atribuídas.
-3. Rever também as políticas de `rental_responsibles` e garantir que funcionários só vejam o que o produto realmente exige.
-4. Testar com owner, admin, manager e dois funcionários; cobrir SELECT, INSERT, UPDATE e DELETE, inclusive tentativas cross-company.
-5. Confirmar que a criação de locações, atribuição de responsáveis, inventário e eventos continuam funcionando.
-6. Só então solicitar aprovação para aplicar a migração no projeto principal.
-
-## Observação
-Não foi executado DROP POLICY, ALTER POLICY, UPDATE, INSERT ou DELETE no Supabase remoto. O relatório é diagnóstico, não uma alteração aplicada.
+## Segurança operacional
+Nenhuma política foi removida ou alterada. Nenhum dado remoto foi modificado. A validação definitiva exige um banco local fiel ao esquema e testes com usuários sintéticos; os testes Playwright atuais usam Supabase simulado e não comprovam RLS real.
