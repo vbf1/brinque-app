@@ -306,7 +306,7 @@ header{padding-top:calc(12px + var(--kids-safe-area-top))}
 .team-chat-avatar{width:43px;height:43px;flex:0 0 43px;display:grid;place-items:center;border-radius:50%;background:var(--bg);font-weight:800;color:var(--blue)}
 .team-chat-list-copy{min-width:0;flex:1;display:grid;gap:3px}.team-chat-list-copy b,.team-chat-list-copy small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.team-chat-list-copy small{color:var(--muted);font-size:12px}
 </style>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0"></script>
 </head>
 <body>
 <div id="authGate" style="position:fixed;inset:0;z-index:50;background:var(--bg);display:grid;place-items:center;padding:22px">
@@ -439,7 +439,7 @@ let transactions=JSON.parse(localStorage.getItem('brq_transactions')||'[]');
 function persist(){localStorage.setItem('brq_products',JSON.stringify(products));localStorage.setItem('brq_clients',JSON.stringify(clients));localStorage.setItem('brq_rentals',JSON.stringify(rentals));localStorage.setItem('brq_transactions',JSON.stringify(transactions))}
 const SUPABASE_URL='https://wcxvswomcfpeuhnbxivh.supabase.co';
 const SUPABASE_ANON_KEY='sb_publishable_hC1UBMmLe0U41oUHfFxfMQ_mYrsel51';
-const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}});
+const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:false,lock:async(_name,_acquireTimeout,fn)=>await fn()}});
 let currentUser=null,companyId=null,companyRole=null,passwordSetupFlowActive=false,passwordSetupUserId=null;
 function isAdmin(){return ['owner','admin'].includes(companyRole)}
 // Native FCM registration is handled by the Android push bridge.
@@ -594,7 +594,7 @@ async function initializeAuthFlow(){
   }
   return;
  }
- try{await resumeSession()}
+ try{await Promise.race([resumeSession(),new Promise((_,reject)=>setTimeout(()=>reject(new Error('A verificação da sessão demorou mais que o esperado. Entre novamente.')),12000))])}
  catch(error){
   console.error('Falha ao verificar a sessão salva:',error);
   showApp(false);showLoginScreen('Não foi possível verificar sua sessão. Confira a conexão e tente restaurar novamente.');
