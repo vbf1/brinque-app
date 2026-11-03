@@ -559,6 +559,7 @@ async function loginApp(){
  }catch(e){authMessage(translateError(e),true);await sb.auth.signOut().catch(()=>{});}finally{btn.disabled=false;btn.textContent='Entrar';}
 }
 async function logoutApp(){
+ try{await removeNativePushRegistration(true);}catch(e){console.warn('Falha ao remover registro FCM:',e);}
  try{await sb.auth.signOut({scope:'local'});}catch(e){console.warn('Falha ao encerrar sessão:',e);}
  currentUser=null;companyId=null;companyRole=null;passwordSetupFlowActive=false;passwordSetupUserId=null;
  products=[];clients=[];rentals=[];transactions=[];companyEmployees=[];rentalResponsibleRows=[];occurrenceReports=[];editingOccurrenceId=null;
@@ -654,16 +655,74 @@ function urlBase64ToUint8Array(value){
  for(let i=0;i<raw.length;i++)output[i]=raw.charCodeAt(i);
  return output;
 }
+async function getNativePushPlugin(){
+ if(!window.Capacitor?.isNativePlatform?.()||window.Capacitor?.getPlatform?.()!=='android')return null;
+ if(window.KidsLocPushNotifications)return window.KidsLocPushNotifications;
+ if(window.__kidsLocNativePushReady)await window.__kidsLocNativePushReady;
+ if(!window.KidsLocPushNotifications)throw new Error('O módulo de notificações Android não foi carregado. Feche e abra o app novamente.');
+ return window.KidsLocPushNotifications;
+}
+let nativePushListenersReady=false;
+async function registerNativePush(requestPermission=false){
+ const plugin=await getNativePushPlugin();
+ if(!plugin)return false;
+ let permission=await plugin.checkPermissions();
+ if(permission.receive!=='granted'&&requestPermission)permission=await plugin.requestPermissions();
+ if(permission.receive!=='granted')throw new Error('Permita notificações do KidsLoc App nas configurações do Android.');
+ if(!nativePushListenersReady){
+  await plugin.addListener('registration',async result=>{
+   const token=String(result?.value||'').trim();
+   if(!token||!currentUser?.id||!companyId)return;
+   window.__kidsLocFcmToken=token;
+   const saved=await sb.from('fcm_device_tokens').upsert({company_id:companyId,user_id:currentUser.id,token,platform:'android'},{onConflict:'token'});
+   if(saved.error){console.error('Falha ao salvar token FCM:',saved.error);updatePushUI(false,'Não foi possível registrar este aparelho.');return}
+   updatePushUI(true,'Notificações Android ativadas neste aparelho.');
+  });
+  await plugin.addListener('registrationError',error=>{console.error('Erro no registro FCM:',error);updatePushUI(false,'Não foi possível registrar as notificações Android.')});
+  await plugin.addListener('pushNotificationReceived',notification=>toast(String(notification?.title||'KidsLoc App')+': '+String(notification?.body||'Você recebeu uma nova notificação.')));
+  await plugin.addListener('pushNotificationActionPerformed',()=>{if(typeof go==='function')go('inicio')});
+  nativePushListenersReady=true;
+ }
+ await plugin.register();
+ return true;
+}
+async function removeNativePushRegistration(unregister=true){
+ const plugin=await getNativePushPlugin();
+ if(!plugin||!currentUser?.id)return;
+ let query=sb.from('fcm_device_tokens').delete().eq('user_id',currentUser.id);
+ if(companyId)query=query.eq('company_id',companyId);
+ const result=await query;
+ if(result.error)throw result.error;
+ if(unregister)await plugin.unregister();
+ window.__kidsLocFcmToken=null;
+}
 async function refreshPushStatus(){
- if(!isAdmin()||!('serviceWorker' in navigator)||!('PushManager' in window)){updatePushUI(false,'Este navegador não oferece suporte a notificações push.');return}
- try{const registration=await navigator.serviceWorker.ready;const subscription=await registration.pushManager.getSubscription();updatePushUI(!!subscription,subscription?'Notificações ativadas neste aparelho.':'Receba avisos de novos funcionários, mesmo com o app fechado.')}
- catch(_){updatePushUI(false,'Não foi possível verificar as notificações neste aparelho.')}
+ if(!isAdmin())return;
+ try{
+  const nativePlugin=await getNativePushPlugin();
+  if(nativePlugin){
+   const permission=await nativePlugin.checkPermissions();
+   if(permission.receive==='granted'){await registerNativePush(false);updatePushUI(true,'Registrando notificações Android neste aparelho...')}
+   else updatePushUI(false,'Ative as notificações para receber avisos mesmo com o app fechado.');
+   return;
+  }
+  if(!('serviceWorker' in navigator)||!('PushManager' in window)){updatePushUI(false,'Este navegador não oferece suporte a notificações push.');return}
+  const registration=await navigator.serviceWorker.ready,subscription=await registration.pushManager.getSubscription();
+  updatePushUI(!!subscription,subscription?'Notificações ativadas neste aparelho.':'Receba avisos de novos funcionários, mesmo com o app fechado.');
+ }catch(error){console.warn('Falha ao verificar notificações:',error);updatePushUI(false,'Não foi possível verificar as notificações neste aparelho.')}
 }
 async function enablePushNotifications(){
  if(!isAdmin())return toast('Somente proprietário e administradores podem ativar notificações.');
- if(!('serviceWorker' in navigator)||!('PushManager' in window)||!('Notification' in window))return toast('Seu navegador não oferece suporte a notificações push.');
  const button=document.getElementById('pushEnableButton');if(button){button.disabled=true;button.textContent='Ativando...'}
  try{
+  const nativePlugin=await getNativePushPlugin();
+  if(nativePlugin){
+   await registerNativePush(true);
+   updatePushUI(true,'Registrando este aparelho nas notificações Android...');
+   toast('Permissão concedida. Registrando este aparelho...');
+   return;
+  }
+  if(!('serviceWorker' in navigator)||!('PushManager' in window)||!('Notification' in window))return toast('Seu navegador não oferece suporte a notificações push.');
   const permission=await Notification.requestPermission();
   if(permission!=='granted')throw new Error(permission==='denied'?'As notificações foram bloqueadas no Chrome. Altere a permissão do site nas configurações do navegador.':'Permissão de notificação não concedida.');
   const {data,error}=await sb.functions.invoke('send-employee-push',{body:{action:'public_key',company_id:companyId}});
@@ -691,6 +750,13 @@ async function testPushNotification(){
 }
 async function disablePushNotifications(){
  try{
+  const nativePlugin=await getNativePushPlugin();
+  if(nativePlugin){
+   await removeNativePushRegistration(true);
+   updatePushUI(false,'Notificações desativadas neste aparelho.');
+   toast('Notificações desativadas.');
+   return;
+  }
   const registration=await navigator.serviceWorker.ready,subscription=await registration.pushManager.getSubscription();
   if(subscription){const result=await sb.from('push_subscriptions').delete().eq('endpoint',subscription.endpoint).eq('user_id',currentUser.id);if(result.error)throw result.error;await subscription.unsubscribe()}
   updatePushUI(false,'Notificações desativadas neste aparelho.');toast('Notificações desativadas.');
@@ -1177,5 +1243,16 @@ showApp(false);
 async function resumeSession(){const {data}=await sb.auth.getSession();if(!data.session)return;try{currentUser=data.session.user;updateGreetingUser(currentUser);const {data:members,error}=await sb.from('company_members').select('company_id,role').eq('user_id',currentUser.id);if(error)throw error;if(!members?.length)throw new Error('Usuário sem vínculo com empresa.');companyId=members[0].company_id;companyRole=members[0].role;const {data:co,error:ce}=await sb.from('companies').select('id,name').eq('id',companyId).single();if(ce)throw ce;document.getElementById('company').value=co.name;await loadCloudData();showApp(true);render();go('inicio');if(isAdmin()){await loadEmployees();await refreshPushStatus();}}catch(e){await sb.auth.signOut({scope:'local'});currentUser=null;companyId=null;companyRole=null;products=[];clients=[];rentals=[];transactions=[];showApp(false);authMessage(translateError(e),true)}}
 initializeAuthFlow();
 if('serviceWorker' in navigator && location.protocol.startsWith('http'))navigator.serviceWorker.register('sw.js').catch(()=>{});
+</script>
+<script>
+if(window.Capacitor?.isNativePlatform?.()){
+ window.__kidsLocNativePushReady=new Promise((resolve,reject)=>{
+  const loader=document.createElement('script');
+  loader.src='native-push.bundle.js';
+  loader.onload=resolve;
+  loader.onerror=()=>reject(new Error('Falha ao carregar módulo de notificações Android.'));
+  document.head.appendChild(loader);
+ });
+}
 </script>
 </body></html>
