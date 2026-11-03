@@ -1,4 +1,4 @@
-const CACHE='kidsloc-app-v65';
+const CACHE='kidsloc-app-v66';
 const FILES=['./','./index.html','./manifest.webmanifest'];
 self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(FILES)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',event=>event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>(key.startsWith('brinque-app-')||key.startsWith('kidsloc-app-'))&&key!==CACHE).map(key=>caches.delete(key)))).then(()=>self.clients.claim())));
@@ -16,24 +16,24 @@ self.addEventListener('push',event=>{
  const title=data.title||'KidsLoc App';
  const options={
   body:data.body||'Há uma atualização na equipe da sua empresa.',
-  icon:'https://vbf1.github.io/brinque-app/notification-icon.svg',
-  badge:'https://vbf1.github.io/brinque-app/notification-icon.svg',
+  icon:'https://vbf1.github.io/kidsloc-app/notification-icon.svg',
+  badge:'https://vbf1.github.io/kidsloc-app/notification-icon.svg',
   lang:'pt-BR',
   dir:'auto',
   tag:data.tag||'kidsloc-notification',
   timestamp:Date.now(),
   vibrate:[120,60,120],
-  data:{url:data.url||'https://vbf1.github.io/brinque-app/'},
+  data:{url:data.url||'https://vbf1.github.io/kidsloc-app/'},
   renotify:false
  };
  event.waitUntil(self.registration.showNotification(title,options));
 });
 self.addEventListener('notificationclick',event=>{
  event.notification.close();
- const target=event.notification.data&&event.notification.data.url?event.notification.data.url:'https://vbf1.github.io/brinque-app/';
+ const target=event.notification.data&&event.notification.data.url?event.notification.data.url:'https://vbf1.github.io/kidsloc-app/';
  event.waitUntil(clients.matchAll({type:'window',includeUncontrolled:true}).then(windowClients=>{
   for(const client of windowClients){
-   if(client.url.startsWith('https://vbf1.github.io/brinque-app/'))return client.focus();
+   if(client.url.startsWith('https://vbf1.github.io/kidsloc-app/'))return client.focus();
   }
   return clients.openWindow(target);
  }));
