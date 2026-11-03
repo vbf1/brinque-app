@@ -1,6 +1,8 @@
+import { Capacitor } from '@capacitor/core';
 import { PushNotifications } from '@capacitor/push-notifications';
 import { App } from '@capacitor/app';
 
+window.Capacitor = window.Capacitor || Capacitor;
 window.KidsLocPushNotifications = PushNotifications;
 window.KidsLocApp = App;
 
