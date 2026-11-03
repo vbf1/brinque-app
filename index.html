@@ -3,6 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script>
+if(location.hostname==='localhost'||location.protocol==='capacitor:'){document.write('<script src="capacitor.js"><\\/script>');}
+</script>
 <meta name="theme-color" content="#172b4d">
 <title>KidsLoc App | Gestão</title>
 <link rel="manifest" href="manifest.webmanifest">
@@ -666,6 +669,7 @@ let nativePushListenersReady=false;
 async function registerNativePush(requestPermission=false){
  const plugin=await getNativePushPlugin();
  if(!plugin)return false;
+ try{await plugin.createChannel({id:'kidsloc_notifications',name:'Avisos do KidsLoc',description:'Notificações importantes do KidsLoc App',importance:5,sound:'default',visibility:1})}catch(error){console.warn('Não foi possível criar o canal de notificações:',error)}
  let permission=await plugin.checkPermissions();
  if(permission.receive!=='granted'&&requestPermission)permission=await plugin.requestPermissions();
  if(permission.receive!=='granted')throw new Error('Permita notificações do KidsLoc App nas configurações do Android.');
