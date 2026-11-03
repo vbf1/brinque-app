@@ -119,11 +119,11 @@ Deno.serve(async (req: Request) => {
         .select("id,endpoint,p256dh,auth").eq("company_id", companyId).eq("user_id", authData.user.id);
       if (subscriptionsError) throw subscriptionsError;
       if (!subscriptions?.length) return reply({ sent: 0, error: "Este aparelho ainda não está inscrito." }, 404);
-      webpush.setVapidDetails("https://vbf1.github.io/brinque-app/", config.publicKey, config.privateKey);
+      webpush.setVapidDetails("https://vbf1.github.io/kidsloc-app/", config.publicKey, config.privateKey);
       const payload = JSON.stringify({
         title: "Teste de notificação",
         body: "Tudo certo! Este aparelho receberá avisos quando um novo funcionário for cadastrado.",
-        url: "https://vbf1.github.io/brinque-app/",
+        url: "https://vbf1.github.io/kidsloc-app/",
         tag: "kidsloc-push-test",
       });
       let sent = 0;
@@ -170,11 +170,11 @@ Deno.serve(async (req: Request) => {
     if (!subscriptions?.length) return reply({ sent: 0, message: "Nenhum aparelho inscrito." });
 
     const { data: company } = await admin.from("companies").select("name").eq("id", record.company_id).maybeSingle();
-    webpush.setVapidDetails("https://vbf1.github.io/brinque-app/", config.publicKey, config.privateKey);
+    webpush.setVapidDetails("https://vbf1.github.io/kidsloc-app/", config.publicKey, config.privateKey);
     const notification = JSON.stringify({
       title: "Novo membro na equipe",
       body: "Um novo funcionário foi adicionado à equipe de " + String(company?.name || "sua empresa") + ".",
-      url: "https://vbf1.github.io/brinque-app/",
+      url: "https://vbf1.github.io/kidsloc-app/",
       tag: "kidsloc-new-team-member",
     });
 
