@@ -749,9 +749,14 @@ async function refreshPushStatus(){
  try{
   const nativePlugin=await getNativePushPlugin();
   if(nativePlugin){
-   const permission=await nativePlugin.checkPermissions();
-   if(permission.receive==='granted'){await registerNativePush(false)}
-   else updatePushUI(false,'Ative as notificações para receber avisos mesmo com o app fechado.');
+   const permission=await withPushTimeout(nativePlugin.checkPermissions(),8000,'O Android não respondeu à consulta de permissão.');
+   if(permission.receive!=='granted'){
+    updatePushUI(false,'Ative as notificações do KidsLoc nas configurações do Android e tente novamente.');
+    return;
+   }
+   const saved=await withPushTimeout(sb.from('fcm_device_tokens').select('token').eq('company_id',companyId).eq('user_id',currentUser.id).limit(1),10000,'O servidor demorou para verificar o registro deste aparelho.');
+   if(saved.error)throw saved.error;
+   updatePushUI(!!saved.data?.length,saved.data?.length?'Notificações Android já estão ativadas neste aparelho.':'Permissão concedida. Toque em “Ativar notificações” para registrar este aparelho no Firebase.');
    return;
   }
   if(!('serviceWorker' in navigator)||!('PushManager' in window)){updatePushUI(false,'Este navegador não oferece suporte a notificações push.');return}
@@ -761,31 +766,50 @@ async function refreshPushStatus(){
 }
 async function enablePushNotifications(){
  if(!isAdmin())return toast('Somente proprietário e administradores podem ativar notificações.');
- const button=document.getElementById('pushEnableButton');if(button){button.disabled=true;button.textContent='Ativando...'}
+ const button=document.getElementById('pushEnableButton');
+ let completed=false;
+ if(button){button.disabled=true;button.textContent='Ativando...'}
+ updatePushUI(false,'Iniciando a ativação das notificações neste aparelho...');
+ const watchdog=setTimeout(()=>{
+  if(completed)return;
+  if(button){button.disabled=false;button.textContent='Tentar novamente'}
+  updatePushUI(false,'A ativação ultrapassou 35 segundos e foi interrompida. Confira a permissão do Android e tente novamente.');
+  toast('A ativação demorou demais. O botão foi liberado para uma nova tentativa.','error');
+ },35000);
  try{
-  const nativePlugin=await getNativePushPlugin();
+  const nativePlugin=await withPushTimeout(getNativePushPlugin(),12000,'O módulo Android de notificações não respondeu. Feche e abra o KidsLoc e tente novamente.');
   if(nativePlugin){
-   await registerNativePush(true);
-   toast('Permissão concedida. Aguardando o registro do aparelho no Firebase...');
+   updatePushUI(false,'Verificando a permissão de notificações do Android...');
+   await withPushTimeout(registerNativePush(true),30000,'O registro do aparelho no Firebase não foi concluído. Tente novamente.');
+   updatePushUI(false,'Solicitação enviada. Aguardando a confirmação do Firebase...');
+   toast('Solicitação enviada ao Firebase. Aguarde a confirmação neste painel.','info');
    return;
   }
-  if(!('serviceWorker' in navigator)||!('PushManager' in window)||!('Notification' in window))return toast('Seu navegador não oferece suporte a notificações push.');
-  const permission=await Notification.requestPermission();
+  if(!('serviceWorker' in navigator)||!('PushManager' in window)||!('Notification' in window))throw new Error('Seu navegador não oferece suporte a notificações push.');
+  updatePushUI(false,'Solicitando permissão de notificações ao navegador...');
+  const permission=await withPushTimeout(Notification.requestPermission(),20000,'O navegador não concluiu a solicitação de permissão.');
   if(permission!=='granted')throw new Error(permission==='denied'?'As notificações foram bloqueadas no Chrome. Altere a permissão do site nas configurações do navegador.':'Permissão de notificação não concedida.');
-  const {data,error}=await sb.functions.invoke('send-employee-push',{body:{action:'public_key',company_id:companyId}});
+  updatePushUI(false,'Conectando ao serviço de notificações...');
+  const {data,error}=await withPushTimeout(sb.functions.invoke('send-employee-push',{body:{action:'public_key',company_id:companyId}}),15000,'O servidor não respondeu ao preparar as notificações.');
   if(error)throw error;if(!data?.publicKey)throw new Error(data?.error||'Não foi possível preparar as notificações.');
-  const registration=await navigator.serviceWorker.register('sw.js');
-  await navigator.serviceWorker.ready;
+  const registration=await withPushTimeout(navigator.serviceWorker.register('sw.js'),15000,'Não foi possível iniciar o serviço de notificações.');
+  await withPushTimeout(navigator.serviceWorker.ready,15000,'O serviço de notificações não ficou pronto.');
   let subscription=await registration.pushManager.getSubscription();
-  if(!subscription)subscription=await registration.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:urlBase64ToUint8Array(data.publicKey)});
+  if(!subscription)subscription=await withPushTimeout(registration.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:urlBase64ToUint8Array(data.publicKey)}),15000,'O navegador não concluiu a inscrição para notificações.');
   const json=subscription.toJSON(),keys=json.keys||{};
   if(!keys.p256dh||!keys.auth)throw new Error('O Chrome não retornou as chaves necessárias para a inscrição.');
-  const saved=await sb.from('push_subscriptions').upsert({company_id:companyId,user_id:currentUser.id,endpoint:subscription.endpoint,p256dh:keys.p256dh,auth:keys.auth},{onConflict:'endpoint'});
+  const saved=await withPushTimeout(sb.from('push_subscriptions').upsert({company_id:companyId,user_id:currentUser.id,endpoint:subscription.endpoint,p256dh:keys.p256dh,auth:keys.auth},{onConflict:'endpoint'}),15000,'O servidor não confirmou o cadastro das notificações.');
   if(saved.error)throw saved.error;
   updatePushUI(true,'Notificações ativadas neste aparelho.');
   toast('Notificações ativadas com sucesso!');
- }catch(e){updatePushUI(false,'Não foi possível ativar: '+translateError(e));toast('Falha ao ativar notificações: '+translateError(e))}
- finally{if(button){button.disabled=false;button.textContent='Ativar notificações'}}
+ }catch(e){
+  console.error('Falha ao ativar notificações:',e);
+  updatePushUI(false,'Não foi possível ativar: '+translateError(e));
+  toast('Falha ao ativar notificações: '+translateError(e),'error');
+ }finally{
+  completed=true;clearTimeout(watchdog);
+  if(button){button.disabled=false;button.textContent='Ativar notificações'}
+ }
 }
 async function testPushNotification(){
  try{
@@ -897,6 +921,23 @@ window.addEventListener('popstate',event=>{
   go(page,null,true);
  }
 });
+window.kidsLocHandleBack=function(){
+ const photoPreview=document.getElementById('occurrencePhotoPreview');
+ if(photoPreview){photoPreview.remove();return true}
+ const imagePreview=document.querySelector('.image-lightbox');
+ if(imagePreview){imagePreview.remove();return true}
+ if(typeof activeCustomSelect!=='undefined'&&activeCustomSelect){closeCustomSelect();return true}
+ const menu=document.getElementById('menuPanel');
+ if(menu&&!menu.classList.contains('hidden')){toggleMenu(false);return true}
+ const visibleModal=document.querySelector('.delete-modal.is-visible');
+ if(visibleModal){const cancel=visibleModal.querySelector('.delete-modal-cancel');if(cancel){cancel.click();return true}}
+ if(document.getElementById('authGate')?.style.display!=='none')return false;
+ if(typeof currentPage!=='undefined'&&currentPage!=='inicio'){
+  if(history.state?.brinquePage)history.back();else go('inicio');
+  return true;
+ }
+ return false;
+};
 function availableForDate(product,date,endDate){if(!product)return 0;const start=date||document.getElementById('fDate')?.value;const end=endDate||document.getElementById('fEndDate')?.value||start;if(!start)return product.mode==='Individual'?productUnits.filter(u=>u.product_id===product.id&&u.status==='available').length:Number(product.total||0);const overlapping=rentals.filter(r=>['pending','confirmed','ongoing'].includes(r.dbStatus)&&r.date<=end&&(r.endDate||r.date)>=start);if(product.mode==='Individual'){const used=new Set(overlapping.flatMap(r=>(r.items||[]).filter(i=>i.productId===product.id).flatMap(i=>i.unitIds||[])));return productUnits.filter(u=>u.product_id===product.id&&u.status==='available'&&!used.has(u.id)).length}const used=overlapping.reduce((sum,r)=>sum+(r.items||[]).filter(i=>i.productId===product.id).reduce((n,i)=>n+Number(i.quantity||0),0),0);return Math.max(0,Number(product.total||0)-used)}
 function refreshToyAvailability(){document.querySelectorAll('.toy-option').forEach(row=>{const check=row.querySelector('.toy-check'),qty=row.querySelector('.toy-qty'),p=products[Number(check.dataset.index)],avail=availableForDate(p,document.getElementById('fDate')?.value,document.getElementById('fEndDate')?.value);const label=row.querySelector('.toy-price');if(label)label.textContent=`${money(p.price)} por unidade/diária · ${avail} disponível(is) no período`;check.disabled=avail<=0&&!check.checked;qty.max=Math.max(1,avail);if(Number(qty.value)>avail)qty.value=Math.max(1,avail)});updateToySelection()}
 function updateToySelection(){let count=0,total=0,parts=[];document.querySelectorAll('.toy-option').forEach(row=>{const check=row.querySelector('.toy-check'),qty=row.querySelector('.toy-qty'),p=products[Number(check.dataset.index)];qty.disabled=!check.checked;row.classList.toggle('selected',check.checked);if(check.checked){const limit=availableForDate(p,document.getElementById('fDate')?.value,document.getElementById('fEndDate')?.value);const n=Math.max(1,Math.min(Number(qty.value)||1,limit));qty.value=n;count+=n;total+=n*Number(p.price||0);parts.push(`${n} × ${p.name}`)}});const summary=document.getElementById('selectionSummary');if(summary)summary.textContent=count?`${count} unidade(s): ${parts.join(' · ')} | Total sugerido: ${money(total)}`:'Nenhum brinquedo selecionado.';const price=document.getElementById('fPrice');if(price&&(!price.dataset.manual||price.value===''))price.value=total?total.toFixed(2):''}
