@@ -755,7 +755,7 @@ function updatePushUI(active,message){
  const test=document.getElementById('pushTestButton');
  if(enable)enable.classList.toggle('hidden',!!active);
  if(disable)disable.classList.toggle('hidden',!active);
- if(test)test.classList.toggle('hidden',!active);
+ if(test)test.classList.toggle('hidden',!active||!isAdmin());
  if(status)status.textContent=message||(active?'Notificações ativadas neste aparelho.':'Receba avisos de novos funcionários, mesmo com o app fechado.');
 }
 function urlBase64ToUint8Array(value){
