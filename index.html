@@ -116,7 +116,7 @@ label{font-size:12px;color:var(--muted);font-weight:650}.formgrid{display:grid;g
  <div class="panel"><div style="display:flex;align-items:center;justify-content:space-between;gap:10px"><b>Equipe cadastrada</b><button class="btn-light" onclick="loadEmployees()">Atualizar</button></div><div id="employeeList" style="margin-top:12px"><p class="muted">Abra esta tela para carregar a equipe.</p></div></div>
 </section>
 <section id="config" class="hidden"><div class="section-title">Configurações</div><div class="panel"><label>Nome da empresa</label><input id="company" placeholder="Digite o nome da sua empresa"><button onclick="saveCompany()">Salvar dados</button><p class="muted">Os dados operacionais são carregados e salvos na nuvem quando você está conectado.</p></div></section>
-<section id="form" class="hidden"><div class="section-title"><span id="formTitle">Novo cadastro</span><button class="btn-light" onclick="go('locacoes')">Fechar</button></div><div class="panel" id="formBody"></div></section>
+<section id="form" class="hidden"><div class="section-title"><span id="formTitle">Novo cadastro</span><button class="btn-light" onclick="closeForm()">Fechar</button></div><div class="panel" id="formBody"></div></section>
 </main>
 <div id="toast" class="toast hidden"></div>
 <script>
@@ -253,7 +253,7 @@ async function loginApp(){
   if(me)throw me;if(!members||!members.length){await sb.auth.signOut();throw new Error('Esta conta ainda não está vinculada a uma empresa. Peça ao proprietário para conferir o cadastro do funcionário.');}
   companyId=members[0].company_id;companyRole=members[0].role;
   const {data:co,error:ce}=await sb.from('companies').select('id,name').eq('id',companyId).single();if(ce)throw ce;
-  document.getElementById('company').value=co.name;await loadCloudData();showApp(true);render();go('inicio');toast('Conectado à nuvem com sucesso.');
+  document.getElementById('company').value=co.name;await loadCloudData();showApp(true);render();go('inicio',null,true);toast('Conectado à nuvem com sucesso.');
  }catch(e){authMessage(translateError(e),true);await sb.auth.signOut().catch(()=>{});}finally{btn.disabled=false;btn.textContent='Entrar';}
 }
 async function logoutApp(){
@@ -336,7 +336,26 @@ async function removeEmployee(userId){
  try{const data=await employeeApi({action:'remove',user_id:userId});toast(data.message||'Acesso removido.');await loadEmployees()}catch(e){toast(translateError(e))}
 }
 
-function go(id,btn){if((id==='financeiro'||id==='config'||id==='funcionarios')&&!isAdmin()){toast('Acesso restrito ao proprietário e administradores.');return}document.querySelectorAll('main section').forEach(s=>s.classList.add('hidden'));document.getElementById(id).classList.remove('hidden');document.querySelectorAll('#menuPanel button').forEach(b=>b.classList.toggle('active',b.dataset.page===id));toggleMenu(false);render();if(id==='funcionarios')loadEmployees();window.scrollTo({top:0,behavior:'smooth'})}
+let currentPage='inicio';
+function go(id,btn,replaceHistory=false){
+ if((id==='financeiro'||id==='config'||id==='funcionarios')&&!isAdmin()){toast('Acesso restrito ao proprietário e administradores.');return}
+ if(!document.getElementById(id))return;
+ if(replaceHistory)history.replaceState({brinquePage:id},'',location.pathname+location.search);
+ else if(currentPage!==id)history.pushState({brinquePage:id},'',location.pathname+location.search);
+ currentPage=id;
+ document.querySelectorAll('main section').forEach(section=>section.classList.add('hidden'));
+ document.getElementById(id).classList.remove('hidden');
+ document.querySelectorAll('#menuPanel button').forEach(b=>b.classList.toggle('active',b.dataset.page===id));
+ toggleMenu(false);render();if(id==='funcionarios')loadEmployees();window.scrollTo({top:0,behavior:'smooth'});
+}
+function closeForm(){if(currentPage==='form'&&history.state?.brinquePage){history.back();return}go('inicio')}
+history.replaceState({brinquePage:'inicio'},'',location.pathname+location.search);
+window.addEventListener('popstate',event=>{
+ if(document.getElementById('authGate')?.style.display==='none'){
+  const page=event.state?.brinquePage||'inicio';
+  go(page,null,true);
+ }
+});
 function availableForDate(product,date,endDate){if(!product)return 0;const start=date||document.getElementById('fDate')?.value;const end=endDate||document.getElementById('fEndDate')?.value||start;if(!start)return product.mode==='Individual'?productUnits.filter(u=>u.product_id===product.id&&u.status==='available').length:Number(product.total||0);const overlapping=rentals.filter(r=>r.dbStatus!=='cancelled'&&r.status!=='Cancelada'&&r.date<=end&&(r.endDate||r.date)>=start);if(product.mode==='Individual'){const used=new Set(overlapping.flatMap(r=>(r.items||[]).filter(i=>i.productId===product.id).flatMap(i=>i.unitIds||[])));return productUnits.filter(u=>u.product_id===product.id&&u.status==='available'&&!used.has(u.id)).length}const used=overlapping.reduce((sum,r)=>sum+(r.items||[]).filter(i=>i.productId===product.id).reduce((n,i)=>n+Number(i.quantity||0),0),0);return Math.max(0,Number(product.total||0)-used)}
 function refreshToyAvailability(){document.querySelectorAll('.toy-option').forEach(row=>{const check=row.querySelector('.toy-check'),qty=row.querySelector('.toy-qty'),p=products[Number(check.dataset.index)],avail=availableForDate(p,document.getElementById('fDate')?.value,document.getElementById('fEndDate')?.value);const label=row.querySelector('.toy-price');if(label)label.textContent=`${money(p.price)} por unidade/diária · ${avail} disponível(is) no período`;check.disabled=avail<=0&&!check.checked;qty.max=Math.max(1,avail);if(Number(qty.value)>avail)qty.value=Math.max(1,avail)});updateToySelection()}
 function updateToySelection(){let count=0,total=0,parts=[];document.querySelectorAll('.toy-option').forEach(row=>{const check=row.querySelector('.toy-check'),qty=row.querySelector('.toy-qty'),p=products[Number(check.dataset.index)];qty.disabled=!check.checked;row.classList.toggle('selected',check.checked);if(check.checked){const limit=availableForDate(p,document.getElementById('fDate')?.value,document.getElementById('fEndDate')?.value);const n=Math.max(1,Math.min(Number(qty.value)||1,limit));qty.value=n;count+=n;total+=n*Number(p.price||0);parts.push(`${n} × ${p.name}`)}});const summary=document.getElementById('selectionSummary');if(summary)summary.textContent=count?`${count} unidade(s): ${parts.join(' · ')} | Total sugerido: ${money(total)}`:'Nenhum brinquedo selecionado.';const price=document.getElementById('fPrice');if(price&&(!price.dataset.manual||price.value===''))price.value=total?total.toFixed(2):''}
