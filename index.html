@@ -122,6 +122,30 @@ button:disabled{opacity:.65;cursor:wait}
 @keyframes passwordEditorIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
 @media(prefers-reduced-motion:reduce){.password-editor-body,.password-editor-chevron{animation:none;transition:none}}
 
+
+/* Modal moderno de confirmação de exclusão */
+body.modal-open{overflow:hidden}
+.delete-modal{position:fixed;inset:0;z-index:120;display:grid;place-items:center;padding:20px;visibility:hidden;opacity:0;pointer-events:none;transition:opacity .2s ease,visibility .2s ease}
+.delete-modal.is-visible{visibility:visible;opacity:1;pointer-events:auto}
+.delete-modal-backdrop{position:absolute;inset:0;background:rgba(12,20,35,.62);backdrop-filter:blur(5px)}
+.delete-modal-card{position:relative;width:min(420px,100%);padding:26px 22px 20px;border:1px solid var(--line);border-radius:22px;background:var(--surface);color:var(--ink);box-shadow:0 24px 80px #0004;text-align:center;transform:translateY(12px) scale(.98);transition:transform .2s ease}
+.delete-modal.is-visible .delete-modal-card{transform:translateY(0) scale(1)}
+.delete-modal-icon{width:58px;height:58px;margin:0 auto 14px;display:grid;place-items:center;border-radius:19px;background:#dc55551a;color:#d94c4c}
+.delete-modal-icon span{display:grid;place-items:center;width:27px;height:27px;border:2px solid currentColor;border-radius:50%;font-size:18px;font-weight:850;line-height:1}
+.delete-modal-eyebrow{font-size:9px;letter-spacing:1.35px;font-weight:850;color:#d45b5b;margin-bottom:7px}
+.delete-modal-card h2{font-size:21px;line-height:1.25;letter-spacing:-.35px;margin:0 0 9px;color:var(--ink)}
+.delete-modal-card>p{font-size:13px;line-height:1.55;color:var(--muted);margin:0 auto 16px;max-width:340px;overflow-wrap:anywhere}
+.delete-modal-note{display:flex;gap:9px;align-items:flex-start;text-align:left;padding:11px 12px;margin:0 0 19px;border-radius:12px;background:var(--bg);border:1px solid var(--line);font-size:11px;line-height:1.45;color:var(--muted)}
+.delete-modal-note>span:first-child{color:var(--blue);font-size:15px;font-weight:800}
+.delete-modal-actions{display:grid;grid-template-columns:1fr 1.25fr;gap:9px}
+.delete-modal-actions button{min-height:46px;border-radius:12px;font-size:13px;font-weight:750;padding:10px 12px}
+.delete-modal-cancel{border:1px solid var(--line);background:var(--bg);color:var(--ink)}
+.delete-modal-confirm{border:1px solid #c93f3f;background:#d94c4c;color:#fff;box-shadow:0 4px 10px #d94c4c25}
+.delete-modal-confirm:active{transform:scale(.98)}
+.delete-modal-confirm span{margin-right:5px}
+@media(max-width:380px){.delete-modal-card{padding:23px 16px 17px;border-radius:19px}.delete-modal-actions{grid-template-columns:1fr}.delete-modal-actions button{min-height:44px}}
+@media(prefers-reduced-motion:reduce){.delete-modal,.delete-modal-card{transition:none}}
+
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -154,6 +178,20 @@ button:disabled{opacity:.65;cursor:wait}
    <p id="recoveryMessage" class="muted" style="margin:12px 0 0"></p>
   </div>
  </div>
+</div>
+<div id="deleteConfirmModal" class="delete-modal" aria-hidden="true">
+ <div class="delete-modal-backdrop" onclick="closeDeleteConfirmation(false)"></div>
+ <section class="delete-modal-card" role="dialog" aria-modal="true" aria-labelledby="deleteModalTitle" aria-describedby="deleteModalMessage">
+  <div class="delete-modal-icon"><span>!</span></div>
+  <div class="delete-modal-eyebrow">CONFIRMAÇÃO DE EXCLUSÃO</div>
+  <h2 id="deleteModalTitle">Excluir cadastro?</h2>
+  <p id="deleteModalMessage">Esta ação não poderá ser desfeita.</p>
+  <div class="delete-modal-note"><span>ⓘ</span><span id="deleteModalNote">Confira as informações antes de continuar.</span></div>
+  <div class="delete-modal-actions">
+   <button type="button" class="delete-modal-cancel" onclick="closeDeleteConfirmation(false)">Cancelar</button>
+   <button type="button" class="delete-modal-confirm" id="confirmDeleteButton" onclick="closeDeleteConfirmation(true)"><span>⌫</span> Confirmar exclusão</button>
+  </div>
+ </section>
 </div>
 <header>
  <div class="headrow"><div class="brand"><div class="logo">✦</div><div>BRINQUE APP<div class="sub">GESTÃO DE LOCAÇÕES</div></div></div><div class="head-actions"><button class="btn-small" onclick="toggleTheme()">◐ Tema</button><nav id="nav" aria-label="Navegação principal"><button class="menu-trigger" onclick="toggleMenu()" aria-label="Abrir menu" aria-expanded="false"><span class="menu-icon"><i></i><i></i><i></i></span></button></nav></div></div>
@@ -588,6 +626,38 @@ function openForm(type,recordId=null){
  }
 }
 
+let deleteConfirmationResolver=null;
+function showDeleteConfirmation(label,message,isArchive=false){
+ return new Promise(resolve=>{
+  const modal=document.getElementById('deleteConfirmModal');
+  const title=document.getElementById('deleteModalTitle');
+  const description=document.getElementById('deleteModalMessage');
+  const note=document.getElementById('deleteModalNote');
+  const button=document.getElementById('confirmDeleteButton');
+  title.textContent=isArchive?'Arquivar brinquedo?':'Excluir '+label+'?';
+  description.textContent=message;
+  note.textContent=isArchive?'O brinquedo sairá do estoque ativo, mas o histórico será preservado.':'Essa ação é permanente. Os dados relacionados descritos acima seguirão as regras de preservação do sistema.';
+  button.innerHTML=isArchive?'<span>▣</span> Arquivar brinquedo':'<span>⌫</span> Excluir cadastro';
+  deleteConfirmationResolver=resolve;
+  modal.classList.add('is-visible');
+  modal.setAttribute('aria-hidden','false');
+  document.body.classList.add('modal-open');
+  setTimeout(()=>document.getElementById('confirmDeleteButton')?.focus(),40);
+ });
+}
+function closeDeleteConfirmation(confirmed){
+ const modal=document.getElementById('deleteConfirmModal');
+ if(!modal||!modal.classList.contains('is-visible'))return;
+ modal.classList.remove('is-visible');
+ modal.setAttribute('aria-hidden','true');
+ document.body.classList.remove('modal-open');
+ const resolve=deleteConfirmationResolver;deleteConfirmationResolver=null;
+ if(resolve)resolve(!!confirmed);
+}
+document.addEventListener('keydown',event=>{
+ if(event.key==='Escape')closeDeleteConfirmation(false);
+});
+
 async function deleteRecord(type,recordId){
  if(!recordId)return toast('Não foi possível identificar o cadastro.');
  if(type==='transaction'&&!isAdmin())return toast('Acesso financeiro restrito ao proprietário e administradores.');
@@ -602,7 +672,7 @@ async function deleteRecord(type,recordId){
  if(type==='rental')message='Excluir esta locação? Os itens e eventos vinculados a ela serão removidos. Lançamentos financeiros e pagamentos relacionados serão preservados.';
  if(type==='transaction')message='Excluir este lançamento financeiro? Eventuais registros de pagamento vinculados serão preservados, mas deixarão de apontar para este lançamento.';
  if(type==='product')message='Remover este brinquedo do estoque ativo? Ele será arquivado para preservar o histórico de locações, unidades e movimentações.';
- if(!confirm(message))return;
+ if(!await showDeleteConfirmation(label,message,type==='product'))return;
  try{
   let result;
   if(type==='product'){
