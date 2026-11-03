@@ -1501,7 +1501,6 @@ function render(scope='all'){
  document.getElementById('bars').innerHTML='';
  }
 }
-}
 async function saveCompany(){if(!isAdmin())return toast('Somente proprietário e administradores podem alterar configurações.');try{const name=document.getElementById('company').value.trim();if(!name)return toast('Informe o nome da empresa.');await cloudError(await sb.from('companies').update({name}).eq('id',companyId));toast('Nome da empresa atualizado na nuvem.')}catch(e){toast('Erro ao atualizar empresa: '+translateError(e))}}
 // Camada visual única para todos os selects, inclusive formulários e listas criados dinamicamente.
 let activeCustomSelect=null;
