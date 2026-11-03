@@ -362,7 +362,7 @@ header{padding-top:calc(12px + var(--kids-safe-area-top))}
  </div>
  
  <div class="panel"><div class="section-title">Próximas locações <button class="btn-small hidden" id="homeRentalsSeeAll" onclick="go('locacoes')">Ver todas</button></div><div class="list" id="homeRentals"></div></div>
- <div class="panel" data-admin-only><div class="section-title">Equipe <button class="btn-small" onclick="go('funcionarios')">Gerenciar</button></div><div id="homeEmployeeList" style="margin-top:12px"><p class="muted">Carregando funcionários...</p></div><div style="display:flex;flex-wrap:wrap;align-items:center;gap:9px;margin-top:14px"><button class="btn-small" id="pushEnableButton" onclick="enablePushNotifications()">Ativar notificações</button><button class="btn-light btn-small hidden" id="pushTestButton" onclick="testPushNotification()">Testar</button><button class="btn-light btn-small hidden" id="pushDisableButton" onclick="disablePushNotifications()">Desativar</button><span class="muted" id="pushStatus" aria-live="polite">Receba avisos de novos funcionários, mesmo com o app fechado.</span></div></div>
+ <div class="panel" data-admin-only><div class="section-title">Equipe <button class="btn-small" onclick="go('funcionarios')">Gerenciar</button></div><div id="homeEmployeeList" style="margin-top:12px"><p class="muted">Carregando funcionários...</p></div><div style="display:flex;flex-wrap:wrap;align-items:center;gap:9px;margin-top:14px"><button class="btn-small" id="pushEnableButton" onclick="enablePushNotifications()">Ativar notificações</button><button class="btn-light btn-small" id="pushDiagnoseButton" onclick="diagnosePushSetup()">Diagnosticar Firebase</button><button class="btn-light btn-small hidden" id="pushTestButton" onclick="testPushNotification()">Testar</button><button class="btn-light btn-small hidden" id="pushDisableButton" onclick="disablePushNotifications()">Desativar</button><span class="muted" id="pushStatus" aria-live="polite">Receba avisos de novos funcionários, mesmo com o app fechado.</span></div></div>
 </section>
 <section id="agenda" class="hidden"><div class="section-title">Agenda de eventos</div><div class="panel"><label>Consultar data</label><input type="date" id="agendaDate"><div class="muted">As reservas cadastradas aparecem abaixo.</div><div class="list" id="agendaList"></div></div></section>
 <section id="locacoes" class="hidden"><div class="section-title">Locações <button onclick="openForm('rental')">＋ Nova</button></div><div class="panel"><input id="rentalSearch" placeholder="Buscar cliente ou brinquedo..." oninput="render()"><div class="list" id="rentalList"></div></div></section>
@@ -811,6 +811,44 @@ async function enablePushNotifications(){
  }finally{
   completed=true;clearTimeout(watchdog);
   if(button){button.disabled=false;button.textContent='Ativar notificações'}
+ }
+}
+async function diagnosePushSetup(){
+ const button=document.getElementById('pushDiagnoseButton');
+ if(button){button.disabled=true;button.textContent='Diagnosticando...'}
+ updatePushUI(false,'Diagnóstico: verificando Android, Firebase e servidor...');
+ const results=[];
+ try{
+  try{
+   const plugin=await getNativePushPlugin();
+   results.push('Ponte Android: OK');
+   const permission=await withPushTimeout(plugin.checkPermissions(),10000,'Android não respondeu à consulta de permissão.');
+   results.push('Permissão Android: '+permission.receive);
+   if(permission.receive==='granted'){
+    await registerNativePush(false);
+    results.push('Token FCM: gerado e salvo no servidor');
+   }else{
+    results.push('Token FCM: aguardando autorização de notificações');
+   }
+  }catch(error){
+   results.push('Android/FCM: '+pushErrorDetails(error));
+  }
+  try{
+   const {data,error}=await withPushTimeout(sb.functions.invoke('send-employee-push',{body:{action:'diagnostics',company_id:companyId}}),20000,'Servidor não respondeu ao diagnóstico do Firebase.');
+   if(error)throw error;
+   if(!data)throw new Error('Resposta vazia do servidor.');
+   results.push('Firebase servidor: '+(data.firebaseAuthenticated?'autenticado':'não autenticado'));
+   results.push('Projeto Firebase: '+String(data.projectId||'não identificado')+(data.projectMatches?' (correto)':' (divergente)'));
+   results.push('Tokens Android no servidor: '+String(data.deviceTokens??'não consultado'));
+   if(data.serverError)results.push('Detalhe servidor: '+data.serverError);
+  }catch(error){
+   results.push('Servidor Firebase: '+pushErrorDetails(error));
+  }
+  const message=results.join(' • ');
+  updatePushUI(false,message);
+  toast('Diagnóstico concluído. Confira o resultado exibido na tela.', 'info');
+ }finally{
+  if(button){button.disabled=false;button.textContent='Diagnosticar Firebase'}
  }
 }
 async function testPushNotification(){
