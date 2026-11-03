@@ -471,8 +471,7 @@ function go(id,btn,replaceHistory=false){
  if(replaceHistory)history.replaceState({brinquePage:id},'',location.pathname+location.search);
  else if(currentPage!==id)history.pushState({brinquePage:id},'',location.pathname+location.search);
  currentPage=id;
- document.querySelectorAll('main section').forEach(section=>section.classList.add('hidden'));
- document.getElementById(id).classList.remove('hidden');
+ document.querySelectorAll('main section').forEach(section=>{const isCurrent=section.id===id;section.hidden=!isCurrent;section.style.display=isCurrent?'':'none';section.classList.toggle('hidden',!isCurrent);});
  document.querySelectorAll('#menuPanel button').forEach(b=>b.classList.toggle('active',b.dataset.page===id));
  toggleMenu(false);render();if(id==='funcionarios')loadEmployees();window.scrollTo({top:0,behavior:'smooth'});
 }
