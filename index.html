@@ -263,6 +263,24 @@ body.modal-open{overflow:hidden}
 [data-theme="dark"] .delete-modal-card{border-color:#ffffff18}
 @media(max-width:380px){.delete-modal-card{padding:24px 19px 19px;border-radius:23px}}
 @media(prefers-reduced-motion:reduce){.delete-modal,.delete-modal-card{transition:none}}
+
+/* Safe areas Android/iOS: evita conteúdo sob as barras do sistema */
+:root{
+ --kids-safe-area-top:var(--safe-area-inset-top,env(safe-area-inset-top,0px));
+ --kids-safe-area-bottom:var(--safe-area-inset-bottom,env(safe-area-inset-bottom,0px));
+}
+header{padding-top:calc(12px + var(--kids-safe-area-top))}
+.menu-panel{
+ top:calc(78px + var(--kids-safe-area-top));
+ max-height:calc(100dvh - 100px - var(--kids-safe-area-top) - var(--kids-safe-area-bottom));
+}
+.toast{bottom:calc(24px + var(--kids-safe-area-bottom))}
+@media(max-width:520px){
+ header{padding-top:calc(11px + var(--kids-safe-area-top))}
+ .menu-panel{top:calc(74px + var(--kids-safe-area-top))}
+ main{padding-bottom:calc(88px + var(--kids-safe-area-bottom))}
+}
+
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
