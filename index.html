@@ -666,6 +666,13 @@ async function getNativePushPlugin(){
  return window.KidsLocPushNotifications;
 }
 let nativePushListenersReady=false;
+let nativePushRegistrationPending=false;
+let nativePushRegistrationTimer=null;
+function finishNativePushRegistration(active,message){
+ if(nativePushRegistrationTimer){clearTimeout(nativePushRegistrationTimer);nativePushRegistrationTimer=null}
+ nativePushRegistrationPending=false;
+ updatePushUI(!!active,message);
+}
 async function registerNativePush(requestPermission=false){
  const plugin=await getNativePushPlugin();
  if(!plugin)return false;
@@ -676,18 +683,41 @@ async function registerNativePush(requestPermission=false){
  if(!nativePushListenersReady){
   await plugin.addListener('registration',async result=>{
    const token=String(result?.value||'').trim();
-   if(!token||!currentUser?.id||!companyId)return;
+   if(!token||!currentUser?.id||!companyId){finishNativePushRegistration(false,'O Firebase retornou um token, mas não foi possível identificar a conta ativa.');return}
    window.__kidsLocFcmToken=token;
-   const saved=await sb.from('fcm_device_tokens').upsert({company_id:companyId,user_id:currentUser.id,token,platform:'android'},{onConflict:'token'});
-   if(saved.error){console.error('Falha ao salvar token FCM:',saved.error);updatePushUI(false,'Não foi possível registrar este aparelho.');return}
-   updatePushUI(true,'Notificações Android ativadas neste aparelho.');
+   try{
+    const saved=await sb.from('fcm_device_tokens').upsert({company_id:companyId,user_id:currentUser.id,token,platform:'android'},{onConflict:'token'});
+    if(saved.error)throw saved.error;
+    finishNativePushRegistration(true,'Notificações Android ativadas neste aparelho.');
+    toast('Notificações ativadas com sucesso!');
+   }catch(error){
+    console.error('Falha ao salvar token FCM:',error);
+    finishNativePushRegistration(false,'O Android gerou o token, mas o cadastro no servidor falhou: '+translateError(error));
+   }
   });
-  await plugin.addListener('registrationError',error=>{console.error('Erro no registro FCM:',error);updatePushUI(false,'Não foi possível registrar as notificações Android.')});
+  await plugin.addListener('registrationError',error=>{
+   console.error('Erro no registro FCM:',error);
+   finishNativePushRegistration(false,'Falha no registro do Firebase: '+String(error?.error||error?.message||'verifique a conexão e a configuração do Android.'));
+  });
   await plugin.addListener('pushNotificationReceived',notification=>toast(String(notification?.title||'KidsLoc App')+': '+String(notification?.body||'Você recebeu uma nova notificação.')));
   await plugin.addListener('pushNotificationActionPerformed',()=>{if(typeof go==='function')go('inicio')});
   nativePushListenersReady=true;
  }
- await plugin.register();
+ if(nativePushRegistrationPending)return true;
+ nativePushRegistrationPending=true;
+ updatePushUI(false,'Conectando ao Firebase e registrando este aparelho...');
+ nativePushRegistrationTimer=setTimeout(()=>{
+  finishNativePushRegistration(false,'O Android não confirmou o registro em 20 segundos. Verifique a internet e tente novamente.');
+ },20000);
+ try{
+  Promise.resolve(plugin.register()).catch(error=>{
+   console.error('Falha ao iniciar o registro FCM:',error);
+   finishNativePushRegistration(false,'Não foi possível iniciar o Firebase: '+String(error?.message||error));
+  });
+ }catch(error){
+  finishNativePushRegistration(false,'Não foi possível iniciar o Firebase: '+String(error?.message||error));
+  throw error;
+ }
  return true;
 }
 async function removeNativePushRegistration(unregister=true){
@@ -706,7 +736,7 @@ async function refreshPushStatus(){
   const nativePlugin=await getNativePushPlugin();
   if(nativePlugin){
    const permission=await nativePlugin.checkPermissions();
-   if(permission.receive==='granted'){await registerNativePush(false);updatePushUI(true,'Registrando notificações Android neste aparelho...')}
+   if(permission.receive==='granted'){await registerNativePush(false)}
    else updatePushUI(false,'Ative as notificações para receber avisos mesmo com o app fechado.');
    return;
   }
@@ -722,8 +752,7 @@ async function enablePushNotifications(){
   const nativePlugin=await getNativePushPlugin();
   if(nativePlugin){
    await registerNativePush(true);
-   updatePushUI(true,'Registrando este aparelho nas notificações Android...');
-   toast('Permissão concedida. Registrando este aparelho...');
+   toast('Permissão concedida. Aguardando o registro do aparelho no Firebase...');
    return;
   }
   if(!('serviceWorker' in navigator)||!('PushManager' in window)||!('Notification' in window))return toast('Seu navegador não oferece suporte a notificações push.');
