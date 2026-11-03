@@ -198,6 +198,62 @@ Deno.serve(async (req: Request) => {
     const admin = createClient(url, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
     const body = await req.json();
 
+    if (body?.action === "diagnostics") {
+      const token = (req.headers.get("Authorization") || "").replace(/^Bearer\\s+/i, "");
+      if (!token) return reply({ error: "Entre novamente no aplicativo." }, 401);
+      const authClient = createClient(url, anonKey, { auth: { persistSession: false, autoRefreshToken: false } });
+      const { data: authData, error: authError } = await authClient.auth.getUser(token);
+      if (authError || !authData.user) return reply({ error: "Sua sessão expirou. Entre novamente." }, 401);
+      const companyId = String(body.company_id || "");
+      if (!companyId) return reply({ error: "Empresa não identificada." }, 400);
+      const { data: member, error: memberError } = await admin.from("company_members")
+        .select("role").eq("company_id", companyId).eq("user_id", authData.user.id).maybeSingle();
+      if (memberError || !member || !["owner", "admin"].includes(member.role)) {
+        return reply({ error: "Somente proprietário e administradores podem diagnosticar notificações." }, 403);
+      }
+
+      const { count: deviceTokens, error: countError } = await admin.from("fcm_device_tokens")
+        .select("id", { count: "exact", head: true }).eq("company_id", companyId);
+      if (countError) throw countError;
+
+      const rawServiceAccount = Deno.env.get("FIREBASE_SERVICE_ACCOUNT_JSON") || "";
+      if (!rawServiceAccount) {
+        return reply({
+          firebaseConfigured: false,
+          firebaseAuthenticated: false,
+          projectMatches: false,
+          projectId: null,
+          deviceTokens: deviceTokens || 0,
+          serverError: "FIREBASE_SERVICE_ACCOUNT_JSON não está configurado nos secrets do Supabase.",
+        });
+      }
+
+      try {
+        const service = await getFirebaseAccessToken();
+        if (!service) throw new Error("A credencial de serviço do Firebase não foi carregada.");
+        const expectedProject = "kidsloc-app-32009";
+        const projectMatches = service.projectId === expectedProject;
+        return reply({
+          firebaseConfigured: true,
+          firebaseAuthenticated: true,
+          projectMatches,
+          projectId: service.projectId,
+          deviceTokens: deviceTokens || 0,
+          serverError: projectMatches ? null : "A credencial de serviço pertence a outro projeto Firebase.",
+        });
+      } catch (diagnosticError) {
+        console.error("Diagnóstico Firebase:", diagnosticError);
+        return reply({
+          firebaseConfigured: true,
+          firebaseAuthenticated: false,
+          projectMatches: false,
+          projectId: null,
+          deviceTokens: deviceTokens || 0,
+          serverError: diagnosticError instanceof Error ? diagnosticError.message : "Não foi possível autenticar no Firebase.",
+        });
+      }
+    }
+
     if (body?.action === "public_key") {
       const token = (req.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "");
       if (!token) return reply({ error: "Entre novamente no aplicativo." }, 401);
