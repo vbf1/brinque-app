@@ -577,7 +577,7 @@ async function loginApp(){
   if(me)throw me;if(!members||!members.length){await sb.auth.signOut();throw new Error('Esta conta ainda não está vinculada a uma empresa. Peça ao proprietário para conferir o cadastro do funcionário.');}
   companyId=members[0].company_id;companyRole=members[0].role;
   const {data:co,error:ce}=await sb.from('companies').select('id,name,logo_url,home_image_url').eq('id',companyId).single();if(ce)throw ce;
-  document.getElementById('company').value=co.name;await loadCloudData();showApp(true);render();go('inicio',null,true);if(isAdmin()){await loadEmployees();await refreshPushStatus();}toast('Conectado à nuvem com sucesso.');
+  document.getElementById('company').value=co.name;applyCompanyBranding(co);await loadCloudData();showApp(true);render();go('inicio',null,true);if(isAdmin()){await loadEmployees();await refreshPushStatus();}toast('Conectado à nuvem com sucesso.');
  }catch(e){console.error('Falha ao entrar ou carregar a empresa:',e);const {data:sessionData}=await sb.auth.getSession().catch(()=>({data:{session:null}}));if(sessionData?.session){showApp(false);authMessage('A autenticação foi concluída, mas houve uma falha ao carregar os dados da empresa. Sua sessão foi preservada. Toque em “Tentar restaurar minha sessão”.',true);document.getElementById('restoreSessionButton')?.classList.remove('hidden');}else{authMessage(translateError(e),true);}}finally{btn.disabled=false;btn.textContent='Entrar';}
 }
 async function logoutApp(){
@@ -1422,7 +1422,7 @@ async function resumeSession(){
   companyId=members[0].company_id;companyRole=members[0].role;
   const {data:co,error:ce}=await sb.from('companies').select('id,name,logo_url,home_image_url').eq('id',companyId).single();
   if(ce)throw ce;
-  document.getElementById('company').value=co.name;
+  document.getElementById('company').value=co.name;applyCompanyBranding(co);
   await loadCloudData();
   showApp(true);render();go('inicio',null,true);
   if(isAdmin())Promise.all([loadEmployees(),refreshPushStatus()]).catch(error=>console.warn('Falha ao atualizar recursos em segundo plano:',error));
