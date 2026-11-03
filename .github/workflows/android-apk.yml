@@ -9,6 +9,7 @@ on:
       - 'manifest.webmanifest'
       - 'sw.js'
       - 'package.json'
+      - 'native-push-entry.js'
       - 'capacitor.config.json'
       - 'google-services.json'
       - '.github/workflows/android-apk.yml'
