@@ -533,7 +533,7 @@ async function loadEmployees(){
   const uniqueMembers=members.filter((member,index,array)=>array.findIndex(item=>item.user_id===member.user_id||(item.email&&member.email&&item.email.trim().toLowerCase()===member.email.trim().toLowerCase()))===index);
   const html=uniqueMembers.length?uniqueMembers.map(function(m){
    const rawName=String(m.full_name||'').trim(),rawEmail=String(m.email||'').trim(),name=employeeEscape(rawName||'Nome não informado'),email=employeeEscape(rawEmail||'E-mail não disponível');
-    const avatarSource=rawName||rawEmail.split('@')[0]||'U',avatarParts=avatarSource.split(/[\\s._-]+/).filter(Boolean),avatarInitials=(avatarParts.length>1?avatarParts[0][0]+avatarParts[avatarParts.length-1][0]:Array.from(avatarSource)[0]).toLocaleUpperCase('pt-BR');
+    const avatarSource=rawName||rawEmail.split('@')[0]||'U',avatarParts=avatarSource.split(/[\s._-]+/).filter(Boolean),avatarInitials=(avatarParts.length>1?avatarParts[0][0]+avatarParts[avatarParts.length-1][0]:Array.from(avatarSource)[0]).toLocaleUpperCase('pt-BR');
     const avatarPalette=['#4285F4','#EA4335','#34A853','#FBBC05','#8E63CE','#E8710A','#0097A7','#D65DB1'];
     const avatarKey=String(m.user_id||rawEmail||avatarSource),avatarColor=avatarPalette[Array.from(avatarKey).reduce((sum,ch)=>(sum*31+ch.charCodeAt(0))>>>0,7)%avatarPalette.length];
    const roleLabel=m.role==='owner'?'Proprietário':m.role==='admin'?'Administrador':'Funcionário';
