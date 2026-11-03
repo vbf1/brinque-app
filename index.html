@@ -184,6 +184,22 @@ body.modal-open{overflow:hidden}
 @media(prefers-reduced-motion:reduce){.delete-modal,.delete-modal-card{transition:none}}
 
 
+/* Cartões de funcionários: identidade, cargo e ações com alinhamento consistente */
+.record-card-employee{display:grid;gap:0;cursor:default}
+.employee-card-main{display:flex;align-items:center;justify-content:space-between;gap:12px;min-width:0}
+.record-card-employee .employee-identity{flex:1 1 auto;width:auto;min-width:0;margin:0}
+.record-card-employee .employee-identity-copy{min-width:0;overflow:hidden}
+.record-card-employee .employee-identity-copy>b{font-size:14px;line-height:1.35;overflow-wrap:anywhere}
+.record-card-employee .employee-email{display:block;width:100%;overflow-wrap:anywhere;word-break:break-word;line-height:1.4}
+.record-card-employee .employee-role-tag{flex:0 0 auto;margin:0;max-width:42%;white-space:normal;text-align:center}
+.record-card-employee .employee-card-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:13px;padding-top:12px;border-top:1px solid var(--line);min-width:0}
+.record-card-employee .employee-card-actions>.employee-remove-action{color:var(--red)}
+.record-card-employee .employee-card-actions>button{width:100%;min-width:0;min-height:42px;padding:9px 10px;white-space:normal;overflow-wrap:anywhere;line-height:1.3}
+.record-card-employee .employee-card-actions>.employee-password-editor{grid-column:1/-1;min-width:0}
+.record-card-employee .employee-password-editor>summary{width:100%}
+@media(max-width:520px){.record-card-employee .employee-card-main{align-items:flex-start;gap:8px}.record-card-employee .employee-role-tag{max-width:38%;font-size:10px;padding:5px 7px}.record-card-employee .employee-card-actions{grid-template-columns:minmax(0,1fr)}.record-card-employee .employee-card-actions>.employee-password-editor{grid-column:1}}
+@media(min-width:521px){.record-card-employee .employee-card-actions{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
 /* Cartões padronizados para todos os registros cadastrados */
 #homeRentals,#agendaList,#rentalList,#clientList,#productList,#transactionList,#homeEmployeeList{display:grid;grid-template-columns:minmax(0,1fr);gap:11px;align-content:start}
 .record-card{display:block;width:100%;min-width:0;padding:14px;background:var(--surface);border:1px solid var(--line);border-radius:16px;box-shadow:0 3px 12px #172b4d08;color:var(--ink);text-align:left;transition:border-color .16s ease,box-shadow .16s ease,transform .16s ease;cursor:pointer}
@@ -939,41 +955,41 @@ async function disablePushNotifications(){
  }catch(e){toast('Não foi possível desativar: '+translateError(e))}
 }
 
-async function loadEmployees(){
+async function loadEmployees(options={}){
  if(!isAdmin())return;
- const lists=['homeEmployeeList','employeeList'].map(id=>document.getElementById(id)).filter(Boolean);
- if(!lists.length)return;
- lists.forEach(list=>list.innerHTML='<p class="muted">Carregando equipe...</p>');
  try{
-  const data=await employeeApi({action:'list'}),members=data.members||[];
-  const uniqueMembers=members.filter((member,index,array)=>array.findIndex(item=>item.user_id===member.user_id||(item.email&&member.email&&item.email.trim().toLowerCase()===member.email.trim().toLowerCase()))===index);
+  if(options.refresh){
+   const data=await employeeApi({action:'list'}),members=data.members||[];
+   companyEmployees=members.map(member=>({id:member.user_id,name:String(member.full_name||member.email||'Funcionário').trim(),email:String(member.email||'').trim(),role:member.role}));
+  }
+  const uniqueMembers=companyEmployees.filter((member,index,array)=>array.findIndex(item=>item.id===member.id||(item.email&&member.email&&item.email.trim().toLowerCase()===member.email.trim().toLowerCase()))===index);
   const htmlByMember=new Map();
   uniqueMembers.forEach(function(m){
-   const rawName=String(m.full_name||'').trim(),rawEmail=String(m.email||'').trim(),name=employeeEscape(rawName||'Nome não informado'),email=employeeEscape(rawEmail||'E-mail não disponível');
-    const avatarSource=rawName||rawEmail.split('@')[0]||'U',avatarParts=avatarSource.split(/[\s._-]+/).filter(Boolean),avatarInitials=(avatarParts.length>1?avatarParts[0][0]+avatarParts[avatarParts.length-1][0]:Array.from(avatarSource)[0]).toLocaleUpperCase('pt-BR');
-    const avatarPalette=['#4285F4','#EA4335','#34A853','#FBBC05','#8E63CE','#E8710A','#0097A7','#D65DB1'];
-    const avatarKey=String(m.user_id||rawEmail||avatarSource),avatarColor=avatarPalette[Array.from(avatarKey).reduce((sum,ch)=>(sum*31+ch.charCodeAt(0))>>>0,7)%avatarPalette.length];
+   const userId=m.id,rawName=String(m.name||'').trim(),rawEmail=String(m.email||'').trim(),name=employeeEscape(rawName||'Nome não informado'),email=employeeEscape(rawEmail||'E-mail não disponível');
+   const avatarSource=rawName||rawEmail.split('@')[0]||'U',avatarParts=avatarSource.split(/[\s._-]+/).filter(Boolean),avatarInitials=(avatarParts.length>1?avatarParts[0][0]+avatarParts[avatarParts.length-1][0]:Array.from(avatarSource)[0]).toLocaleUpperCase('pt-BR');
+   const avatarPalette=['#4285F4','#EA4335','#34A853','#FBBC05','#8E63CE','#E8710A','#0097A7','#D65DB1'];
+   const avatarKey=String(userId||rawEmail||avatarSource),avatarColor=avatarPalette[Array.from(avatarKey).reduce((sum,ch)=>(sum*31+ch.charCodeAt(0))>>>0,7)%avatarPalette.length];
    const roleLabel=m.role==='owner'?'Proprietário':m.role==='admin'?'Administrador':'Funcionário';
-   const canManage=m.role!=='owner'&&m.user_id!==currentUser.id&&(companyRole==='owner'||m.role==='staff');
+   const canManage=m.role!=='owner'&&userId!==currentUser.id&&(companyRole==='owner'||m.role==='staff');
    let actions='';
-   if(canManage&&companyRole==='owner')actions+='<button class="btn-light" onclick="changeEmployeeRole(\''+m.user_id+'\',\''+(m.role==='admin'?'staff':'admin')+'\')">'+(m.role==='admin'?'Tornar funcionário':'Tornar administrador')+'</button>';
-   if(canManage)actions+='<button class="btn-light" style="color:#c94b4b" onclick="removeEmployee(\''+m.user_id+'\')">Remover acesso</button>';
-   if(companyRole==='owner'&&m.role!=='owner')actions+='<details class="employee-password-editor" id="passwordEditor-'+m.user_id+'"><summary><span class="password-editor-icon">⌑</span><span class="password-editor-copy"><b>Alterar senha</b><small>Redefina o acesso deste funcionário</small></span></summary><div class="password-editor-body"><label for="employeePassword-'+m.user_id+'">Nova senha</label><input id="employeePassword-'+m.user_id+'" type="password" autocomplete="new-password" minlength="8" placeholder="Digite uma senha (mín. 8 caracteres)" onkeydown="if(event.key===\'Enter\')changeEmployeePassword(\''+m.user_id+'\')"><label for="employeePasswordConfirm-'+m.user_id+'">Confirmar nova senha</label><input id="employeePasswordConfirm-'+m.user_id+'" type="password" autocomplete="new-password" minlength="8" placeholder="Digite a senha novamente" onkeydown="if(event.key===\'Enter\')changeEmployeePassword(\''+m.user_id+'\')"><p class="password-editor-hint">Use pelo menos 8 caracteres. A alteração será aplicada imediatamente.</p><button type="button" class="full employee-password-save" id="employeePasswordSave-'+m.user_id+'" onclick="changeEmployeePassword(\''+m.user_id+'\')"><span>✓</span> Salvar nova senha</button></div></details>';
-   htmlByMember.set(m.user_id,'<article class="record-card record-card-employee"><div class="record-card-top"><div style="min-width:0;flex:1"><div class="employee-identity"><span class="employee-avatar" style="background:'+avatarColor+'">'+employeeEscape(avatarInitials)+'</span><div class="employee-identity-copy"><b>'+name+'</b><div class="muted" style="display:block;width:100%;overflow-wrap:anywhere">'+email+'</div></div></div><span class="tag">'+roleLabel+'</span></div></div>'+(actions?'<div class="record-card-actions">'+actions+'</div>':'')+'</article>');
+   if(canManage&&companyRole==='owner')actions+='<button class="btn-light" onclick="changeEmployeeRole(\\''+userId+'\\',\\''+(m.role==='admin'?'staff':'admin')+'\\')">'+(m.role==='admin'?'Tornar funcionário':'Tornar administrador')+'</button>';
+   if(canManage)actions+='<button class="btn-light employee-remove-action" onclick="removeEmployee(\\''+userId+'\\')">Remover acesso</button>';
+   if(companyRole==='owner'&&m.role!=='owner')actions+='<details class="employee-password-editor" id="passwordEditor-'+userId+'"><summary><span class="password-editor-icon">⌑</span><span class="password-editor-copy"><b>Alterar senha</b><small>Redefina o acesso deste funcionário</small></span></summary><div class="password-editor-body"><label for="employeePassword-'+userId+'">Nova senha</label><input id="employeePassword-'+userId+'" type="password" autocomplete="new-password" minlength="8" placeholder="Digite uma senha (mín. 8 caracteres)" onkeydown="if(event.key===\\'Enter\\')changeEmployeePassword(\\''+userId+'\\')"><label for="employeePasswordConfirm-'+userId+'">Confirmar nova senha</label><input id="employeePasswordConfirm-'+userId+'" type="password" autocomplete="new-password" minlength="8" placeholder="Digite a senha novamente" onkeydown="if(event.key===\\'Enter\\')changeEmployeePassword(\\''+userId+'\\')"><p class="password-editor-hint">Use pelo menos 8 caracteres. A alteração será aplicada imediatamente.</p><button type="button" class="full employee-password-save" id="employeePasswordSave-'+userId+'" onclick="changeEmployeePassword(\\''+userId+'\\')"><span>✓</span> Salvar nova senha</button></div></details>';
+   htmlByMember.set(userId,'<article class="record-card record-card-employee"><div class="employee-card-main"><div class="employee-identity"><span class="employee-avatar" style="background:'+avatarColor+'">'+employeeEscape(avatarInitials)+'</span><div class="employee-identity-copy"><b>'+name+'</b><div class="muted employee-email">'+email+'</div></div></div><span class="tag employee-role-tag">'+roleLabel+'</span></div>'+(actions?'<div class="record-card-actions employee-card-actions">'+actions+'</div>':'')+'</article>');
   });
   const home=document.getElementById('homeEmployeeList'),management=document.getElementById('employeeList');
-  if(home)home.innerHTML=uniqueMembers.length?uniqueMembers.slice(0,4).map(m=>htmlByMember.get(m.user_id)||'').join('')+(uniqueMembers.length>4?'<p class="muted employee-more-note">Mostrando 4 de '+uniqueMembers.length+' funcionários. Acesse Gerenciar para ver todos.</p>':''):'<div class="empty-state">Nenhum funcionário cadastrado.</div>';
-  if(management)renderPagedList('employeeList',uniqueMembers,m=>htmlByMember.get(m.user_id)||'','Nenhum funcionário cadastrado.');
+  if(home)home.innerHTML=uniqueMembers.length?uniqueMembers.slice(0,4).map(m=>htmlByMember.get(m.id)||'').join('')+(uniqueMembers.length>4?'<p class="muted employee-more-note">Mostrando 4 de '+uniqueMembers.length+' funcionários. Acesse Gerenciar para ver todos.</p>':''):'<div class="empty-state">Nenhum funcionário cadastrado.</div>';
+  if(management)renderPagedList('employeeList',uniqueMembers,m=>htmlByMember.get(m.id)||'','Nenhum funcionário cadastrado.');
  }catch(e){
   const message='<p class="muted">'+employeeEscape(translateError(e))+'</p>';
-  lists.forEach(list=>list.innerHTML=message);
+  ['homeEmployeeList','employeeList'].map(id=>document.getElementById(id)).filter(Boolean).forEach(list=>list.innerHTML=message);
  }
 }
 async function inviteEmployee(){
  if(!isAdmin())return toast('Acesso restrito.');
  const name=document.getElementById('employeeName').value.trim(),email=document.getElementById('employeeEmail').value.trim(),role=document.getElementById('employeeRole').value;
  const btn=document.getElementById('inviteEmployeeButton');btn.disabled=true;btn.textContent='Enviando...';employeeMessage('');
- try{const data=await employeeApi({action:'invite',name,email,role});employeeMessage(data.message||'Convite enviado.');document.getElementById('employeeName').value='';document.getElementById('employeeEmail').value='';await loadEmployees()}
+ try{const data=await employeeApi({action:'invite',name,email,role});employeeMessage(data.message||'Convite enviado.');document.getElementById('employeeName').value='';document.getElementById('employeeEmail').value='';await loadEmployees({refresh:true})}
  catch(e){employeeMessage(translateError(e),true)}
  finally{btn.disabled=false;btn.textContent='Enviar convite'}
 }
@@ -981,12 +997,12 @@ async function changeEmployeeRole(userId,role){
  if(!isAdmin())return;
  const grant=role==='admin';
  if(!await showAppConfirmation({variant:grant?'primary':'warning',eyebrow:'ALTERAÇÃO DE PERMISSÃO',title:grant?'Tornar administrador?':'Retirar acesso de administrador?',message:grant?'Esta pessoa passará a ter permissões administrativas para gerenciar recursos da empresa.':'Esta pessoa deixará de ter permissões administrativas e passará a ter acesso de funcionário.',note:'Você poderá alterar essa permissão novamente depois.',confirmText:grant?'Tornar administrador':'Retirar permissão'}))return;
- try{const data=await employeeApi({action:'change_role',user_id:userId,role});toast(data.message||'Permissão atualizada.');await loadEmployees()}catch(e){toast(translateError(e))}
+ try{const data=await employeeApi({action:'change_role',user_id:userId,role});toast(data.message||'Permissão atualizada.');await loadEmployees({refresh:true})}catch(e){toast(translateError(e))}
 }
 async function removeEmployee(userId){
  if(!isAdmin())return;
  if(!await showAppConfirmation({variant:'danger',eyebrow:'REMOÇÃO DE ACESSO',title:'Remover acesso?',message:'Esta pessoa perderá o acesso ao KidsLoc App da Sonho Kids Brinquedos.',note:'A conta dela no Supabase não será apagada. Essa ação pode ser revertida enviando um novo convite.',confirmText:'Remover acesso'}))return;
- try{const data=await employeeApi({action:'remove',user_id:userId});toast(data.message||'Acesso removido.');await loadEmployees()}catch(e){toast(translateError(e))}
+ try{const data=await employeeApi({action:'remove',user_id:userId});toast(data.message||'Acesso removido.');await loadEmployees({refresh:true})}catch(e){toast(translateError(e))}
 }
 async function changeEmployeePassword(userId){
  if(companyRole!=='owner')return toast('Somente o proprietário pode alterar senhas de outros usuários.');
