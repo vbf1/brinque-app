@@ -93,7 +93,7 @@ label{font-size:12px;color:var(--muted);font-weight:650}.formgrid{display:grid;g
  </div>
  
  <div class="panel"><div class="section-title">Próximas locações <button class="btn-small" onclick="go('locacoes')">Ver todas</button></div><div class="list" id="homeRentals"></div></div>
- <div class="panel" data-admin-only><div class="section-title">Equipe cadastrada <button class="btn-small" onclick="go('funcionarios')">Gerenciar equipe</button></div><div id="homeEmployeeList" style="margin-top:12px"><p class="muted">Carregando equipe...</p></div><div style="display:flex;flex-wrap:wrap;align-items:center;gap:9px;margin-top:14px"><button class="btn-small" id="pushEnableButton" onclick="enablePushNotifications()">Ativar notificações</button><button class="btn-light btn-small hidden" id="pushTestButton" onclick="testPushNotification()">Testar</button><button class="btn-light btn-small hidden" id="pushDisableButton" onclick="disablePushNotifications()">Desativar</button><span class="muted" id="pushStatus" aria-live="polite">Receba avisos de novos funcionários, mesmo com o app fechado.</span></div></div>
+ <div class="panel" data-admin-only><div class="section-title">Funcionários <button class="btn-small" onclick="go('funcionarios')">Gerenciar</button></div><div id="homeEmployeeList" style="margin-top:12px"><p class="muted">Carregando funcionários...</p></div><div style="display:flex;flex-wrap:wrap;align-items:center;gap:9px;margin-top:14px"><button class="btn-small" id="pushEnableButton" onclick="enablePushNotifications()">Ativar notificações</button><button class="btn-light btn-small hidden" id="pushTestButton" onclick="testPushNotification()">Testar</button><button class="btn-light btn-small hidden" id="pushDisableButton" onclick="disablePushNotifications()">Desativar</button><span class="muted" id="pushStatus" aria-live="polite">Receba avisos de novos funcionários, mesmo com o app fechado.</span></div></div>
 </section>
 <section id="agenda" class="hidden"><div class="section-title">Agenda de eventos</div><div class="panel"><label>Consultar data</label><input type="date" id="agendaDate"><div class="muted">As reservas cadastradas aparecem abaixo.</div><div class="list" id="agendaList"></div></div></section>
 <section id="locacoes" class="hidden"><div class="section-title">Locações <button onclick="openForm('rental')">＋ Nova</button></div><div class="panel"><input id="rentalSearch" placeholder="Buscar cliente ou brinquedo..." oninput="render()"><div class="list" id="rentalList"></div></div></section>
@@ -102,7 +102,7 @@ label{font-size:12px;color:var(--muted);font-weight:650}.formgrid{display:grid;g
 <section id="financeiro" class="hidden"><div class="section-title">Financeiro <button onclick="openForm('transaction')">＋ Lançamento</button></div><div class="grid"><div class="card"><div class="metric-label">Entradas</div><div class="metric" id="financeIncome">R$ 0,00</div></div><div class="card"><div class="metric-label">Saídas</div><div class="metric" id="financeExpense">R$ 0,00</div></div></div><div class="panel"><div class="section-title">Movimentações</div><div class="list" id="transactionList"></div></div></section>
 <section id="relatorios" class="hidden"><div class="section-title">Relatórios</div><div class="panel" data-admin-only><b>Faturamento mensal</b><div class="muted">O gráfico será preenchido conforme você registrar suas movimentações.</div><div id="bars"></div></div><div class="panel"><b>Indicadores operacionais</b><p class="muted">A versão conectada ao banco calculará lucro líquido, taxa de ocupação, ticket médio e rentabilidade por brinquedo.</p></div></section>
 <section id="funcionarios" class="hidden" data-admin-only>
- <div class="section-title">Equipe de funcionários</div>
+ <div class="section-title">Funcionários</div>
  <div class="panel"><b>Convidar pessoa para a equipe</b><p class="muted">A pessoa receberá um e-mail para criar a própria senha.</p>
  <label>Nome completo</label><input id="employeeName" maxlength="100" placeholder="Nome do funcionário">
  <label>E-mail</label><input id="employeeEmail" type="email" autocomplete="off" placeholder="email@exemplo.com">
@@ -362,7 +362,8 @@ async function loadEmployees(){
  lists.forEach(list=>list.innerHTML='<p class="muted">Carregando equipe...</p>');
  try{
   const data=await employeeApi({action:'list'}),members=data.members||[];
-  const html=members.length?members.map(function(m){
+  const uniqueMembers=members.filter((member,index,array)=>array.findIndex(item=>item.user_id===member.user_id||(item.email&&member.email&&item.email.trim().toLowerCase()===member.email.trim().toLowerCase()))===index);
+  const html=uniqueMembers.length?uniqueMembers.map(function(m){
    const name=employeeEscape(m.full_name||'Nome não informado'),email=employeeEscape(m.email||'E-mail não disponível');
    const roleLabel=m.role==='owner'?'Proprietário':m.role==='admin'?'Administrador':'Funcionário';
    const canManage=m.role!=='owner'&&m.user_id!==currentUser.id&&(companyRole==='owner'||m.role==='staff');
