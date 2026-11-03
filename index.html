@@ -986,7 +986,7 @@ window.kidsLocHandleBack=function(){
  if(selectSheet?.classList.contains('open')){closeCustomSelect();return true}
  if(document.getElementById('authGate')?.style.display!=='none')return 'exit';
  if(typeof currentPage!=='undefined'&&currentPage!=='inicio'){
-  if(history.state?.brinquePage&&history.state.brinquePage!==currentPage)history.back();
+  if(history.state?.brinquePage)history.back();
   else go('inicio');
   return true;
  }
