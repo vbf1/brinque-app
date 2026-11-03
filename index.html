@@ -67,24 +67,24 @@ label{font-size:12px;color:var(--muted);font-weight:650}.formgrid{display:grid;g
  <button data-page="locacoes" onclick="go('locacoes')"><span>📋</span>Locações</button>
  <button data-page="clientes" onclick="go('clientes')"><span>♙</span>Clientes</button>
  <button data-page="estoque" onclick="go('estoque')"><span>▤</span>Estoque</button>
- <button data-page="financeiro" onclick="go('financeiro')"><span>＄</span>Financeiro</button>
+ <button data-admin-only data-page="financeiro" onclick="go('financeiro')"><span>＄</span>Financeiro</button>
  <button data-page="relatorios" onclick="go('relatorios')"><span>▥</span>Relatórios</button>
- <button data-page="config" onclick="go('config')"><span>⚙</span>Configurações</button>
+ <button data-admin-only data-page="config" onclick="go('config')"><span>⚙</span>Configurações</button>
 </div>
 <main>
 <section id="inicio">
  <div class="section-title">Resumo do negócio <span class="muted">Seus dados</span></div>
  <div class="grid">
-  <div class="card"><div class="metric-label">Faturamento do mês</div><div class="metric" id="revenue">R$ 0,00</div><div class="muted">Total de entradas cadastradas</div></div>
+  <div class="card" data-admin-only><div class="metric-label">Faturamento do mês</div><div class="metric" id="revenue">R$ 0,00</div><div class="muted">Total de entradas cadastradas</div></div>
   <div class="card"><div class="metric-label">Locações cadastradas</div><div class="metric" id="rentalCount">0</div><div class="muted">Cadastradas por você</div></div>
-  <div class="card"><div class="metric-label">A receber</div><div class="metric" id="receivable">R$ 0,00</div><div class="muted">Lançamentos cadastrados</div></div>
-  <div class="card"><div class="metric-label">Despesas</div><div class="metric" id="expenses">R$ 0,00</div><div class="muted">Total de saídas cadastradas</div></div>
+  <div class="card" data-admin-only><div class="metric-label">A receber</div><div class="metric" id="receivable">R$ 0,00</div><div class="muted">Lançamentos cadastrados</div></div>
+  <div class="card" data-admin-only><div class="metric-label">Despesas</div><div class="metric" id="expenses">R$ 0,00</div><div class="muted">Total de saídas cadastradas</div></div>
  </div>
  <div class="panel"><div class="section-title">Acesso rápido</div><div class="actions">
   <button class="action" onclick="openForm('rental')"><b>＋</b>Nova locação</button>
   <button class="action" onclick="go('clientes')"><b>♙</b>Clientes</button>
   <button class="action" onclick="go('estoque')"><b>▤</b>Brinquedos</button>
-  <button class="action" onclick="go('financeiro')"><b>＄</b>Financeiro</button>
+  <button class="action" data-admin-only onclick="go('financeiro')"><b>＄</b>Financeiro</button>
   <button class="action" onclick="go('agenda')"><b>▣</b>Agenda</button>
   <button class="action" onclick="go('relatorios')"><b>▥</b>Relatórios</button>
  </div></div>
@@ -95,7 +95,7 @@ label{font-size:12px;color:var(--muted);font-weight:650}.formgrid{display:grid;g
 <section id="clientes" class="hidden"><div class="section-title">Clientes <button onclick="openForm('client')">＋ Novo</button></div><div class="panel"><input id="clientSearch" placeholder="Pesquisar cliente..." oninput="render()"><div class="list" id="clientList"></div></div></section>
 <section id="estoque" class="hidden"><div class="section-title">Brinquedos e estoque <button onclick="openForm('product')">＋ Novo item</button></div><div class="panel"><div class="muted">Controle híbrido: individual ou por quantidade.</div><div class="list" id="productList"></div></div></section>
 <section id="financeiro" class="hidden"><div class="section-title">Financeiro <button onclick="openForm('transaction')">＋ Lançamento</button></div><div class="grid"><div class="card"><div class="metric-label">Entradas</div><div class="metric" id="financeIncome">R$ 0,00</div></div><div class="card"><div class="metric-label">Saídas</div><div class="metric" id="financeExpense">R$ 0,00</div></div></div><div class="panel"><div class="section-title">Movimentações</div><div class="list" id="transactionList"></div></div></section>
-<section id="relatorios" class="hidden"><div class="section-title">Relatórios</div><div class="panel"><b>Faturamento mensal</b><div class="muted">O gráfico será preenchido conforme você registrar suas movimentações.</div><div id="bars"></div></div><div class="panel"><b>Indicadores operacionais</b><p class="muted">A versão conectada ao banco calculará lucro líquido, taxa de ocupação, ticket médio e rentabilidade por brinquedo.</p></div></section>
+<section id="relatorios" class="hidden"><div class="section-title">Relatórios</div><div class="panel" data-admin-only><b>Faturamento mensal</b><div class="muted">O gráfico será preenchido conforme você registrar suas movimentações.</div><div id="bars"></div></div><div class="panel"><b>Indicadores operacionais</b><p class="muted">A versão conectada ao banco calculará lucro líquido, taxa de ocupação, ticket médio e rentabilidade por brinquedo.</p></div></section>
 <section id="config" class="hidden"><div class="section-title">Configurações</div><div class="panel"><label>Nome da empresa</label><input id="company" placeholder="Digite o nome da sua empresa"><button onclick="saveCompany()">Salvar dados</button><p class="muted">Os dados operacionais são carregados e salvos na nuvem quando você está conectado.</p></div></section>
 <section id="form" class="hidden"><div class="section-title"><span id="formTitle">Novo cadastro</span><button class="btn-light" onclick="go('locacoes')">Fechar</button></div><div class="panel" id="formBody"></div></section>
 </main>
@@ -111,6 +111,8 @@ const SUPABASE_URL='https://wcxvswomcfpeuhnbxivh.supabase.co';
 const SUPABASE_ANON_KEY='sb_publishable_hC1UBMmLe0U41oUHfFxfMQ_mYrsel51';
 const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
 let currentUser=null,companyId=null,companyRole=null;
+function isAdmin(){return ['owner','admin'].includes(companyRole)}
+function applyRoleUI(){document.querySelectorAll('[data-admin-only]').forEach(el=>el.classList.toggle('hidden',!isAdmin()))}
 function authMessage(msg,isError=false){const el=document.getElementById('authMessage');el.textContent=msg;el.style.color=isError?'#c94b4b':'var(--muted)'}
 function showRecoveryScreen(){showApp(false);document.getElementById('recoveryPanel').classList.remove('hidden');document.getElementById('loginFields').classList.add('hidden');document.getElementById('recoveryMessage').textContent='Link de recuperação reconhecido. Defina sua nova senha abaixo.';}
 function showLoginScreen(message=''){document.getElementById('recoveryPanel').classList.add('hidden');document.getElementById('loginFields').classList.remove('hidden');if(message)authMessage(message);}
@@ -146,13 +148,13 @@ async function loadCloudData(){
   sb.from('customers').select('*').eq('company_id',companyId).order('name'),
   sb.from('products').select('*').eq('company_id',companyId).eq('active',true).order('name'),
   sb.from('rentals').select('*,customers(name),rental_items(quantity,unit_price,products(name))').eq('company_id',companyId).order('start_date'),
-  sb.from('financial_transactions').select('*').eq('company_id',companyId).order('created_at',{ascending:false})
+  isAdmin()?sb.from('financial_transactions').select('*').eq('company_id',companyId).order('created_at',{ascending:false}):Promise.resolve({data:[],error:null})
  ]);
  for(const r of [cr,pr,rr,tr])if(r.error)throw r.error;
  clients=(cr.data||[]).map(c=>({id:c.id,name:c.name,phone:c.phone||'',address:c.address||''}));
  products=(pr.data||[]).map(p=>({id:p.id,name:p.name,mode:p.inventory_mode==='individual'?'Individual':'Quantidade',total:p.total_quantity,available:p.total_quantity,price:Number(p.daily_price||0)}));
  rentals=(rr.data||[]).map(r=>({id:r.id,customerId:r.customer_id,name:r.customers?.name||'Cliente',items:(r.rental_items||[]).map(i=>({productId:i.product_id,name:i.products?.name||'Brinquedo',quantity:i.quantity,unitPrice:Number(i.unit_price||0)})),toy:(r.rental_items||[]).map(i=>`${i.quantity}× ${i.products?.name||'Brinquedo'}`).join(', '),date:r.start_date,endDate:r.end_date,dbStatus:r.status,price:Number(r.total_amount||0),mode:r.delivery_method==='customer_pickup'?'Retirada pelo cliente':'Entrega própria',status:r.status==='confirmed'?'Confirmada':r.status==='cancelled'?'Cancelada':r.status==='completed'?'Concluída':'Pendente'}));
- transactions=(tr.data||[]).map(t=>({id:t.id,name:t.description,type:t.transaction_type==='income'?'Entrada':'Saída',value:Number(t.amount||0)}));
+ transactions=isAdmin()?(tr.data||[]).map(t=>({id:t.id,name:t.description,type:t.transaction_type==='income'?'Entrada':'Saída',value:Number(t.amount||0)})):[];
  persist();
 }
 async function cloudError(result){if(result?.error)throw result.error;return result?.data}
@@ -161,14 +163,14 @@ function money(v){return Number(v).toLocaleString('pt-BR',{style:'currency',curr
 function dateBR(d){if(!d)return '';let [y,m,day]=d.split('-');return `${day}/${m}/${y}`}
 function toast(s){let t=document.getElementById('toast');t.textContent=s;t.classList.remove('hidden');setTimeout(()=>t.classList.add('hidden'),2400)}
 let menuScrollY=0;function toggleMenu(force){const panel=document.getElementById('menuPanel'),backdrop=document.getElementById('menuBackdrop'),btn=document.querySelector('.menu-trigger');const open=typeof force==='boolean'?force:panel.classList.contains('hidden');if(open&&!document.body.classList.contains('menu-open')){menuScrollY=window.scrollY||window.pageYOffset;document.body.style.top=`-${menuScrollY}px`;document.body.classList.add('menu-open')}panel.classList.toggle('hidden',!open);backdrop.classList.toggle('hidden',!open);btn.setAttribute('aria-expanded',String(open));if(!open&&document.body.classList.contains('menu-open')){document.body.classList.remove('menu-open');document.body.style.top='';window.scrollTo(0,menuScrollY)}}
-function go(id,btn){document.querySelectorAll('main section').forEach(s=>s.classList.add('hidden'));document.getElementById(id).classList.remove('hidden');document.querySelectorAll('#menuPanel button').forEach(b=>b.classList.toggle('active',b.dataset.page===id));toggleMenu(false);render();window.scrollTo({top:0,behavior:'smooth'})}
+function go(id,btn){if((id==='financeiro'||id==='config')&&!isAdmin()){toast('Acesso restrito ao proprietário e administradores.');return}document.querySelectorAll('main section').forEach(s=>s.classList.add('hidden'));document.getElementById(id).classList.remove('hidden');document.querySelectorAll('#menuPanel button').forEach(b=>b.classList.toggle('active',b.dataset.page===id));toggleMenu(false);render();window.scrollTo({top:0,behavior:'smooth'})}
 function availableForDate(product,date){if(!product)return 0;const day=date||document.getElementById('fDate')?.value;if(!day)return Number(product.total||product.available||0);const used=rentals.filter(r=>r.dbStatus!=='cancelled'&&r.status!=='Cancelada'&&r.date<=day&&(r.endDate||r.date)>=day).reduce((sum,r)=>sum+(r.items||[]).filter(i=>i.productId===product.id).reduce((n,i)=>n+Number(i.quantity||0),0),0);return Math.max(0,Number(product.total||0)-used)}
 function refreshToyAvailability(){document.querySelectorAll('.toy-option').forEach(row=>{const check=row.querySelector('.toy-check'),qty=row.querySelector('.toy-qty'),p=products[Number(check.dataset.index)],avail=availableForDate(p,document.getElementById('fDate')?.value);const label=row.querySelector('.toy-price');if(label)label.textContent=`${money(p.price)} por unidade/diária · ${avail} disponível(is) nesta data`;check.disabled=avail<=0&&!check.checked;qty.max=Math.max(1,avail);if(Number(qty.value)>avail)qty.value=Math.max(1,avail)});updateToySelection()}
 function updateToySelection(){let count=0,total=0,parts=[];document.querySelectorAll('.toy-option').forEach(row=>{const check=row.querySelector('.toy-check'),qty=row.querySelector('.toy-qty'),p=products[Number(check.dataset.index)];qty.disabled=!check.checked;row.classList.toggle('selected',check.checked);if(check.checked){const limit=availableForDate(p,document.getElementById('fDate')?.value);const n=Math.max(1,Math.min(Number(qty.value)||1,limit));qty.value=n;count+=n;total+=n*Number(p.price||0);parts.push(`${n} × ${p.name}`)}});const summary=document.getElementById('selectionSummary');if(summary)summary.textContent=count?`${count} unidade(s): ${parts.join(' · ')} | Total sugerido: ${money(total)}`:'Nenhum brinquedo selecionado.';const price=document.getElementById('fPrice');if(price&&(!price.dataset.manual||price.value===''))price.value=total?total.toFixed(2):''}
 
 function toggleTheme(){document.body.dataset.theme=document.body.dataset.theme==='dark'?'':'dark';localStorage.setItem('brq_theme',document.body.dataset.theme)}
 if(localStorage.getItem('brq_theme'))document.body.dataset.theme=localStorage.getItem('brq_theme');
-function openForm(type){go('form');let title=document.getElementById('formTitle'),body=document.getElementById('formBody');
+function openForm(type){if(type==='transaction'&&!isAdmin()){toast('Acesso financeiro restrito ao proprietário e administradores.');return}go('form');let title=document.getElementById('formTitle'),body=document.getElementById('formBody');
 if(type==='rental'){title.textContent='Cadastrar locação';body.innerHTML=`<label>Cliente</label><select id="fClient"><option value="">Selecione um cliente</option>${clients.map(c=>`<option value="${c.id}">${c.name}</option>`).join('')}</select><label>Brinquedos desta locação</label><div class="muted">A disponibilidade é estimada pelas locações já registradas para a data escolhida. Para este primeiro estágio, a reserva não possui bloqueio transacional simultâneo.</div><div class="toy-picker" id="toyPicker">${products.map((p,i)=>`<label class="toy-option"><input type="checkbox" class="toy-check" data-index="${i}" onchange="updateToySelection()" ${availableForDate(p,'')<=0?'disabled':''}><span><span class="toy-name">${p.name}</span><span class="toy-price">${money(p.price)} por unidade/diária · ${availableForDate(p,'')} disponível(is) (selecione a data)</span></span><input type="number" class="toy-qty" data-index="${i}" min="1" max="${Math.max(1,p.available)}" value="1" disabled aria-label="Quantidade de ${p.name}" onchange="updateToySelection()"></label>`).join('')||'<div class="muted">Cadastre os brinquedos no Estoque antes de criar uma locação.</div>'}</div><div class="selection-summary" id="selectionSummary">Nenhum brinquedo selecionado.</div><div class="formgrid"><div><label>Data do evento</label><input id="fDate" type="date" onchange="refreshToyAvailability()"></div><div><label>Valor total (R$)</label><input id="fPrice" type="number" min="0" step="0.01" placeholder="0,00" oninput="this.dataset.manual='1'"></div></div><label>Modalidade</label><select id="fMode"><option>Entrega própria</option><option>Retirada pelo cliente</option></select><label>Status</label><select id="fStatus"><option>Orçamento</option><option>Confirmada</option><option>Pendente</option></select><button class="full" onclick="saveRental()">Salvar locação</button>`}
 if(type==='client'){title.textContent='Novo cliente';body.innerHTML=`<label>Nome</label><input id="fName" placeholder="Nome completo"><label>Telefone</label><input id="fPhone" placeholder="Telefone"><label>Endereço</label><input id="fAddress" placeholder="Endereço"><button class="full" onclick="saveClient()">Salvar cliente</button>`}
 if(type==='product'){title.textContent='Novo brinquedo';body.innerHTML=`<label>Nome do brinquedo</label><input id="fProduct" placeholder="Ex.: Tobogã inflável"><label>Tipo de controle</label><select id="fMode"><option>Individual</option><option>Quantidade</option></select><div class="formgrid"><div><label>Quantidade total</label><input id="fTotal" type="number" min="1" placeholder="Quantidade"></div><div><label>Preço da diária</label><input id="fPPrice" type="number" min="0" placeholder="0,00"></div></div><button class="full" onclick="saveProduct()">Salvar brinquedo</button>`}
@@ -188,9 +190,10 @@ async function saveRental(){
 }
 async function saveClient(){if(!fName.value.trim())return toast('Informe o nome.');try{await cloudError(await sb.from('customers').insert({company_id:companyId,name:fName.value.trim(),phone:fPhone.value.trim(),address:fAddress.value.trim()}));await loadCloudData();go('clientes');toast('Cliente salvo na nuvem!')}catch(e){toast('Erro ao salvar cliente: '+e.message)}}
 async function saveProduct(){if(!fProduct.value.trim()||!fTotal.value||Number(fTotal.value)<1)return toast('Confira os dados.');try{await cloudError(await sb.from('products').insert({company_id:companyId,name:fProduct.value.trim(),inventory_mode:fMode.value==='Individual'?'individual':'quantity',total_quantity:Number(fTotal.value),daily_price:Number(fPPrice.value||0)}));await loadCloudData();go('estoque');toast('Brinquedo salvo na nuvem!')}catch(e){toast('Erro ao salvar brinquedo: '+e.message)}}
-async function saveTransaction(){if(!fDesc.value.trim()||Number(fValue.value)<=0)return toast('Informe descrição e valor.');try{await cloudError(await sb.from('financial_transactions').insert({company_id:companyId,transaction_type:fType.value==='Entrada'?'income':'expense',description:fDesc.value.trim(),amount:Number(fValue.value),status:'paid',paid_at:new Date().toISOString().slice(0,10),created_by:currentUser.id}));await loadCloudData();go('financeiro');toast('Lançamento salvo na nuvem!')}catch(e){toast('Erro ao salvar lançamento: '+e.message)}}
+async function saveTransaction(){if(!isAdmin())return toast('Acesso financeiro restrito ao proprietário e administradores.');if(!fDesc.value.trim()||Number(fValue.value)<=0)return toast('Informe descrição e valor.');try{await cloudError(await sb.from('financial_transactions').insert({company_id:companyId,transaction_type:fType.value==='Entrada'?'income':'expense',description:fDesc.value.trim(),amount:Number(fValue.value),status:'paid',paid_at:new Date().toISOString().slice(0,10),created_by:currentUser.id}));await loadCloudData();go('financeiro');toast('Lançamento salvo na nuvem!')}catch(e){toast('Erro ao salvar lançamento: '+e.message)}}
 
 function render(){
+ applyRoleUI();
  const sumType=type=>transactions.filter(t=>t.type===type).reduce((s,t)=>s+Number(t.value||0),0);
  const income=sumType('Entrada'), expense=sumType('Saída');
  document.getElementById('rentalCount').textContent=rentals.length;
@@ -209,7 +212,7 @@ function render(){
  document.getElementById('transactionList').innerHTML=transactions.length?transactions.map(t=>`<div class="item"><div><b>${t.name}</b><div class="muted">${t.type}</div></div><b style="color:${t.type==='Entrada'?'#16845b':'#c94b4b'}">${t.type==='Entrada'?'+':'−'} ${money(t.value)}</b></div>`).join(''):'<div class="muted">Nenhuma movimentação cadastrada ainda.</div>';
  document.getElementById('bars').innerHTML='';
 }
-async function saveCompany(){try{const name=document.getElementById('company').value.trim();if(!name)return toast('Informe o nome da empresa.');await cloudError(await sb.from('companies').update({name}).eq('id',companyId));toast('Nome da empresa atualizado na nuvem.')}catch(e){toast('Erro ao atualizar empresa: '+e.message)}}
+async function saveCompany(){if(!isAdmin())return toast('Somente proprietário e administradores podem alterar configurações.');try{const name=document.getElementById('company').value.trim();if(!name)return toast('Informe o nome da empresa.');await cloudError(await sb.from('companies').update({name}).eq('id',companyId));toast('Nome da empresa atualizado na nuvem.')}catch(e){toast('Erro ao atualizar empresa: '+e.message)}}
 render();
 showApp(false);
 async function resumeSession(){const {data}=await sb.auth.getSession();if(!data.session)return;try{currentUser=data.session.user;const {data:members,error}=await sb.from('company_members').select('company_id,role').eq('user_id',currentUser.id);if(error)throw error;if(!members?.length)throw new Error('Usuário sem vínculo com empresa.');companyId=members[0].company_id;companyRole=members[0].role;const {data:co,error:ce}=await sb.from('companies').select('id,name').eq('id',companyId).single();if(ce)throw ce;document.getElementById('company').value=co.name;await loadCloudData();showApp(true);render();go('inicio');}catch(e){await sb.auth.signOut();authMessage(e.message||'Faça login novamente.',true)}}
