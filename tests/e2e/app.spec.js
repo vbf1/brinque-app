@@ -102,3 +102,21 @@ test('funcionário não consegue abrir formulário financeiro', async ({ page })
   await expect(page.locator('#toast')).toContainText('Acesso financeiro restrito');
   await expect(page.locator('#form')).toBeHidden();
 });
+
+test('estoque, locação e financeiro rejeitam formulários incompletos', async ({ page }) => {
+  await page.locator('#loginEmail').fill('owner@test.invalid');
+  await page.locator('#loginPassword').fill('senha-de-teste');
+  await page.getByRole('button', { name: 'Entrar' }).click();
+
+  await page.evaluate(() => openForm('product'));
+  await page.evaluate(() => saveProduct());
+  await expect(page.locator('#toast')).toContainText('Confira os dados');
+
+  await page.evaluate(() => openForm('rental'));
+  await page.evaluate(() => saveRental());
+  await expect(page.locator('#toast')).toContainText('Informe cliente, brinquedos');
+
+  await page.evaluate(() => openForm('transaction'));
+  await page.evaluate(() => saveTransaction());
+  await expect(page.locator('#toast')).toContainText('Informe descrição e valor');
+});
