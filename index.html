@@ -77,6 +77,7 @@ label{font-size:12px;color:var(--muted);font-weight:650}.formgrid{display:grid;g
  <button data-page="clientes" onclick="go('clientes')"><span>♙</span>Clientes</button>
  <button data-page="estoque" onclick="go('estoque')"><span>▤</span>Estoque</button>
  <button data-admin-only data-page="financeiro" onclick="go('financeiro')"><span>＄</span>Financeiro</button>
+ <button data-admin-only data-page="funcionarios" onclick="go('funcionarios')"><span>♙</span>Funcionários</button>
  <button data-page="relatorios" onclick="go('relatorios')"><span>▥</span>Relatórios</button>
  <button data-admin-only data-page="config" onclick="go('config')"><span>⚙</span>Configurações</button>
 </div>
@@ -105,6 +106,15 @@ label{font-size:12px;color:var(--muted);font-weight:650}.formgrid{display:grid;g
 <section id="estoque" class="hidden"><div class="section-title">Brinquedos e estoque <button onclick="openForm('product')">＋ Novo item</button></div><div class="panel"><div class="muted">Controle híbrido: individual ou por quantidade.</div><div class="list" id="productList"></div></div></section>
 <section id="financeiro" class="hidden"><div class="section-title">Financeiro <button onclick="openForm('transaction')">＋ Lançamento</button></div><div class="grid"><div class="card"><div class="metric-label">Entradas</div><div class="metric" id="financeIncome">R$ 0,00</div></div><div class="card"><div class="metric-label">Saídas</div><div class="metric" id="financeExpense">R$ 0,00</div></div></div><div class="panel"><div class="section-title">Movimentações</div><div class="list" id="transactionList"></div></div></section>
 <section id="relatorios" class="hidden"><div class="section-title">Relatórios</div><div class="panel" data-admin-only><b>Faturamento mensal</b><div class="muted">O gráfico será preenchido conforme você registrar suas movimentações.</div><div id="bars"></div></div><div class="panel"><b>Indicadores operacionais</b><p class="muted">A versão conectada ao banco calculará lucro líquido, taxa de ocupação, ticket médio e rentabilidade por brinquedo.</p></div></section>
+<section id="funcionarios" class="hidden" data-admin-only>
+ <div class="section-title">Equipe de funcionários</div>
+ <div class="panel"><b>Convidar pessoa para a equipe</b><p class="muted">A pessoa receberá um e-mail para criar a própria senha.</p>
+ <label>Nome completo</label><input id="employeeName" maxlength="100" placeholder="Nome do funcionário">
+ <label>E-mail</label><input id="employeeEmail" type="email" autocomplete="off" placeholder="email@exemplo.com">
+ <label>Permissão</label><select id="employeeRole"><option value="staff">Funcionário</option><option value="admin" data-owner-role>Administrador</option></select>
+ <button class="full" id="inviteEmployeeButton" onclick="inviteEmployee()">Enviar convite</button><p class="muted" id="employeeMessage" aria-live="polite"></p></div>
+ <div class="panel"><div style="display:flex;align-items:center;justify-content:space-between;gap:10px"><b>Equipe cadastrada</b><button class="btn-light" onclick="loadEmployees()">Atualizar</button></div><div id="employeeList" style="margin-top:12px"><p class="muted">Abra esta tela para carregar a equipe.</p></div></div>
+</section>
 <section id="config" class="hidden"><div class="section-title">Configurações</div><div class="panel"><label>Nome da empresa</label><input id="company" placeholder="Digite o nome da sua empresa"><button onclick="saveCompany()">Salvar dados</button><p class="muted">Os dados operacionais são carregados e salvos na nuvem quando você está conectado.</p></div></section>
 <section id="form" class="hidden"><div class="section-title"><span id="formTitle">Novo cadastro</span><button class="btn-light" onclick="go('locacoes')">Fechar</button></div><div class="panel" id="formBody"></div></section>
 </main>
@@ -121,7 +131,7 @@ const SUPABASE_ANON_KEY='sb_publishable_hC1UBMmLe0U41oUHfFxfMQ_mYrsel51';
 const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}});
 let currentUser=null,companyId=null,companyRole=null,recoveryFlowActive=false,recoveryUserId=null;
 function isAdmin(){return ['owner','admin'].includes(companyRole)}
-function applyRoleUI(){document.querySelectorAll('[data-admin-only]').forEach(el=>el.classList.toggle('hidden',!isAdmin()))}
+function applyRoleUI(){document.querySelectorAll('[data-admin-only]').forEach(el=>el.classList.toggle('hidden',!isAdmin()));document.querySelectorAll('[data-owner-role]').forEach(el=>el.disabled=companyRole!=='owner');if(companyRole!=='owner'&&document.getElementById('employeeRole'))document.getElementById('employeeRole').value='staff'}
 function authMessage(msg,isError=false){const el=document.getElementById('authMessage');el.textContent=msg;el.style.color=isError?'#c94b4b':'var(--muted)'}
 function translateError(error){
  const raw=String(error?.message||error?.details||error||'').trim();
@@ -278,7 +288,47 @@ function money(v){return Number(v).toLocaleString('pt-BR',{style:'currency',curr
 function dateBR(d){if(!d)return '';let [y,m,day]=d.split('-');return `${day}/${m}/${y}`}
 function toast(s){let t=document.getElementById('toast');t.textContent=s;t.classList.remove('hidden');setTimeout(()=>t.classList.add('hidden'),2400)}
 let menuScrollY=0;function toggleMenu(force){const panel=document.getElementById('menuPanel'),backdrop=document.getElementById('menuBackdrop'),btn=document.querySelector('.menu-trigger');const open=typeof force==='boolean'?force:panel.classList.contains('hidden');if(open&&!document.body.classList.contains('menu-open')){menuScrollY=window.scrollY||window.pageYOffset;document.body.style.top=`-${menuScrollY}px`;document.body.classList.add('menu-open')}panel.classList.toggle('hidden',!open);backdrop.classList.toggle('hidden',!open);btn.setAttribute('aria-expanded',String(open));if(!open&&document.body.classList.contains('menu-open')){document.body.classList.remove('menu-open');document.body.style.top='';window.scrollTo(0,menuScrollY)}}
-function go(id,btn){if((id==='financeiro'||id==='config')&&!isAdmin()){toast('Acesso restrito ao proprietário e administradores.');return}document.querySelectorAll('main section').forEach(s=>s.classList.add('hidden'));document.getElementById(id).classList.remove('hidden');document.querySelectorAll('#menuPanel button').forEach(b=>b.classList.toggle('active',b.dataset.page===id));toggleMenu(false);render();window.scrollTo({top:0,behavior:'smooth'})}
+
+function employeeEscape(value){return String(value||'').replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+async function employeeApi(payload){
+ const {data,error}=await sb.functions.invoke('manage-employees',{body:{...payload,company_id:companyId}});
+ if(error)throw error;if(data&&data.error)throw new Error(data.error);return data;
+}
+function employeeMessage(message,isError=false){const el=document.getElementById('employeeMessage');if(el){el.textContent=message;el.style.color=isError?'#c94b4b':'var(--green)'}}
+async function loadEmployees(){
+ if(!isAdmin())return;const list=document.getElementById('employeeList');if(!list)return;
+ list.innerHTML='<p class="muted">Carregando equipe...</p>';
+ try{
+  const data=await employeeApi({action:'list'}),members=data.members||[];
+  list.innerHTML=members.length?members.map(function(m){
+   const name=employeeEscape(m.full_name||'Nome não informado'),email=employeeEscape(m.email||'E-mail não disponível');
+   const roleLabel=m.role==='owner'?'Proprietário':m.role==='admin'?'Administrador':'Funcionário';
+   const canManage=m.role!=='owner'&&m.user_id!==currentUser.id&&(companyRole==='owner'||m.role==='staff');
+   let actions='';
+   if(canManage&&companyRole==='owner')actions+='<button class="btn-light" onclick="changeEmployeeRole(\\''+m.user_id+'\\',\\''+(m.role==='admin'?'staff':'admin')+'\\')">'+(m.role==='admin'?'Tornar funcionário':'Tornar administrador')+'</button>';
+   if(canManage)actions+='<button class="btn-light" style="color:#c94b4b" onclick="removeEmployee(\\''+m.user_id+'\\')">Remover acesso</button>';
+   return '<div class="item" style="align-items:flex-start"><div style="min-width:0;flex:1"><b>'+name+'</b><div class="muted" style="overflow-wrap:anywhere">'+email+'</div><span class="tag">'+roleLabel+'</span></div>'+(actions?'<div style="display:grid;gap:6px;min-width:112px">'+actions+'</div>':'')+'</div>';
+  }).join(''):'<p class="muted">Nenhum membro cadastrado.</p>';
+ }catch(e){list.innerHTML='<p class="muted">'+employeeEscape(translateError(e))+'</p>'}
+}
+async function inviteEmployee(){
+ if(!isAdmin())return toast('Acesso restrito.');
+ const name=document.getElementById('employeeName').value.trim(),email=document.getElementById('employeeEmail').value.trim(),role=document.getElementById('employeeRole').value;
+ const btn=document.getElementById('inviteEmployeeButton');btn.disabled=true;btn.textContent='Enviando...';employeeMessage('');
+ try{const data=await employeeApi({action:'invite',name,email,role});employeeMessage(data.message||'Convite enviado.');document.getElementById('employeeName').value='';document.getElementById('employeeEmail').value='';await loadEmployees()}
+ catch(e){employeeMessage(translateError(e),true)}
+ finally{btn.disabled=false;btn.textContent='Enviar convite'}
+}
+async function changeEmployeeRole(userId,role){
+ if(!isAdmin())return;if(!confirm(role==='admin'?'Conceder permissão de administrador a este usuário?':'Retirar a permissão de administrador?'))return;
+ try{const data=await employeeApi({action:'change_role',user_id:userId,role});toast(data.message||'Permissão atualizada.');await loadEmployees()}catch(e){toast(translateError(e))}
+}
+async function removeEmployee(userId){
+ if(!isAdmin())return;if(!confirm('Remover o acesso desta pessoa à Sonho Kids Brinquedos? A conta dela no Supabase não será apagada.'))return;
+ try{const data=await employeeApi({action:'remove',user_id:userId});toast(data.message||'Acesso removido.');await loadEmployees()}catch(e){toast(translateError(e))}
+}
+
+function go(id,btn){if((id==='financeiro'||id==='config'||id==='funcionarios')&&!isAdmin()){toast('Acesso restrito ao proprietário e administradores.');return}document.querySelectorAll('main section').forEach(s=>s.classList.add('hidden'));document.getElementById(id).classList.remove('hidden');document.querySelectorAll('#menuPanel button').forEach(b=>b.classList.toggle('active',b.dataset.page===id));toggleMenu(false);render();if(id==='funcionarios')loadEmployees();window.scrollTo({top:0,behavior:'smooth'})}
 function availableForDate(product,date){if(!product)return 0;const day=date||document.getElementById('fDate')?.value;if(!day)return Number(product.total||product.available||0);const used=rentals.filter(r=>r.dbStatus!=='cancelled'&&r.status!=='Cancelada'&&r.date<=day&&(r.endDate||r.date)>=day).reduce((sum,r)=>sum+(r.items||[]).filter(i=>i.productId===product.id).reduce((n,i)=>n+Number(i.quantity||0),0),0);return Math.max(0,Number(product.total||0)-used)}
 function refreshToyAvailability(){document.querySelectorAll('.toy-option').forEach(row=>{const check=row.querySelector('.toy-check'),qty=row.querySelector('.toy-qty'),p=products[Number(check.dataset.index)],avail=availableForDate(p,document.getElementById('fDate')?.value);const label=row.querySelector('.toy-price');if(label)label.textContent=`${money(p.price)} por unidade/diária · ${avail} disponível(is) nesta data`;check.disabled=avail<=0&&!check.checked;qty.max=Math.max(1,avail);if(Number(qty.value)>avail)qty.value=Math.max(1,avail)});updateToySelection()}
 function updateToySelection(){let count=0,total=0,parts=[];document.querySelectorAll('.toy-option').forEach(row=>{const check=row.querySelector('.toy-check'),qty=row.querySelector('.toy-qty'),p=products[Number(check.dataset.index)];qty.disabled=!check.checked;row.classList.toggle('selected',check.checked);if(check.checked){const limit=availableForDate(p,document.getElementById('fDate')?.value);const n=Math.max(1,Math.min(Number(qty.value)||1,limit));qty.value=n;count+=n;total+=n*Number(p.price||0);parts.push(`${n} × ${p.name}`)}});const summary=document.getElementById('selectionSummary');if(summary)summary.textContent=count?`${count} unidade(s): ${parts.join(' · ')} | Total sugerido: ${money(total)}`:'Nenhum brinquedo selecionado.';const price=document.getElementById('fPrice');if(price&&(!price.dataset.manual||price.value===''))price.value=total?total.toFixed(2):''}
