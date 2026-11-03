@@ -525,13 +525,19 @@ async function loadCloudData(){
   sb.from('rentals').select('*,customers(name),rental_items(product_id,quantity,unit_price,products(name),rental_item_units(product_unit_id,product_units(asset_code)))').eq('company_id',companyId).order('start_date'),
   isAdmin()?sb.from('financial_transactions').select('*').eq('company_id',companyId).order('created_at',{ascending:false}):Promise.resolve({data:[],error:null}),
   sb.from('product_images').select('*').eq('company_id',companyId).order('created_at'),
-  sb.from('company_members').select('user_id,role,profiles(full_name)').eq('company_id',companyId).order('created_at'),
+  sb.from('company_members').select('user_id,role').eq('company_id',companyId).order('created_at'),
   sb.from('rental_responsibles').select('id,rental_id,user_id,employee_name_snapshot,created_at').eq('company_id',companyId).order('created_at'),
   sb.from('occurrence_reports').select('*').eq('company_id',companyId).order('occurred_at',{ascending:false}),
   sb.from('occurrence_photos').select('*').eq('company_id',companyId).order('created_at')
  ]);
  for(const r of [cr,pr,ur,rr,tr,ir,mr,ar,or,op])if(r.error)throw r.error;
- companyEmployees=(mr.data||[]).map(m=>({id:m.user_id,name:m.profiles?.full_name?.trim()||'Funcionário',role:m.role}));
+ const memberRows=mr.data||[];
+ const profileResult=memberRows.length
+  ?await sb.from('profiles').select('id,full_name').in('id',memberRows.map(m=>m.user_id))
+  :{data:[],error:null};
+ if(profileResult.error)throw profileResult.error;
+ const profileNames=new Map((profileResult.data||[]).map(profile=>[profile.id,profile.full_name]));
+ companyEmployees=memberRows.map(m=>({id:m.user_id,name:profileNames.get(m.user_id)?.trim()||'Funcionário',role:m.role}));
  rentalResponsibleRows=ar.data||[];
  clients=(cr.data||[]).map(c=>({id:c.id,name:c.name,phone:c.phone||'',address:c.address||''}));
  productUnits=ur.data||[];
