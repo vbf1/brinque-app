@@ -79,3 +79,26 @@ test('layout móvel não cria rolagem horizontal na tela inicial e nas telas int
     expect(dimensions.content, 'overflow horizontal em ' + screen).toBeLessThanOrEqual(dimensions.viewport + 1);
   }
 });
+
+test('cadastro de cliente salva e reaparece na listagem isolada', async ({ page }) => {
+  await page.locator('#loginEmail').fill('owner@test.invalid');
+  await page.locator('#loginPassword').fill('senha-de-teste');
+  await page.getByRole('button', { name: 'Entrar' }).click();
+  await page.locator('.menu-trigger').click();
+  await page.locator('#menuPanel [data-page="clientes"]').click();
+  await page.getByRole('button', { name: /Novo/ }).click();
+  await page.locator('#fName').fill('Cliente QA');
+  await page.locator('#fPhone').fill('(31) 90000-0000');
+  await page.evaluate(() => saveClient());
+  await expect(page.locator('#toast')).toContainText('Cliente salvo');
+  await expect(page.locator('#clientList')).toContainText('Cliente QA');
+});
+test('funcionário não consegue abrir formulário financeiro', async ({ page }) => {
+  await page.goto('/?role=staff');
+  await page.locator('#loginEmail').fill('staff@test.invalid');
+  await page.locator('#loginPassword').fill('senha-de-teste');
+  await page.getByRole('button', { name: 'Entrar' }).click();
+  await page.evaluate(() => openForm('transaction'));
+  await expect(page.locator('#toast')).toContainText('Acesso financeiro restrito');
+  await expect(page.locator('#form')).toBeHidden();
+});
