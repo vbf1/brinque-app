@@ -1001,7 +1001,7 @@ async function changeEmployeeRole(userId,role){
 async function removeEmployee(userId){
  if(!isAdmin())return;
  if(!await showAppConfirmation({variant:'danger',eyebrow:'REMOÇÃO DE ACESSO',title:'Remover acesso?',message:'Esta pessoa perderá o acesso ao KidsLoc App da Sonho Kids Brinquedos.',note:'A conta dela no Supabase não será apagada. Essa ação pode ser revertida enviando um novo convite.',confirmText:'Remover acesso'}))return;
- try{const data=await employeeApi({action:'remove',user_id:userId});toast(data.message||'Acesso removido.');await loadEmployees()}catch(e){toast(translateError(e))}
+ try{const data=await employeeApi({action:'remove',user_id:userId});toast(data.message||'Acesso removido.');await loadEmployees({refresh:true})}catch(e){toast(translateError(e))}
 }
 async function changeEmployeePassword(userId){
  if(companyRole!=='owner')return toast('Somente o proprietário pode alterar senhas de outros usuários.');
