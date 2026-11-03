@@ -340,7 +340,7 @@ header{padding-top:calc(12px + var(--kids-safe-area-top))}
  </section>
 </div>
 <header>
- <div class="headrow"><div class="brand"><div class="logo">✦</div><div>KIDSLOC APP<div class="sub">GESTÃO DE LOCAÇÕES</div></div></div><div class="head-actions"><button class="btn-small" onclick="toggleTheme()">◐ Tema</button><nav id="nav" aria-label="Navegação principal"><button class="menu-trigger" onclick="toggleMenu()" aria-label="Abrir menu" aria-expanded="false"><span class="menu-icon"><i></i><i></i><i></i></span></button></nav></div></div>
+ <div class="headrow"><div class="brand"><div class="logo" id="appBrandLogo">✦</div><div>KIDSLOC APP<div class="sub">GESTÃO DE LOCAÇÕES</div></div></div><div class="head-actions"><button class="btn-small" onclick="toggleTheme()">◐ Tema</button><nav id="nav" aria-label="Navegação principal"><button class="menu-trigger" onclick="toggleMenu()" aria-label="Abrir menu" aria-expanded="false"><span class="menu-icon"><i></i><i></i><i></i></span></button></nav></div></div>
  <div class="greeting">Olá, <span id="greetingName">Bem-vindo</span> 👋<small>Sonho Kids Brinquedos · Gestão de locações sincronizada.</small></div>
 </header>
 <div id="menuBackdrop" class="menu-backdrop hidden" onclick="toggleMenu(false)"></div>
@@ -359,6 +359,7 @@ header{padding-top:calc(12px + var(--kids-safe-area-top))}
 </div>
 <main>
 <section id="inicio">
+ <div class="panel hidden" id="homeBrandingPanel"><img id="homeBrandImage" alt="Imagem de apresentação da empresa" style="width:100%;max-height:220px;object-fit:cover;border-radius:12px"></div>
  <div class="section-title">Resumo do negócio <span class="muted">Seus dados</span></div>
  <div class="grid">
   <div class="card" data-admin-only><div class="metric-label">Faturamento do mês</div><div class="metric" id="revenue">R$ 0,00</div><div class="muted">Total de entradas cadastradas</div></div>
@@ -386,7 +387,7 @@ header{padding-top:calc(12px + var(--kids-safe-area-top))}
  <label>Permissão</label><select id="employeeRole"><option value="staff">Funcionário</option><option value="admin" data-owner-role>Administrador</option></select>
  <button class="full" id="inviteEmployeeButton" onclick="inviteEmployee()">Enviar convite</button><p class="muted" id="employeeMessage" aria-live="polite"></p></div><div class="panel"><div class="section-title">Funcionários cadastrados</div><div id="employeeList" class="list"><div class="empty-state">Carregando funcionários...</div></div></div>
 </section>
-<section id="config" class="hidden"><div class="section-title">Configurações</div><div class="panel"><label>Nome da empresa</label><input id="company" placeholder="Digite o nome da sua empresa"><button onclick="saveCompany()">Salvar dados</button><p class="muted">Os dados operacionais são carregados e salvos na nuvem quando você está conectado.</p></div></section>
+<section id="config" class="hidden"><div class="section-title">Identidade visual da empresa</div><div class="panel"><label>Nome da empresa</label><input id="company" placeholder="Digite o nome da sua empresa"><button onclick="saveCompany()">Salvar nome</button><hr><b>Logo da empresa</b><p class="muted">A logo aparece no cabeçalho do aplicativo.</p><img id="brandLogoPreview" alt="Prévia da logo" style="display:none;max-width:150px;max-height:100px;object-fit:contain"><input id="brandLogoFile" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml"><button class="btn-light" onclick="uploadCompanyBranding('logo')">Enviar logo</button><hr><b>Imagem de início</b><p class="muted">Imagem exibida no início do app após o login.</p><img id="brandHomePreview" alt="Prévia da imagem de início" style="display:none;width:100%;max-height:180px;object-fit:cover;border-radius:12px"><input id="brandHomeFile" type="file" accept="image/png,image/jpeg,image/webp"><button class="btn-light" onclick="uploadCompanyBranding('home')">Enviar imagem de início</button><p class="muted" id="brandingStatus">Somente proprietário e administrador podem alterar a identidade visual.</p></div></section>
 <section id="form" class="hidden"><div class="section-title"><span id="formTitle">Novo cadastro</span><button class="btn-light" onclick="closeForm()">Fechar</button></div><div class="panel" id="formBody"></div></section>
 </main>
 <div id="toast" class="toast hidden" role="status" aria-live="polite" aria-atomic="true"></div>
@@ -575,7 +576,7 @@ async function loginApp(){
   const {data:members,error:me}=await sb.from('company_members').select('company_id,role').eq('user_id',currentUser.id);
   if(me)throw me;if(!members||!members.length){await sb.auth.signOut();throw new Error('Esta conta ainda não está vinculada a uma empresa. Peça ao proprietário para conferir o cadastro do funcionário.');}
   companyId=members[0].company_id;companyRole=members[0].role;
-  const {data:co,error:ce}=await sb.from('companies').select('id,name').eq('id',companyId).single();if(ce)throw ce;
+  const {data:co,error:ce}=await sb.from('companies').select('id,name,logo_url,home_image_url').eq('id',companyId).single();if(ce)throw ce;
   document.getElementById('company').value=co.name;await loadCloudData();showApp(true);render();go('inicio',null,true);if(isAdmin()){await loadEmployees();await refreshPushStatus();}toast('Conectado à nuvem com sucesso.');
  }catch(e){console.error('Falha ao entrar ou carregar a empresa:',e);const {data:sessionData}=await sb.auth.getSession().catch(()=>({data:{session:null}}));if(sessionData?.session){showApp(false);authMessage('A autenticação foi concluída, mas houve uma falha ao carregar os dados da empresa. Sua sessão foi preservada. Toque em “Tentar restaurar minha sessão”.',true);document.getElementById('restoreSessionButton')?.classList.remove('hidden');}else{authMessage(translateError(e),true);}}finally{btn.disabled=false;btn.textContent='Entrar';}
 }
@@ -1392,6 +1393,8 @@ function render(scope='all'){
 async function saveCompany(){if(!isAdmin())return toast('Somente proprietário e administradores podem alterar configurações.');try{const name=document.getElementById('company').value.trim();if(!name)return toast('Informe o nome da empresa.');await cloudError(await sb.from('companies').update({name}).eq('id',companyId));toast('Nome da empresa atualizado na nuvem.')}catch(e){toast('Erro ao atualizar empresa: '+translateError(e))}}
 // Camada visual única para todos os selects, inclusive formulários e listas criados dinamicamente.
 let activeCustomSelect=null;
+function applyCompanyBranding(company){const logo=document.getElementById('appBrandLogo'),home=document.getElementById('homeBrandImage'),panel=document.getElementById('homeBrandingPanel'),lp=document.getElementById('brandLogoPreview'),hp=document.getElementById('brandHomePreview');if(logo)logo.innerHTML=company?.logo_url?'<img src="'+employeeEscape(company.logo_url)+'" alt="Logo" style="width:100%;height:100%;object-fit:contain">':'✦';if(home&&panel){if(company?.home_image_url){home.src=company.home_image_url;panel.classList.remove('hidden')}else panel.classList.add('hidden')}if(lp){lp.src=company?.logo_url||'';lp.style.display=company?.logo_url?'block':'none'}if(hp){hp.src=company?.home_image_url||'';hp.style.display=company?.home_image_url?'block':'none'}}
+async function uploadCompanyBranding(kind){if(!isAdmin())return toast('Somente proprietário e administradores podem alterar a identidade visual.');const input=document.getElementById(kind==='logo'?'brandLogoFile':'brandHomeFile'),status=document.getElementById('brandingStatus'),file=input?.files?.[0];if(!file)return toast('Selecione uma imagem primeiro.');if(file.size>5242880)return toast('A imagem deve ter no máximo 5 MB.');if(!['image/png','image/jpeg','image/webp','image/svg+xml'].includes(file.type)||(kind==='home'&&file.type==='image/svg+xml'))return toast('Formato não permitido.');const ext=file.type==='image/png'?'png':file.type==='image/webp'?'webp':file.type==='image/svg+xml'?'svg':'jpg',path=companyId+'/'+kind+'-'+Date.now()+'.'+ext;try{status.textContent='Enviando imagem...';const up=await sb.storage.from('company-branding').upload(path,file,{upsert:true,contentType:file.type});if(up.error)throw up.error;const url=sb.storage.from('company-branding').getPublicUrl(path).data.publicUrl,field=kind==='logo'?'logo_url':'home_image_url',saved=await sb.from('companies').update({[field]:url}).eq('id',companyId);if(saved.error)throw saved.error;const result=await sb.from('companies').select('id,name,logo_url,home_image_url').eq('id',companyId).single();if(result.error)throw result.error;applyCompanyBranding(result.data);input.value='';status.textContent='Imagem atualizada com sucesso.';toast('Identidade visual atualizada.')}catch(err){status.textContent='Não foi possível enviar: '+translateError(err);toast(status.textContent)}}
 function customSelectLabel(select){const option=select.options[select.selectedIndex];return option?option.textContent.trim():(select.getAttribute('data-placeholder')||'Selecione uma opção')}
 function syncCustomSelect(select){const wrap=select.closest('.custom-select-wrap');if(!wrap)return;const value=wrap.querySelector('.custom-select-value');if(value)value.textContent=customSelectLabel(select);const trigger=wrap.querySelector('.custom-select-trigger');if(trigger){trigger.disabled=select.disabled;trigger.setAttribute('aria-label',select.getAttribute('aria-label')||customSelectLabel(select));}}
 function closeCustomSelect(){const layer=document.getElementById('selectSheetBackdrop');if(layer){layer.classList.remove('open');layer.setAttribute('aria-hidden','true')}if(activeCustomSelect){const wrap=activeCustomSelect.closest('.custom-select-wrap');if(wrap)wrap.classList.remove('is-open');const trigger=wrap?.querySelector('.custom-select-trigger');if(trigger)trigger.setAttribute('aria-expanded','false')}activeCustomSelect=null}
@@ -1417,7 +1420,7 @@ async function resumeSession(){
    return false;
   }
   companyId=members[0].company_id;companyRole=members[0].role;
-  const {data:co,error:ce}=await sb.from('companies').select('id,name').eq('id',companyId).single();
+  const {data:co,error:ce}=await sb.from('companies').select('id,name,logo_url,home_image_url').eq('id',companyId).single();
   if(ce)throw ce;
   document.getElementById('company').value=co.name;
   await loadCloudData();
