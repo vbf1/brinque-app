@@ -101,6 +101,19 @@ button:disabled{opacity:.65;cursor:wait}
 }
 
 
+/* Galeria de fotos dos brinquedos */
+.product-photo-cover{width:76px;height:76px;flex:0 0 76px;object-fit:cover;border-radius:13px;border:1px solid var(--line);background:var(--bg)}
+.product-image-manager{border:1px solid var(--line);border-radius:14px;padding:13px;margin:16px 0;background:var(--bg)}
+.product-image-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin-top:12px}
+.product-image-card{position:relative;min-width:0;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--surface)}
+.product-image-thumb{display:block;width:100%;aspect-ratio:1;object-fit:cover;background:var(--bg);cursor:zoom-in}
+.product-image-actions{display:grid;gap:5px;padding:7px}
+.product-image-actions button{font-size:11px;padding:7px 5px;min-height:34px}
+.product-image-card.is-cover{border:2px solid var(--blue)}
+.product-image-cover-tag{position:absolute;top:6px;left:6px;background:#172b4ddd;color:white;padding:3px 6px;border-radius:20px;font-size:9px;font-weight:800}
+.image-lightbox{position:fixed;inset:0;z-index:40;background:#071326ed;display:flex;align-items:center;justify-content:center;padding:18px}
+.image-lightbox img{max-width:100%;max-height:82dvh;object-fit:contain;border-radius:12px}
+.image-lightbox button{position:absolute;top:18px;right:18px;background:#ffffff20;border:1px solid #ffffff55}
 /* Avatares coloridos dos usuários, no estilo de contas Google */
 .employee-identity{display:flex;align-items:center;gap:11px;min-width:0;width:100%;margin-bottom:5px}
 .employee-avatar{display:grid;place-items:center;flex:0 0 42px;width:42px;height:42px;border-radius:50%;font-size:14px;font-weight:800;letter-spacing:.2px;color:#fff;box-shadow:inset 0 0 0 1px #ffffff35}
@@ -248,6 +261,7 @@ body.modal-open{overflow:hidden}
 <div id="toast" class="toast hidden"></div>
 <script>
 // Mantém os dados locais antigos como cópia de segurança; a fonte principal passa a ser o Supabase.
+let productImages=[];
 let products=JSON.parse(localStorage.getItem('brq_products')||'[]');
 let productUnits=[];
 let clients=JSON.parse(localStorage.getItem('brq_clients')||'[]');
@@ -433,17 +447,19 @@ async function logoutApp(){
 }
 async function loadCloudData(){
  if(!localStorage.getItem('brq_legacy_backup_v1')){localStorage.setItem('brq_legacy_backup_v1',JSON.stringify({products:localStorage.getItem('brq_products'),clients:localStorage.getItem('brq_clients'),rentals:localStorage.getItem('brq_rentals'),transactions:localStorage.getItem('brq_transactions'),company:localStorage.getItem('brq_company')}));}
- const [cr,pr,ur,rr,tr]=await Promise.all([
+ const [cr,pr,ur,rr,tr,ir]=await Promise.all([
   sb.from('customers').select('*').eq('company_id',companyId).order('name'),
   sb.from('products').select('*').eq('company_id',companyId).eq('active',true).order('name'),
   sb.from('product_units').select('*').eq('company_id',companyId).order('asset_code'),
   sb.from('rentals').select('*,customers(name),rental_items(product_id,quantity,unit_price,products(name),rental_item_units(product_unit_id,product_units(asset_code)))').eq('company_id',companyId).order('start_date'),
-  isAdmin()?sb.from('financial_transactions').select('*').eq('company_id',companyId).order('created_at',{ascending:false}):Promise.resolve({data:[],error:null})
+  isAdmin()?sb.from('financial_transactions').select('*').eq('company_id',companyId).order('created_at',{ascending:false}):Promise.resolve({data:[],error:null}),
+  sb.from('product_images').select('*').eq('company_id',companyId).order('created_at')
  ]);
- for(const r of [cr,pr,ur,rr,tr])if(r.error)throw r.error;
+ for(const r of [cr,pr,ur,rr,tr,ir])if(r.error)throw r.error;
  clients=(cr.data||[]).map(c=>({id:c.id,name:c.name,phone:c.phone||'',address:c.address||''}));
  productUnits=ur.data||[];
  products=(pr.data||[]).map(p=>({id:p.id,name:p.name,mode:p.inventory_mode==='individual'?'Individual':'Quantidade',total:p.total_quantity,available:p.inventory_mode==='individual'?productUnits.filter(u=>u.product_id===p.id&&u.status==='available').length:p.total_quantity,price:Number(p.daily_price||0)}));
+ productImages=await Promise.all((ir.data||[]).map(async image=>{const signed=await sb.storage.from('product-images').createSignedUrl(image.storage_path,3600);return {...image,url:signed.error?'':signed.data?.signedUrl||''}}));
  rentals=(rr.data||[]).map(r=>({id:r.id,customerId:r.customer_id,name:r.customers?.name||'Cliente',items:(r.rental_items||[]).map(i=>({productId:i.product_id,name:i.products?.name||'Brinquedo',quantity:i.quantity,unitPrice:Number(i.unit_price||0),unitIds:(i.rental_item_units||[]).map(x=>x.product_unit_id),unitCodes:(i.rental_item_units||[]).map(x=>x.product_units?.asset_code).filter(Boolean)})),toy:(r.rental_items||[]).map(i=>`${i.quantity}× ${i.products?.name||'Brinquedo'}`).join(', '),date:r.start_date,endDate:r.end_date,dbStatus:r.status,price:Number(r.total_amount||0),mode:r.delivery_method==='customer_pickup'?'Retirada pelo cliente':'Entrega própria',status:r.status==='confirmed'?'Confirmada':r.status==='cancelled'?'Cancelada':r.status==='completed'?'Concluída':'Pendente'}));
  transactions=isAdmin()?(tr.data||[]).map(t=>({id:t.id,name:t.description,type:t.transaction_type==='income'?'Entrada':'Saída',value:Number(t.amount||0)})):[];
  persist();
