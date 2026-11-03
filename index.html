@@ -753,6 +753,7 @@ async function saveRental(){
 }
 async function saveClient(){if(!fName.value.trim())return toast('Informe o nome.');try{const values={name:fName.value.trim(),phone:fPhone.value.trim(),address:fAddress.value.trim()};if(editingRecordId)await cloudError(await sb.from('customers').update(values).eq('id',editingRecordId).eq('company_id',companyId));else await cloudError(await sb.from('customers').insert({company_id:companyId,...values}));await loadCloudData();editingRecordId=null;go('clientes');toast('Cliente salvo na nuvem!')}catch(e){toast('Erro ao salvar cliente: '+translateError(e))}}
 async function saveProduct(){
+ let newlyCreatedProductId=null;
  if(!fProduct.value.trim()||!fTotal.value||Number(fTotal.value)<1)return toast('Confira os dados.');
  try{
   const mode=fMode.value==='Individual'?'individual':'quantity',quantity=Number(fTotal.value),price=Number(fPPrice.value||0),name=fProduct.value.trim();
@@ -774,10 +775,10 @@ async function saveProduct(){
     await cloudError(await sb.from('products').update({name,total_quantity:quantity,daily_price:price}).eq('id',editingRecordId).eq('company_id',companyId));
    }
   }else{
-   const created=await cloudError(await sb.from('products').insert({company_id:companyId,name,inventory_mode:mode,total_quantity:quantity,daily_price:price}).select().single());
+   const created=await cloudError(await sb.from('products').insert({company_id:companyId,name,inventory_mode:mode,total_quantity:quantity,daily_price:price}).select().single());newlyCreatedProductId=created.id;
    if(mode==='individual'){const units=Array.from({length:quantity},(_,i)=>({company_id:companyId,product_id:created.id,asset_code:String(i+1).padStart(2,'0'),status:'available'}));const result=await sb.from('product_units').insert(units);if(result.error){await sb.from('products').delete().eq('id',created.id);throw result.error;}}
   }
-  await loadCloudData();editingRecordId=null;go('estoque');toast('Brinquedo salvo na nuvem!');
+  await loadCloudData();editingRecordId=null;if(newlyCreatedProductId){openForm('product',newlyCreatedProductId);toast('Brinquedo salvo! Agora você pode adicionar fotos.');return}go('estoque');toast('Brinquedo salvo na nuvem!');
  }catch(e){toast('Erro ao salvar brinquedo: '+translateError(e))}
 }
 
