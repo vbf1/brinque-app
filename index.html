@@ -93,6 +93,7 @@ label{font-size:12px;color:var(--muted);font-weight:650}.formgrid{display:grid;g
  </div>
  
  <div class="panel"><div class="section-title">Próximas locações <button class="btn-small" onclick="go('locacoes')">Ver todas</button></div><div class="list" id="homeRentals"></div></div>
+ <div class="panel" data-admin-only><div class="section-title">Equipe cadastrada <button class="btn-small" onclick="go('funcionarios')">Gerenciar equipe</button></div><div id="homeEmployeeList" style="margin-top:12px"><p class="muted">Carregando equipe...</p></div></div>
 </section>
 <section id="agenda" class="hidden"><div class="section-title">Agenda de eventos</div><div class="panel"><label>Consultar data</label><input type="date" id="agendaDate"><div class="muted">As reservas cadastradas aparecem abaixo.</div><div class="list" id="agendaList"></div></div></section>
 <section id="locacoes" class="hidden"><div class="section-title">Locações <button onclick="openForm('rental')">＋ Nova</button></div><div class="panel"><input id="rentalSearch" placeholder="Buscar cliente ou brinquedo..." oninput="render()"><div class="list" id="rentalList"></div></div></section>
@@ -107,7 +108,7 @@ label{font-size:12px;color:var(--muted);font-weight:650}.formgrid{display:grid;g
  <label>E-mail</label><input id="employeeEmail" type="email" autocomplete="off" placeholder="email@exemplo.com">
  <label>Permissão</label><select id="employeeRole"><option value="staff">Funcionário</option><option value="admin" data-owner-role>Administrador</option></select>
  <button class="full" id="inviteEmployeeButton" onclick="inviteEmployee()">Enviar convite</button><p class="muted" id="employeeMessage" aria-live="polite"></p></div>
- <div class="panel"><div style="display:flex;align-items:center;justify-content:space-between;gap:10px"><b>Equipe cadastrada</b><button class="btn-light" onclick="loadEmployees()">Atualizar</button></div><div id="employeeList" style="margin-top:12px"><p class="muted">Abra esta tela para carregar a equipe.</p></div></div>
+ <div class="panel"><div style="display:flex;align-items:center;justify-content:space-between;gap:10px"><b>Equipe cadastrada</b><button class="btn-light" onclick="loadEmployees()">Atualizar</button></div><div id="employeeList" style="margin-top:12px"><p class="muted">Carregando equipe...</p></div></div>
 </section>
 <section id="config" class="hidden"><div class="section-title">Configurações</div><div class="panel"><label>Nome da empresa</label><input id="company" placeholder="Digite o nome da sua empresa"><button onclick="saveCompany()">Salvar dados</button><p class="muted">Os dados operacionais são carregados e salvos na nuvem quando você está conectado.</p></div></section>
 <section id="form" class="hidden"><div class="section-title"><span id="formTitle">Novo cadastro</span><button class="btn-light" onclick="closeForm()">Fechar</button></div><div class="panel" id="formBody"></div></section>
@@ -299,11 +300,13 @@ async function employeeApi(payload){
 }
 function employeeMessage(message,isError=false){const el=document.getElementById('employeeMessage');if(el){el.textContent=message;el.style.color=isError?'#c94b4b':'var(--green)'}}
 async function loadEmployees(){
- if(!isAdmin())return;const list=document.getElementById('employeeList');if(!list)return;
- list.innerHTML='<p class="muted">Carregando equipe...</p>';
+ if(!isAdmin())return;
+ const lists=['employeeList','homeEmployeeList'].map(id=>document.getElementById(id)).filter(Boolean);
+ if(!lists.length)return;
+ lists.forEach(list=>list.innerHTML='<p class="muted">Carregando equipe...</p>');
  try{
   const data=await employeeApi({action:'list'}),members=data.members||[];
-  list.innerHTML=members.length?members.map(function(m){
+  const html=members.length?members.map(function(m){
    const name=employeeEscape(m.full_name||'Nome não informado'),email=employeeEscape(m.email||'E-mail não disponível');
    const roleLabel=m.role==='owner'?'Proprietário':m.role==='admin'?'Administrador':'Funcionário';
    const canManage=m.role!=='owner'&&m.user_id!==currentUser.id&&(companyRole==='owner'||m.role==='staff');
@@ -312,7 +315,11 @@ async function loadEmployees(){
    if(canManage)actions+='<button class="btn-light" style="color:#c94b4b" onclick="removeEmployee(\''+m.user_id+'\')">Remover acesso</button>';
    return '<div class="item" style="align-items:flex-start"><div style="min-width:0;flex:1"><b>'+name+'</b><div class="muted" style="overflow-wrap:anywhere">'+email+'</div><span class="tag">'+roleLabel+'</span></div>'+(actions?'<div style="display:grid;gap:6px;min-width:112px">'+actions+'</div>':'')+'</div>';
   }).join(''):'<p class="muted">Nenhum membro cadastrado.</p>';
- }catch(e){list.innerHTML='<p class="muted">'+employeeEscape(translateError(e))+'</p>'}
+  lists.forEach(list=>list.innerHTML=html);
+ }catch(e){
+  const message='<p class="muted">'+employeeEscape(translateError(e))+'</p>';
+  lists.forEach(list=>list.innerHTML=message);
+ }
 }
 async function inviteEmployee(){
  if(!isAdmin())return toast('Acesso restrito.');
