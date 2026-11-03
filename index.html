@@ -577,7 +577,7 @@ async function loginApp(){
   companyId=members[0].company_id;companyRole=members[0].role;
   const {data:co,error:ce}=await sb.from('companies').select('id,name').eq('id',companyId).single();if(ce)throw ce;
   document.getElementById('company').value=co.name;await loadCloudData();showApp(true);render();go('inicio',null,true);if(isAdmin()){await loadEmployees();await refreshPushStatus();}toast('Conectado à nuvem com sucesso.');
- }catch(e){authMessage(translateError(e),true);await sb.auth.signOut().catch(()=>{});}finally{btn.disabled=false;btn.textContent='Entrar';}
+ }catch(e){console.error('Falha ao entrar ou carregar a empresa:',e);const {data:sessionData}=await sb.auth.getSession().catch(()=>({data:{session:null}}));if(sessionData?.session){showApp(false);authMessage('A autenticação foi concluída, mas houve uma falha ao carregar os dados da empresa. Sua sessão foi preservada. Toque em “Tentar restaurar minha sessão”.',true);document.getElementById('restoreSessionButton')?.classList.remove('hidden');}else{authMessage(translateError(e),true);}}finally{btn.disabled=false;btn.textContent='Entrar';}
 }
 async function logoutApp(){
  try{await removeNativePushRegistration(true);}catch(e){console.warn('Falha ao remover registro FCM:',e);}
