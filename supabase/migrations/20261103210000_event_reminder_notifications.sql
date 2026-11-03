@@ -163,7 +163,7 @@ select cron.schedule(
           (select decrypted_secret from vault.decrypted_secrets where name = 'brinque_push_webhook_secret' limit 1)
       ),
       body := jsonb_build_object('action', 'event_reminders'),
-      timeout_milliseconds := 10000
+      timeout_milliseconds := 60000
     );
   $job$
 );
