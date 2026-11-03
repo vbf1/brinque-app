@@ -13,6 +13,8 @@ create unique index if not exists rental_responsibles_unique_user
   on public.rental_responsibles(rental_id,user_id) where user_id is not null;
 create index if not exists rental_responsibles_company_rental_idx
   on public.rental_responsibles(company_id,rental_id);
+create index if not exists rental_responsibles_user_id_idx on public.rental_responsibles(user_id) where user_id is not null;
+create index if not exists rental_responsibles_assigned_by_idx on public.rental_responsibles(assigned_by) where assigned_by is not null;
 
 alter table public.rental_responsibles enable row level security;
 create policy rental_responsibles_select_company on public.rental_responsibles
