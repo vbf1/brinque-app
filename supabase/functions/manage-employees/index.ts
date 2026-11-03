@@ -70,10 +70,16 @@ Deno.serve(async (req) => {
       });
       if (inviteError) {
         const lower = inviteError.message.toLowerCase();
-        const message = lower.includes("already") || lower.includes("registered")
-          ? "Este e-mail já possui uma conta. Não foi enviado um novo convite."
-          : "Não foi possível enviar o convite. Confira o e-mail e tente novamente.";
-        return reply({ error: message }, 400);
+        let message = "Falha no envio do convite: " + inviteError.message;
+        if (lower.includes("already") || lower.includes("registered")) {
+          message = "Este e-mail já possui uma conta no Supabase. Use outro e-mail ou solicite a recuperação de acesso.";
+        } else if (lower.includes("rate limit") || lower.includes("too many")) {
+          message = "O Supabase limitou o envio de e-mails. Aguarde alguns minutos e tente novamente.";
+        } else if (lower.includes("smtp") || lower.includes("email provider") || lower.includes("email rate")) {
+          message = "O serviço de e-mail do Supabase recusou o convite. Verifique a configuração SMTP e os limites de envio em Authentication > SMTP Settings.";
+        }
+        console.error("manage-employees inviteUserByEmail:", inviteError);
+        return reply({ error: message });
       }
       if (!invited.user) return reply({ error: "O convite não retornou um usuário válido." }, 500);
       const { error: profileError } = await admin.from("profiles").upsert({
@@ -119,6 +125,7 @@ Deno.serve(async (req) => {
     return reply({ error: "Ação não reconhecida." }, 400);
   } catch (error) {
     console.error("manage-employees:", error);
-    return reply({ error: "Ocorreu um erro ao processar a solicitação." }, 500);
+    const detail = error instanceof Error ? error.message : String(error);
+    return reply({ error: "Falha ao processar a solicitação: " + detail });
   }
 });
