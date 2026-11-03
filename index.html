@@ -44,7 +44,16 @@ label{font-size:12px;color:var(--muted);font-weight:650}.formgrid{display:grid;g
    <label>E-mail</label><input id="loginEmail" type="email" autocomplete="username" placeholder="seuemail@exemplo.com">
    <label>Senha</label><input id="loginPassword" type="password" autocomplete="current-password" placeholder="Sua senha">
    <button class="full" id="loginButton" onclick="loginApp()">Entrar</button>
+   <button type="button" class="btn-light full" style="margin-top:9px" onclick="showForgotPassword()">Esqueci minha senha</button>
    <p id="authMessage" class="muted" style="margin:12px 0 0">Entre com a conta que já foi cadastrada no Supabase.</p>
+  </div>
+  <div id="forgotPasswordPanel" class="hidden" style="margin-top:18px;border-top:1px solid var(--line);padding-top:16px">
+   <b style="display:block;margin-bottom:8px">Recuperar senha</b>
+   <p class="muted" style="margin:0 0 12px">Informe o e-mail da conta. Enviaremos um link para criar uma nova senha.</p>
+   <label>E-mail cadastrado</label><input id="recoveryEmail" type="email" autocomplete="email" placeholder="seuemail@exemplo.com">
+   <button class="full" id="sendRecoveryButton" onclick="requestPasswordReset()">Enviar link de recuperação</button>
+   <button type="button" class="btn-light full" style="margin-top:9px" onclick="showLoginScreen()">Voltar ao login</button>
+   <p id="forgotMessage" class="muted" style="margin:12px 0 0"></p>
   </div>
   <div id="recoveryPanel" class="hidden" style="margin-top:18px;border-top:1px solid var(--line);padding-top:16px">
    <b style="display:block;margin-bottom:8px">Criar nova senha</b>
@@ -115,7 +124,16 @@ function isAdmin(){return ['owner','admin'].includes(companyRole)}
 function applyRoleUI(){document.querySelectorAll('[data-admin-only]').forEach(el=>el.classList.toggle('hidden',!isAdmin()))}
 function authMessage(msg,isError=false){const el=document.getElementById('authMessage');el.textContent=msg;el.style.color=isError?'#c94b4b':'var(--muted)'}
 function showRecoveryScreen(){showApp(false);document.getElementById('recoveryPanel').classList.remove('hidden');document.getElementById('loginFields').classList.add('hidden');document.getElementById('recoveryMessage').textContent='Link de recuperação reconhecido. Defina sua nova senha abaixo.';}
-function showLoginScreen(message=''){document.getElementById('recoveryPanel').classList.add('hidden');document.getElementById('loginFields').classList.remove('hidden');if(message)authMessage(message);}
+function showForgotPassword(){document.getElementById('loginFields').classList.add('hidden');document.getElementById('recoveryPanel').classList.add('hidden');document.getElementById('forgotPasswordPanel').classList.remove('hidden');const email=document.getElementById('loginEmail').value.trim();if(email)document.getElementById('recoveryEmail').value=email;document.getElementById('forgotMessage').textContent='';}
+function showLoginScreen(message=''){document.getElementById('recoveryPanel').classList.add('hidden');document.getElementById('forgotPasswordPanel').classList.add('hidden');document.getElementById('loginFields').classList.remove('hidden');if(message)authMessage(message);}
+async function requestPasswordReset(){
+ const email=document.getElementById('recoveryEmail').value.trim(),msg=document.getElementById('forgotMessage'),btn=document.getElementById('sendRecoveryButton');
+ if(!email){msg.textContent='Informe o e-mail cadastrado.';return;}
+ btn.disabled=true;btn.textContent='Enviando...';msg.textContent='Solicitando o link de recuperação...';
+ try{const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:'https://vbf1.github.io/brinque-app/'});if(error)throw error;msg.style.color='var(--green)';msg.textContent='Se o e-mail estiver cadastrado, você receberá um link para redefinir a senha. Confira também a caixa de spam.';}
+ catch(e){msg.style.color='var(--red)';msg.textContent=e.message||'Não foi possível enviar o link. Tente novamente.';}
+ finally{btn.disabled=false;btn.textContent='Enviar link de recuperação';}
+}
 async function saveNewPassword(){
  const password=document.getElementById('newPassword').value,confirm=document.getElementById('confirmPassword').value;
  const msg=document.getElementById('recoveryMessage'),btn=document.getElementById('savePasswordButton');
