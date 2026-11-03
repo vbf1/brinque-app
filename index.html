@@ -892,7 +892,8 @@ function renderPagedList(id,items,renderer,emptyMessage,options={}){
  let state=listPaginationState[id];
  if(!state)state=listPaginationState[id]={page:1,pageSize:6,signature:''};
  if(state.signature!==signature){state.page=1;state.signature=signature}
- state.items=items;state.renderer=renderer;state.emptyMessage=emptyMessage;state.options=options;\n const total=items.length,totalPages=Math.max(1,Math.ceil(total/state.pageSize));
+ state.items=items;state.renderer=renderer;state.emptyMessage=emptyMessage;state.options=options;
+ const total=items.length,totalPages=Math.max(1,Math.ceil(total/state.pageSize));
  state.page=Math.min(Math.max(1,state.page),totalPages);
  const start=(state.page-1)*state.pageSize,visible=items.slice(start,start+state.pageSize);
  if(!total){el.innerHTML='<div class="empty-state">'+employeeEscape(emptyMessage)+'</div>';return}
