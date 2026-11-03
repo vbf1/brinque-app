@@ -228,7 +228,7 @@ body.modal-open{overflow:hidden}
 @media(prefers-reduced-motion:reduce){.select-sheet-backdrop,.select-sheet{transition:none}}
 
 .rental-responsibles{margin:18px 0;padding:15px;border:1px solid var(--line);border-radius:16px;background:var(--surface)}.rental-responsibles> b{display:block;color:var(--ink);font-size:15px}.rental-responsibles>.muted{margin:5px 0 12px;font-size:12px}.rental-responsible-option{display:flex;align-items:center;gap:11px;padding:11px 12px;margin:7px 0;border:1px solid var(--line);border-radius:12px;background:var(--bg);cursor:pointer}.rental-responsible-option input{width:19px;height:19px;min-height:19px;accent-color:var(--blue);flex:0 0 19px}.rental-responsible-option span{display:flex;flex-direction:column;gap:2px;min-width:0}.rental-responsible-option b{font-size:13px;color:var(--ink)}.rental-responsible-option small{font-size:11px;color:var(--muted)}.rental-responsibles .muted{color:var(--muted)}
-</style>
+.occurrence-filters{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:10px 0 14px}.occurrence-card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:14px;box-shadow:0 3px 12px #172b4d08;cursor:pointer}.occurrence-card-head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}.occurrence-card-title{font-weight:800;font-size:15px;color:var(--ink)}.occurrence-card-meta{font-size:12px;color:var(--muted);margin-top:6px;line-height:1.5}.occurrence-card-description{font-size:13px;color:var(--ink);line-height:1.5;margin-top:10px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}.occurrence-thumbs{display:flex;gap:7px;margin-top:11px;overflow:hidden}.occurrence-thumbs img{width:62px;height:62px;object-fit:cover;border-radius:10px;border:1px solid var(--line)}.occurrence-severity{font-size:10px;font-weight:800;padding:5px 8px;border-radius:30px;white-space:nowrap;background:#e7f6ef;color:#16764f}.occurrence-severity.high{background:#fff3d9;color:#95630c}.occurrence-severity.critical{background:#fde9e9;color:#a63838}.occurrence-severity.low{background:#edf2f7;color:#526174}.occurrence-form-section{margin:15px 0;padding:14px;border:1px solid var(--line);border-radius:15px;background:var(--bg)}.occurrence-form-section h3{font-size:14px;margin:0 0 10px}.occurrence-photo-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:10px}.occurrence-photo-item img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:11px;border:1px solid var(--line)}.occurrence-photo-item button{width:100%;margin-top:4px;padding:6px;font-size:11px}@media(max-width:420px){.occurrence-filters{grid-template-columns:1fr}}</style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
@@ -288,6 +288,7 @@ body.modal-open{overflow:hidden}
  <button data-page="estoque" onclick="go('estoque')"><span>▤</span>Estoque</button>
  <button data-admin-only data-page="financeiro" onclick="go('financeiro')"><span>＄</span>Financeiro</button>
  <button data-admin-only data-page="funcionarios" onclick="go('funcionarios')"><span>♙</span>Funcionários</button>
+ <button data-page="ocorrencias" onclick="go('ocorrencias')"><span>⚠</span>Ocorrências</button>
  <button data-page="relatorios" onclick="go('relatorios')"><span>▥</span>Relatórios</button>
  <button data-admin-only data-page="config" onclick="go('config')"><span>⚙</span>Configurações</button>
  <button id="menuLogoutButton" class="menu-logout" onclick="logoutApp()"><span>↪</span>Sair</button>
@@ -310,6 +311,8 @@ body.modal-open{overflow:hidden}
 <section id="clientes" class="hidden"><div class="section-title">Clientes <button onclick="openForm('client')">＋ Novo</button></div><div class="panel"><input id="clientSearch" placeholder="Pesquisar cliente..." oninput="render()"><div class="list" id="clientList"></div></div></section>
 <section id="estoque" class="hidden"><div class="section-title">Estoque <button onclick="openForm('product')">＋ Novo item</button></div><div class="panel"><div class="muted">Controle híbrido: individual ou por quantidade.</div><div class="list" id="productList"></div></div></section>
 <section id="financeiro" class="hidden"><div class="section-title">Financeiro <button onclick="openForm('transaction')">＋ Lançamento</button></div><div class="grid"><div class="card"><div class="metric-label">Entradas</div><div class="metric" id="financeIncome">R$ 0,00</div></div><div class="card"><div class="metric-label">Saídas</div><div class="metric" id="financeExpense">R$ 0,00</div></div></div><div class="panel"><div class="section-title">Movimentações</div><div class="list" id="transactionList"></div></div></section>
+<section id="ocorrencias" class="hidden"><div class="section-title">Ocorrências <button onclick="openOccurrenceForm()">＋ Novo relato</button></div><div class="panel"><input id="occurrenceSearch" placeholder="Buscar por título, local ou responsável..." oninput="render()"><div class="occurrence-filters"><select id="occurrenceCategoryFilter" aria-label="Filtrar categoria" onchange="render()"><option value="">Todas as categorias</option><option>Quebra de brinquedo</option><option>Prejuízo financeiro</option><option>Dano material</option><option>Problema na entrega</option><option>Problema durante evento</option><option>Acidente ou segurança</option><option>Outro</option></select><select id="occurrenceSeverityFilter" aria-label="Filtrar gravidade" onchange="render()"><option value="">Todas as gravidades</option><option value="low">Baixa</option><option value="medium">Moderada</option><option value="high">Alta</option><option value="critical">Crítica</option></select></div><div class="list" id="occurrenceList"></div></div></section>
+<section id="ocorrencia-form" class="hidden"><div class="section-title"><span id="occurrenceFormTitle">Novo relato</span><button class="btn-light" onclick="go('ocorrencias')">Voltar</button></div><div class="panel" id="occurrenceFormBody"></div></section>
 <section id="relatorios" class="hidden"><div class="section-title">Relatórios</div><div class="panel" data-admin-only><b>Faturamento mensal</b><div class="muted">O gráfico será preenchido conforme você registrar suas movimentações.</div><div id="bars"></div></div><div class="panel"><b>Indicadores operacionais</b><p class="muted">A versão conectada ao banco calculará lucro líquido, taxa de ocupação, ticket médio e rentabilidade por brinquedo.</p></div></section>
 <section id="funcionarios" class="hidden" data-admin-only>
  <div class="section-title">Funcionários</div>
@@ -326,6 +329,8 @@ body.modal-open{overflow:hidden}
 <script>
 // Mantém os dados locais antigos como cópia de segurança; a fonte principal passa a ser o Supabase.
 let productImages=[];
+let occurrenceReports=[];
+let editingOccurrenceId=null;
 let companyEmployees=[];
 let rentalResponsibleRows=[];
 let products=JSON.parse(localStorage.getItem('brq_products')||'[]');
@@ -502,7 +507,7 @@ async function loginApp(){
 async function logoutApp(){
  try{await sb.auth.signOut({scope:'local'});}catch(e){console.warn('Falha ao encerrar sessão:',e);}
  currentUser=null;companyId=null;companyRole=null;passwordSetupFlowActive=false;passwordSetupUserId=null;
- products=[];clients=[];rentals=[];transactions=[];companyEmployees=[];rentalResponsibleRows=[];
+ products=[];clients=[];rentals=[];transactions=[];companyEmployees=[];rentalResponsibleRows=[];occurrenceReports=[];editingOccurrenceId=null;
  try{localStorage.clear();sessionStorage.clear();}catch(e){console.warn('Falha ao limpar armazenamento local:',e);}
  try{if('caches' in window){const keys=await caches.keys();await Promise.all(keys.filter(k=>k.startsWith('brinque-app-')).map(k=>caches.delete(k)));}}catch(e){console.warn('Falha ao limpar cache:',e);}
  document.getElementById('company').value='';
@@ -513,7 +518,7 @@ async function logoutApp(){
 }
 async function loadCloudData(){
  if(!localStorage.getItem('brq_legacy_backup_v1')){localStorage.setItem('brq_legacy_backup_v1',JSON.stringify({products:localStorage.getItem('brq_products'),clients:localStorage.getItem('brq_clients'),rentals:localStorage.getItem('brq_rentals'),transactions:localStorage.getItem('brq_transactions'),company:localStorage.getItem('brq_company')}));}
- const [cr,pr,ur,rr,tr,ir,mr,ar]=await Promise.all([
+ const [cr,pr,ur,rr,tr,ir,mr,ar,or,op]=await Promise.all([
   sb.from('customers').select('*').eq('company_id',companyId).order('name'),
   sb.from('products').select('*').eq('company_id',companyId).eq('active',true).order('name'),
   sb.from('product_units').select('*').eq('company_id',companyId).order('asset_code'),
@@ -521,15 +526,19 @@ async function loadCloudData(){
   isAdmin()?sb.from('financial_transactions').select('*').eq('company_id',companyId).order('created_at',{ascending:false}):Promise.resolve({data:[],error:null}),
   sb.from('product_images').select('*').eq('company_id',companyId).order('created_at'),
   sb.from('company_members').select('user_id,role,profiles(full_name)').eq('company_id',companyId).order('created_at'),
-  sb.from('rental_responsibles').select('id,rental_id,user_id,employee_name_snapshot,created_at').eq('company_id',companyId).order('created_at')
+  sb.from('rental_responsibles').select('id,rental_id,user_id,employee_name_snapshot,created_at').eq('company_id',companyId).order('created_at'),
+  sb.from('occurrence_reports').select('*').eq('company_id',companyId).order('occurred_at',{ascending:false}),
+  sb.from('occurrence_photos').select('*').eq('company_id',companyId).order('created_at')
  ]);
- for(const r of [cr,pr,ur,rr,tr,ir,mr,ar])if(r.error)throw r.error;
+ for(const r of [cr,pr,ur,rr,tr,ir,mr,ar,or,op])if(r.error)throw r.error;
  companyEmployees=(mr.data||[]).map(m=>({id:m.user_id,name:m.profiles?.full_name?.trim()||'Funcionário',role:m.role}));
  rentalResponsibleRows=ar.data||[];
  clients=(cr.data||[]).map(c=>({id:c.id,name:c.name,phone:c.phone||'',address:c.address||''}));
  productUnits=ur.data||[];
  products=(pr.data||[]).map(p=>({id:p.id,name:p.name,mode:p.inventory_mode==='individual'?'Individual':'Quantidade',total:p.total_quantity,available:p.inventory_mode==='individual'?productUnits.filter(u=>u.product_id===p.id&&u.status==='available').length:p.total_quantity,price:Number(p.daily_price||0)}));
  productImages=await Promise.all((ir.data||[]).map(async image=>{const signed=await sb.storage.from('product-images').createSignedUrl(image.storage_path,86400);return {...image,url:signed.error?'':signed.data?.signedUrl||''}}));
+ const occurrencePhotoRows=op.data||[];
+ occurrenceReports=await Promise.all((or.data||[]).map(async item=>({...item,photos:await Promise.all(occurrencePhotoRows.filter(photo=>photo.occurrence_id===item.id).map(async photo=>{const signed=await sb.storage.from('occurrence-photos').createSignedUrl(photo.storage_path,86400);return {...photo,url:signed.error?'':signed.data?.signedUrl||''}}))})));
  rentals=(rr.data||[]).map(r=>({id:r.id,customerId:r.customer_id,name:r.customers?.name||'Cliente',deliveryAddress:r.delivery_address||'',responsibles:rentalResponsibleRows.filter(x=>x.rental_id===r.id).map(x=>({id:x.user_id,name:x.employee_name_snapshot})),responsibleIds:rentalResponsibleRows.filter(x=>x.rental_id===r.id&&x.user_id).map(x=>x.user_id),items:(r.rental_items||[]).map(i=>({productId:i.product_id,name:i.products?.name||'Brinquedo',quantity:i.quantity,unitPrice:Number(i.unit_price||0),unitIds:(i.rental_item_units||[]).map(x=>x.product_unit_id),unitCodes:(i.rental_item_units||[]).map(x=>x.product_units?.asset_code).filter(Boolean)})),toy:(r.rental_items||[]).map(i=>`${i.quantity}× ${i.products?.name||'Brinquedo'}`).join(', '),date:r.start_date,endDate:r.end_date,dbStatus:r.status,price:Number(r.total_amount||0),mode:r.delivery_method==='customer_pickup'?'Retirada pelo cliente':'Entrega própria',status:r.status==='confirmed'?'Confirmada':r.status==='cancelled'?'Cancelada':r.status==='completed'?'Concluída':'Pendente'}));
  transactions=isAdmin()?(tr.data||[]).map(t=>({id:t.id,name:t.description,type:t.transaction_type==='income'?'Entrada':'Saída',value:Number(t.amount||0)})):[];
  persist();
