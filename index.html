@@ -228,7 +228,32 @@ body.modal-open{overflow:hidden}
 @media(prefers-reduced-motion:reduce){.select-sheet-backdrop,.select-sheet{transition:none}}
 
 .rental-responsibles{margin:18px 0;padding:15px;border:1px solid var(--line);border-radius:16px;background:var(--surface)}.rental-responsibles> b{display:block;color:var(--ink);font-size:15px}.rental-responsibles>.muted{margin:5px 0 12px;font-size:12px}.rental-responsible-option{display:flex;align-items:center;gap:11px;padding:11px 12px;margin:7px 0;border:1px solid var(--line);border-radius:12px;background:var(--bg);cursor:pointer}.rental-responsible-option input{width:19px;height:19px;min-height:19px;accent-color:var(--blue);flex:0 0 19px}.rental-responsible-option span{display:flex;flex-direction:column;gap:2px;min-width:0}.rental-responsible-option b{font-size:13px;color:var(--ink)}.rental-responsible-option small{font-size:11px;color:var(--muted)}.rental-responsibles .muted{color:var(--muted)}
-.occurrence-filters{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:10px 0 14px}.occurrence-card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:14px;box-shadow:0 3px 12px #172b4d08;cursor:pointer}.occurrence-card-head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}.occurrence-card-title{font-weight:800;font-size:15px;color:var(--ink)}.occurrence-card-meta{font-size:12px;color:var(--muted);margin-top:6px;line-height:1.5}.occurrence-card-description{font-size:13px;color:var(--ink);line-height:1.5;margin-top:10px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}.occurrence-thumbs{display:flex;gap:7px;margin-top:11px;overflow:hidden}.occurrence-thumbs img{width:62px;height:62px;object-fit:cover;border-radius:10px;border:1px solid var(--line)}.occurrence-severity{font-size:10px;font-weight:800;padding:5px 8px;border-radius:30px;white-space:nowrap;background:#e7f6ef;color:#16764f}.occurrence-severity.high{background:#fff3d9;color:#95630c}.occurrence-severity.critical{background:#fde9e9;color:#a63838}.occurrence-severity.low{background:#edf2f7;color:#526174}.occurrence-form-section{margin:15px 0;padding:14px;border:1px solid var(--line);border-radius:15px;background:var(--bg)}.occurrence-form-section h3{font-size:14px;margin:0 0 10px}.occurrence-photo-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:10px}.occurrence-photo-item img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:11px;border:1px solid var(--line)}.occurrence-photo-item button{width:100%;margin-top:4px;padding:6px;font-size:11px}@media(max-width:420px){.occurrence-filters{grid-template-columns:1fr}}</style>
+.occurrence-filters{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:10px 0 14px}.occurrence-card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:14px;box-shadow:0 3px 12px #172b4d08;cursor:pointer}.occurrence-card-head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}.occurrence-card-title{font-weight:800;font-size:15px;color:var(--ink)}.occurrence-card-meta{font-size:12px;color:var(--muted);margin-top:6px;line-height:1.5}.occurrence-card-description{font-size:13px;color:var(--ink);line-height:1.5;margin-top:10px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}.occurrence-thumbs{display:flex;gap:7px;margin-top:11px;overflow:hidden}.occurrence-thumbs img{width:62px;height:62px;object-fit:cover;border-radius:10px;border:1px solid var(--line)}.occurrence-severity{font-size:10px;font-weight:800;padding:5px 8px;border-radius:30px;white-space:nowrap;background:#e7f6ef;color:#16764f}.occurrence-severity.high{background:#fff3d9;color:#95630c}.occurrence-severity.critical{background:#fde9e9;color:#a63838}.occurrence-severity.low{background:#edf2f7;color:#526174}.occurrence-form-section{margin:15px 0;padding:14px;border:1px solid var(--line);border-radius:15px;background:var(--bg)}.occurrence-form-section h3{font-size:14px;margin:0 0 10px}.occurrence-photo-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:10px}.occurrence-photo-item img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:11px;border:1px solid var(--line)}.occurrence-photo-item button{width:100%;margin-top:4px;padding:6px;font-size:11px}@media(max-width:420px){.occurrence-filters{grid-template-columns:1fr}}/* Dialogs unificados KidsLoc App */
+.delete-modal{padding:22px;z-index:1000}
+.delete-modal-backdrop{background:rgba(7,18,36,.68);backdrop-filter:blur(9px);-webkit-backdrop-filter:blur(9px)}
+.delete-modal-card{width:min(440px,100%);padding:28px 24px 22px;border:1px solid color-mix(in srgb,var(--line) 70%,transparent);border-radius:26px;box-shadow:0 28px 90px #0005;text-align:left}
+.delete-modal-icon{width:58px;height:58px;margin:0 0 18px;border-radius:19px;background:#d94c4c14;color:#d94c4c;font-size:25px;font-weight:850}
+.delete-modal-icon span{width:auto;height:auto;border:0;border-radius:0;font-size:26px}
+.delete-modal-eyebrow{font-size:10px;letter-spacing:1.3px;margin-bottom:7px;color:var(--blue)}
+.delete-modal-card h2{font-size:22px;line-height:1.25;letter-spacing:-.45px;margin:0 0 9px}
+.delete-modal-card>p{font-size:14px;line-height:1.6;margin:0 0 17px;max-width:none}
+.delete-modal-note{padding:12px 13px;margin:0 0 20px;border-radius:14px;font-size:12px}
+.delete-modal-actions{grid-template-columns:1fr 1fr;gap:10px}
+.delete-modal-actions button{min-height:48px;border-radius:14px;font-size:13px}
+.delete-modal-confirm{background:var(--blue);border-color:var(--blue);box-shadow:0 5px 14px #3478e52b}
+#deleteConfirmModal[data-variant="danger"] .delete-modal-icon{background:#d94c4c14;color:#d94c4c}
+#deleteConfirmModal[data-variant="danger"] .delete-modal-eyebrow{color:#d94c4c}
+#deleteConfirmModal[data-variant="danger"] .delete-modal-confirm{background:#d94c4c;border-color:#d94c4c}
+#deleteConfirmModal[data-variant="warning"] .delete-modal-icon{background:#e6a23c1c;color:#b7791f}
+#deleteConfirmModal[data-variant="warning"] .delete-modal-eyebrow{color:#b7791f}
+#deleteConfirmModal[data-variant="warning"] .delete-modal-confirm{background:#c58a24;border-color:#c58a24}
+#deleteConfirmModal[data-variant="primary"] .delete-modal-icon{background:#3478e51a;color:var(--blue)}
+#deleteConfirmModal[data-variant="primary"] .delete-modal-eyebrow{color:var(--blue)}
+#deleteConfirmModal[data-variant="primary"] .delete-modal-confirm{background:var(--blue);border-color:var(--blue)}
+[data-theme="dark"] .delete-modal-card{border-color:#ffffff18}
+@media(max-width:380px){.delete-modal-card{padding:24px 19px 19px;border-radius:23px}}
+@media(prefers-reduced-motion:reduce){.delete-modal,.delete-modal-card{transition:none}}
+</style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
@@ -264,14 +289,14 @@ body.modal-open{overflow:hidden}
 <div id="deleteConfirmModal" class="delete-modal" aria-hidden="true">
  <div class="delete-modal-backdrop" onclick="closeDeleteConfirmation(false)"></div>
  <section class="delete-modal-card" role="dialog" aria-modal="true" aria-labelledby="deleteModalTitle" aria-describedby="deleteModalMessage">
-  <div class="delete-modal-icon"><span>!</span></div>
-  <div class="delete-modal-eyebrow">CONFIRMAÇÃO DE EXCLUSÃO</div>
-  <h2 id="deleteModalTitle">Excluir cadastro?</h2>
-  <p id="deleteModalMessage">Esta ação não poderá ser desfeita.</p>
-  <div class="delete-modal-note"><span>ⓘ</span><span id="deleteModalNote">Confira as informações antes de continuar.</span></div>
+  <div class="delete-modal-icon"><span id="deleteModalIcon">!</span></div>
+  <div class="delete-modal-eyebrow" id="deleteModalEyebrow">CONFIRMAÇÃO</div>
+  <h2 id="deleteModalTitle">Confirmar ação?</h2>
+  <p id="deleteModalMessage">Confira as informações antes de continuar.</p>
+  <div class="delete-modal-note"><span>ⓘ</span><span id="deleteModalNote">Essa ação pode alterar informações do aplicativo.</span></div>
   <div class="delete-modal-actions">
    <button type="button" class="delete-modal-cancel" onclick="closeDeleteConfirmation(false)">Cancelar</button>
-   <button type="button" class="delete-modal-confirm" id="confirmDeleteButton" onclick="closeDeleteConfirmation(true)"><span>⌫</span> Confirmar exclusão</button>
+   <button type="button" class="delete-modal-confirm" id="confirmDeleteButton" onclick="closeDeleteConfirmation(true)">Confirmar</button>
   </div>
  </section>
 </div>
@@ -667,11 +692,14 @@ async function inviteEmployee(){
  finally{btn.disabled=false;btn.textContent='Enviar convite'}
 }
 async function changeEmployeeRole(userId,role){
- if(!isAdmin())return;if(!confirm(role==='admin'?'Conceder permissão de administrador a este usuário?':'Retirar a permissão de administrador?'))return;
+ if(!isAdmin())return;
+ const grant=role==='admin';
+ if(!await showAppConfirmation({variant:grant?'primary':'warning',eyebrow:'ALTERAÇÃO DE PERMISSÃO',title:grant?'Tornar administrador?':'Retirar acesso de administrador?',message:grant?'Esta pessoa passará a ter permissões administrativas para gerenciar recursos da empresa.':'Esta pessoa deixará de ter permissões administrativas e passará a ter acesso de funcionário.',note:'Você poderá alterar essa permissão novamente depois.',confirmText:grant?'Tornar administrador':'Retirar permissão'}))return;
  try{const data=await employeeApi({action:'change_role',user_id:userId,role});toast(data.message||'Permissão atualizada.');await loadEmployees()}catch(e){toast(translateError(e))}
 }
 async function removeEmployee(userId){
- if(!isAdmin())return;if(!confirm('Remover o acesso desta pessoa à Sonho Kids Brinquedos? A conta dela no Supabase não será apagada.'))return;
+ if(!isAdmin())return;
+ if(!await showAppConfirmation({variant:'danger',eyebrow:'REMOÇÃO DE ACESSO',title:'Remover acesso?',message:'Esta pessoa perderá o acesso ao KidsLoc App da Sonho Kids Brinquedos.',note:'A conta dela no Supabase não será apagada. Essa ação pode ser revertida enviando um novo convite.',confirmText:'Remover acesso'}))return;
  try{const data=await employeeApi({action:'remove',user_id:userId});toast(data.message||'Acesso removido.');await loadEmployees()}catch(e){toast(translateError(e))}
 }
 async function changeEmployeePassword(userId){
@@ -750,32 +778,27 @@ function openForm(type,recordId=null){
 }
 
 let deleteConfirmationResolver=null;
-function showDeleteConfirmation(label,message,isArchive=false){
+function showAppConfirmation({variant='danger',eyebrow='CONFIRMAÇÃO',title='Tem certeza?',message='',note='',confirmText='Confirmar'}={}){
  return new Promise(resolve=>{
   const modal=document.getElementById('deleteConfirmModal');
-  const title=document.getElementById('deleteModalTitle');
-  const description=document.getElementById('deleteModalMessage');
-  const note=document.getElementById('deleteModalNote');
-  const button=document.getElementById('confirmDeleteButton');
-  title.textContent=isArchive?'Arquivar brinquedo?':'Excluir '+label+'?';
-  description.textContent=message;
-  note.textContent=isArchive?'O brinquedo sairá do estoque ativo, mas o histórico será preservado.':'Essa ação é permanente. Os dados relacionados descritos acima seguirão as regras de preservação do sistema.';
-  button.innerHTML=isArchive?'<span>▣</span> Arquivar brinquedo':'<span>⌫</span> Excluir cadastro';
-  deleteConfirmationResolver=resolve;
-  modal.classList.add('is-visible');
-  modal.setAttribute('aria-hidden','false');
-  document.body.classList.add('modal-open');
-  setTimeout(()=>document.getElementById('confirmDeleteButton')?.focus(),40);
+  document.getElementById('deleteModalTitle').textContent=title;
+  document.getElementById('deleteModalMessage').textContent=message;
+  document.getElementById('deleteModalNote').textContent=note;
+  document.getElementById('deleteModalEyebrow').textContent=eyebrow;
+  document.getElementById('deleteModalIcon').textContent=variant==='danger'?'!':variant==='warning'?'↗':'✓';
+  document.getElementById('confirmDeleteButton').textContent=confirmText;
+  modal.dataset.variant=variant;deleteConfirmationResolver=resolve;
+  modal.classList.add('is-visible');modal.setAttribute('aria-hidden','false');document.body.classList.add('modal-open');
+  setTimeout(()=>document.querySelector('.delete-modal-cancel')?.focus(),40);
  });
 }
+function showDeleteConfirmation(label,message,isArchive=false){
+ return showAppConfirmation({variant:isArchive?'warning':'danger',eyebrow:isArchive?'CONFIRMAÇÃO DE ARQUIVAMENTO':'CONFIRMAÇÃO DE EXCLUSÃO',title:isArchive?'Arquivar brinquedo?':'Excluir '+label+'?',message,note:isArchive?'O brinquedo sairá do estoque ativo, mas o histórico será preservado.':'Essa ação é permanente. Os dados relacionados descritos acima seguirão as regras de preservação do sistema.',confirmText:isArchive?'Arquivar brinquedo':'Excluir cadastro'});
+}
 function closeDeleteConfirmation(confirmed){
- const modal=document.getElementById('deleteConfirmModal');
- if(!modal||!modal.classList.contains('is-visible'))return;
- modal.classList.remove('is-visible');
- modal.setAttribute('aria-hidden','true');
- document.body.classList.remove('modal-open');
- const resolve=deleteConfirmationResolver;deleteConfirmationResolver=null;
- if(resolve)resolve(!!confirmed);
+ const modal=document.getElementById('deleteConfirmModal');if(!modal||!modal.classList.contains('is-visible'))return;
+ modal.classList.remove('is-visible');modal.setAttribute('aria-hidden','true');modal.removeAttribute('data-variant');document.body.classList.remove('modal-open');
+ const resolve=deleteConfirmationResolver;deleteConfirmationResolver=null;if(resolve)resolve(!!confirmed);
 }
 document.addEventListener('keydown',event=>{
  if(event.key==='Escape')closeDeleteConfirmation(false);
