@@ -18,7 +18,7 @@ Deno.serve(async (req) => {
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     if (!url || !anonKey || !serviceKey) return reply({ error: "Configuração segura do servidor incompleta." }, 500);
 
-    const token = (req.headers.get("Authorization") || "").replace(/^Bearer\\s+/i, "");
+    const token = (req.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "");
     if (!token) return reply({ error: "Sessão não identificada. Entre novamente." }, 401);
     const authClient = createClient(url, anonKey, { auth: { persistSession: false, autoRefreshToken: false } });
     const { data: authData, error: authError } = await authClient.auth.getUser(token);
@@ -59,7 +59,7 @@ Deno.serve(async (req) => {
       const email = String(body.email || "").trim().toLowerCase();
       const role = String(body.role || "staff");
       if (name.length < 2 || name.length > 100) return reply({ error: "Informe um nome entre 2 e 100 caracteres." }, 400);
-      if (!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email)) return reply({ error: "Informe um e-mail válido." }, 400);
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return reply({ error: "Informe um e-mail válido." }, 400);
       if (!["staff", "admin"].includes(role)) return reply({ error: "Perfil solicitado inválido." }, 400);
       if (role === "admin" && caller.role !== "owner") return reply({ error: "Somente o proprietário pode cadastrar administradores." }, 403);
 
