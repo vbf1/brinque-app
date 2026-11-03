@@ -290,6 +290,21 @@ header{padding-top:calc(12px + var(--kids-safe-area-top))}
  main{padding-bottom:calc(88px + var(--kids-safe-area-bottom))}
 }
 
+
+/* Mensagens da equipe */
+.team-chat-header{display:flex;align-items:center;gap:12px;padding-bottom:12px;border-bottom:1px solid var(--line)}
+.team-chat-messages{display:flex;flex-direction:column;gap:9px;min-height:180px;max-height:52dvh;overflow:auto;padding:14px 2px;overscroll-behavior:contain}
+.team-chat-bubble{max-width:86%;align-self:flex-start;background:var(--bg);border:1px solid var(--line);border-radius:15px 15px 15px 4px;padding:10px 12px;overflow-wrap:anywhere;white-space:pre-wrap}
+.team-chat-bubble.mine{align-self:flex-end;background:#e8f1ff;border-color:#c8dcff;color:#17345d;border-radius:15px 15px 4px 15px}
+[data-theme=dark] .team-chat-bubble.mine{background:#263b5d;border-color:#3d5b89;color:#f4f7ff}
+.team-chat-bubble b{display:block;font-size:11px;margin-bottom:4px;opacity:.8}
+.team-chat-bubble time{display:block;text-align:right;font-size:10px;color:var(--muted);margin-top:5px}
+.team-chat-compose{display:flex;align-items:flex-end;gap:8px;border-top:1px solid var(--line);padding-top:12px}
+.team-chat-compose textarea{flex:1;min-width:0;resize:vertical;max-height:130px;border:1px solid var(--line);border-radius:13px;padding:11px;background:var(--bg);color:var(--ink)}
+.team-chat-compose button{width:46px;height:44px;padding:0;border-radius:50%;font-size:19px}
+.team-chat-list-item{display:flex;align-items:center;gap:12px;width:100%;padding:12px 4px;background:transparent;color:var(--ink);border:0;border-bottom:1px solid var(--line);border-radius:0;text-align:left}
+.team-chat-avatar{width:43px;height:43px;flex:0 0 43px;display:grid;place-items:center;border-radius:50%;background:var(--bg);font-weight:800;color:var(--blue)}
+.team-chat-list-copy{min-width:0;flex:1;display:grid;gap:3px}.team-chat-list-copy b,.team-chat-list-copy small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.team-chat-list-copy small{color:var(--muted);font-size:12px}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -352,6 +367,7 @@ header{padding-top:calc(12px + var(--kids-safe-area-top))}
  <button data-page="estoque" onclick="go('estoque')"><span>▤</span>Estoque</button>
  <button data-admin-only data-page="financeiro" onclick="go('financeiro')"><span>＄</span>Financeiro</button>
  <button data-admin-only data-page="funcionarios" onclick="go('funcionarios')"><span>♙</span>Funcionários</button>
+ <button data-page="mensagens" onclick="go('mensagens')"><span>💬</span>Mensagens <span id="chatUnreadBadge" class="tag hidden" style="margin-left:auto">0</span></button>
  <button data-page="ocorrencias" onclick="go('ocorrencias')"><span>⚠</span>Ocorrências</button>
  <button data-page="relatorios" onclick="go('relatorios')"><span>▥</span>Relatórios</button>
  <button data-admin-only data-page="config" onclick="go('config')"><span>⚙</span>Configurações</button>
@@ -376,6 +392,23 @@ header{padding-top:calc(12px + var(--kids-safe-area-top))}
 <section id="clientes" class="hidden"><div class="section-title">Clientes <button onclick="openForm('client')">＋ Novo</button></div><div class="panel"><input id="clientSearch" placeholder="Pesquisar cliente..." oninput="render('clientes')"><div class="list" id="clientList"></div></div></section>
 <section id="estoque" class="hidden"><div class="section-title">Estoque <button onclick="openForm('product')">＋ Novo item</button></div><div class="panel"><div class="muted">Controle híbrido: individual ou por quantidade.</div><div class="list" id="productList"></div></div></section>
 <section id="financeiro" class="hidden"><div class="section-title">Financeiro <button onclick="openForm('transaction')">＋ Lançamento</button></div><div class="grid"><div class="card"><div class="metric-label">Entradas</div><div class="metric" id="financeIncome">R$ 0,00</div></div><div class="card"><div class="metric-label">Saídas</div><div class="metric" id="financeExpense">R$ 0,00</div></div></div><div class="panel"><div class="section-title">Movimentações</div><div class="list" id="transactionList"></div></div></section>
+<section id="mensagens" class="hidden">
+ <div class="section-title">Mensagens <span class="muted">Converse com sua equipe</span></div>
+ <div class="panel" id="teamChatStart">
+  <b>Nova conversa</b>
+  <label for="teamChatRecipient">Enviar mensagem para</label>
+  <select id="teamChatRecipient"><option value="">Selecione alguém da equipe</option></select>
+  <button class="full" id="teamChatStartButton" onclick="startDirectTeamChat()">Iniciar conversa</button>
+  <button class="btn-light full" style="margin-top:9px" onclick="openTeamGroupChat()">💬 Abrir grupo da equipe</button>
+ </div>
+ <div class="panel" id="teamChatListPanel"><div class="section-title">Conversas</div><div id="teamChatList" class="list"><div class="empty-state">Carregando conversas...</div></div></div>
+ <div class="panel hidden" id="teamChatWindow">
+  <div class="team-chat-header"><button class="btn-light btn-small" onclick="closeTeamChat()">‹ Voltar</button><div style="min-width:0;flex:1"><b id="teamChatTitle">Conversa</b><div class="muted" id="teamChatSubtitle">Equipe KidsLoc</div></div></div>
+  <div id="teamChatMessages" class="team-chat-messages"><div class="empty-state">Carregando mensagens...</div></div>
+  <div class="team-chat-compose"><textarea id="teamChatInput" rows="2" maxlength="4000" placeholder="Digite uma mensagem..." onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendTeamMessage()}"></textarea><button id="teamChatSendButton" onclick="sendTeamMessage()" aria-label="Enviar mensagem">➤</button></div>
+  <p class="muted" style="margin:7px 2px 0">Enter para enviar · Shift + Enter para pular linha</p>
+ </div>
+</section>
 <section id="ocorrencias" class="hidden"><div class="section-title">Ocorrências <button onclick="openOccurrenceForm()">＋ Novo relato</button></div><div class="panel"><input id="occurrenceSearch" placeholder="Buscar por título, local ou responsável..." oninput="render('ocorrencias')"><div class="occurrence-filters"><select id="occurrenceCategoryFilter" aria-label="Filtrar categoria" onchange="render('ocorrencias')"><option value="">Todas as categorias</option><option>Quebra de brinquedo</option><option>Prejuízo financeiro</option><option>Dano material</option><option>Problema na entrega</option><option>Problema durante evento</option><option>Acidente ou segurança</option><option>Outro</option></select><select id="occurrenceSeverityFilter" aria-label="Filtrar gravidade" onchange="render('ocorrencias')"><option value="">Todas as gravidades</option><option value="low">Baixa</option><option value="medium">Moderada</option><option value="high">Alta</option><option value="critical">Crítica</option></select></div><div class="list" id="occurrenceList"></div></div></section>
 <section id="ocorrencia-form" class="hidden"><div class="section-title"><span id="occurrenceFormTitle">Novo relato</span><button class="btn-light" onclick="go('ocorrencias')">Voltar</button></div><div class="panel" id="occurrenceFormBody"></div></section>
 <section id="relatorios" class="hidden"><div class="section-title">Relatórios</div><div class="panel" data-admin-only><b>Faturamento mensal</b><div class="muted">O gráfico será preenchido conforme você registrar suas movimentações.</div><div id="bars"></div></div><div class="panel"><b>Indicadores operacionais</b><p class="muted">A versão conectada ao banco calculará lucro líquido, taxa de ocupação, ticket médio e rentabilidade por brinquedo.</p></div></section>
@@ -951,6 +984,96 @@ async function changeEmployeePassword(userId){
  finally{if(button){button.disabled=false;button.innerHTML='<span>✓</span> Salvar nova senha';}}
 }
 
+
+let activeTeamConversationId=null,activeTeamChannel=null,teamConversationCache=[];
+function teamMemberName(userId){return companyEmployees.find(m=>m.id===userId)?.name||'Membro da equipe'}
+async function ensureTeamGroup(){
+ let found=await sb.from('team_conversations').select('id,company_id,conversation_type,title,created_by,created_at').eq('company_id',companyId).eq('conversation_type','team').maybeSingle();
+ if(found.error)throw found.error;
+ let conversation=found.data;
+ if(!conversation){
+  const created=await sb.from('team_conversations').insert({company_id:companyId,conversation_type:'team',title:'Grupo da equipe',created_by:currentUser.id}).select().single();
+  if(created.error){if(created.error.code==='23505'){found=await sb.from('team_conversations').select('id,company_id,conversation_type,title,created_by,created_at').eq('company_id',companyId).eq('conversation_type','team').maybeSingle();if(found.error)throw found.error;conversation=found.data}else throw created.error}
+  else conversation=created.data;
+ }
+ if(conversation&&conversation.created_by===currentUser.id){
+  const ids=[...new Set([currentUser.id,...companyEmployees.map(m=>m.id)])];
+  const rows=ids.map(user_id=>({conversation_id:conversation.id,company_id:companyId,user_id}));
+  const inserted=await sb.from('team_conversation_members').upsert(rows,{onConflict:'conversation_id,user_id',ignoreDuplicates:true});
+  if(inserted.error)throw inserted.error;
+ }
+ return conversation;
+}
+async function loadTeamChats(){
+ if(!currentUser?.id||!companyId)return;
+ const list=document.getElementById('teamChatList');if(list)list.innerHTML='<div class="empty-state">Carregando conversas...</div>';
+ try{
+  const group=await ensureTeamGroup();
+  const result=await sb.from('team_conversations').select('id,company_id,conversation_type,title,created_by,created_at').eq('company_id',companyId).order('created_at',{ascending:false});
+  if(result.error)throw result.error;
+  teamConversationCache=result.data||[];
+  const ids=teamConversationCache.map(c=>c.id);
+  if(!ids.length){if(list)list.innerHTML='<div class="empty-state">Nenhuma conversa por enquanto.</div>';return}
+  const [membersResult,messagesResult]=await Promise.all([
+   sb.from('team_conversation_members').select('conversation_id,user_id').in('conversation_id',ids),
+   sb.from('team_messages').select('conversation_id,body,sender_id,created_at').in('conversation_id',ids).order('created_at',{ascending:false})
+  ]);
+  if(membersResult.error)throw membersResult.error;if(messagesResult.error)throw messagesResult.error;
+  const membersByConversation=new Map(),lastByConversation=new Map();
+  (membersResult.data||[]).forEach(m=>{if(!membersByConversation.has(m.conversation_id))membersByConversation.set(m.conversation_id,[]);membersByConversation.get(m.conversation_id).push(m.user_id)});
+  (messagesResult.data||[]).forEach(m=>{if(!lastByConversation.has(m.conversation_id))lastByConversation.set(m.conversation_id,m)});
+  teamConversationCache=teamConversationCache.filter(c=>(membersByConversation.get(c.id)||[]).includes(currentUser.id));
+  if(list)list.innerHTML=teamConversationCache.length?teamConversationCache.map(conv=>{
+   const peers=(membersByConversation.get(conv.id)||[]).filter(id=>id!==currentUser.id),name=conv.conversation_type==='team'?'Grupo da equipe':(peers.length?teamMemberName(peers[0]):'Conversa');
+   const last=lastByConversation.get(conv.id),preview=last?(last.sender_id===currentUser.id?'Você: ':'')+last.body:'Comece a conversa';const initial=conv.conversation_type==='team'?'👥':Array.from(name)[0]?.toUpperCase()||'•';
+   return '<button class="team-chat-list-item" onclick="openTeamChat(\''+conv.id+'\')"><span class="team-chat-avatar">'+employeeEscape(initial)+'</span><span class="team-chat-list-copy"><b>'+employeeEscape(name)+'</b><small>'+employeeEscape(preview)+'</small></span><span class="muted">'+(last?new Date(last.created_at).toLocaleDateString('pt-BR'):'')+'</span></button>';
+  }).join(''):'<div class="empty-state">Nenhuma conversa encontrada. Inicie uma conversa com alguém da equipe.</div>';
+  const select=document.getElementById('teamChatRecipient');
+  if(select){const previous=select.value;select.innerHTML='<option value="">Selecione alguém da equipe</option>'+companyEmployees.filter(m=>m.id!==currentUser.id).map(m=>'<option value="'+m.id+'">'+employeeEscape(m.name)+' · '+(m.role==='owner'?'Proprietário':m.role==='admin'?'Administrador':'Funcionário')+'</option>').join('');if(previous)select.value=previous}
+ }catch(e){if(list)list.innerHTML='<div class="empty-state">Não foi possível carregar as conversas: '+employeeEscape(translateError(e))+'</div>';console.error('Falha ao carregar mensagens:',e)}
+}
+async function startDirectTeamChat(){
+ const recipient=document.getElementById('teamChatRecipient').value;if(!recipient)return toast('Selecione uma pessoa da equipe.');
+ if(!companyEmployees.some(m=>m.id===recipient))return toast('Esse membro não pertence à equipe.');
+ const button=document.getElementById('teamChatStartButton');button.disabled=true;
+ try{
+  const created=await sb.from('team_conversations').insert({company_id:companyId,conversation_type:'direct',title:'Conversa',created_by:currentUser.id}).select().single();if(created.error)throw created.error;
+  const rows=[...new Set([currentUser.id,recipient])].map(user_id=>({conversation_id:created.data.id,company_id:companyId,user_id}));
+  const added=await sb.from('team_conversation_members').insert(rows);if(added.error)throw added.error;
+  await loadTeamChats();await openTeamChat(created.data.id);
+ }catch(e){toast('Não foi possível iniciar a conversa: '+translateError(e))}
+ finally{button.disabled=false}
+}
+async function openTeamGroupChat(){try{const group=await ensureTeamGroup();await loadTeamChats();await openTeamChat(group.id)}catch(e){toast('Não foi possível abrir o grupo: '+translateError(e))}}
+async function openTeamChat(conversationId){
+ const conversation=teamConversationCache.find(c=>c.id===conversationId)|| (await sb.from('team_conversations').select('id,company_id,conversation_type,title,created_by,created_at').eq('id',conversationId).single()).data;
+ if(!conversation)return;
+ if(activeTeamChannel){await sb.removeChannel(activeTeamChannel);activeTeamChannel=null}
+ activeTeamConversationId=conversationId;
+ const [membersResult]=await Promise.all([sb.from('team_conversation_members').select('user_id').eq('conversation_id',conversationId)]);
+ if(membersResult.error)throw membersResult.error;
+ const peers=(membersResult.data||[]).map(m=>m.user_id).filter(id=>id!==currentUser.id),title=conversation.conversation_type==='team'?'Grupo da equipe':(peers.length?teamMemberName(peers[0]):'Conversa');
+ document.getElementById('teamChatTitle').textContent=title;document.getElementById('teamChatSubtitle').textContent=conversation.conversation_type==='team'?'Mensagens visíveis para toda a equipe':'Conversa privada';
+ document.getElementById('teamChatListPanel').classList.add('hidden');document.getElementById('teamChatStart').classList.add('hidden');document.getElementById('teamChatWindow').classList.remove('hidden');
+ await refreshTeamMessages();
+ activeTeamChannel=sb.channel('team-chat-'+conversationId).on('postgres_changes',{event:'INSERT',schema:'public',table:'team_messages',filter:'conversation_id=eq.'+conversationId},payload=>{if(payload.new?.sender_id!==currentUser.id)refreshTeamMessages()}).subscribe();
+}
+async function refreshTeamMessages(){
+ if(!activeTeamConversationId)return;
+ const area=document.getElementById('teamChatMessages'),id=activeTeamConversationId;
+ const result=await sb.from('team_messages').select('id,sender_id,body,created_at').eq('conversation_id',id).order('created_at',{ascending:true}).limit(300);
+ if(result.error){area.innerHTML='<div class="empty-state">'+employeeEscape(translateError(result.error))+'</div>';return}
+ area.innerHTML=result.data.length?result.data.map(m=>'<div class="team-chat-bubble '+(m.sender_id===currentUser.id?'mine':'')+'">'+(m.sender_id===currentUser.id?'':'<b>'+employeeEscape(teamMemberName(m.sender_id))+'</b>')+employeeEscape(m.body)+'<time>'+new Date(m.created_at).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})+'</time></div>').join(''):'<div class="empty-state">Nenhuma mensagem ainda. Envie a primeira!</div>';
+ area.scrollTop=area.scrollHeight;
+}
+async function sendTeamMessage(){
+ const input=document.getElementById('teamChatInput'),button=document.getElementById('teamChatSendButton'),body=input.value.trim();if(!body||!activeTeamConversationId)return;
+ button.disabled=true;
+ try{const saved=await sb.from('team_messages').insert({conversation_id:activeTeamConversationId,company_id:companyId,sender_id:currentUser.id,body});if(saved.error)throw saved.error;input.value='';await refreshTeamMessages();await loadTeamChats()}
+ catch(e){toast('Não foi possível enviar: '+translateError(e))}
+ finally{button.disabled=false;input.focus()}
+}
+async function closeTeamChat(){if(activeTeamChannel){await sb.removeChannel(activeTeamChannel);activeTeamChannel=null}activeTeamConversationId=null;document.getElementById('teamChatWindow').classList.add('hidden');document.getElementById('teamChatListPanel').classList.remove('hidden');document.getElementById('teamChatStart').classList.remove('hidden');await loadTeamChats()}
 
 let currentPage='inicio';
 let editingRecordId=null;
