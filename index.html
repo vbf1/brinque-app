@@ -108,7 +108,6 @@ label{font-size:12px;color:var(--muted);font-weight:650}.formgrid{display:grid;g
  <label>E-mail</label><input id="employeeEmail" type="email" autocomplete="off" placeholder="email@exemplo.com">
  <label>Permissão</label><select id="employeeRole"><option value="staff">Funcionário</option><option value="admin" data-owner-role>Administrador</option></select>
  <button class="full" id="inviteEmployeeButton" onclick="inviteEmployee()">Enviar convite</button><p class="muted" id="employeeMessage" aria-live="polite"></p></div>
- <div class="panel"><div style="display:flex;align-items:center;justify-content:space-between;gap:10px"><b>Equipe cadastrada</b><button class="btn-light" onclick="loadEmployees()">Atualizar</button></div><div id="employeeList" style="margin-top:12px"><p class="muted">Carregando equipe...</p></div></div>
 </section>
 <section id="config" class="hidden"><div class="section-title">Configurações</div><div class="panel"><label>Nome da empresa</label><input id="company" placeholder="Digite o nome da sua empresa"><button onclick="saveCompany()">Salvar dados</button><p class="muted">Os dados operacionais são carregados e salvos na nuvem quando você está conectado.</p></div></section>
 <section id="form" class="hidden"><div class="section-title"><span id="formTitle">Novo cadastro</span><button class="btn-light" onclick="closeForm()">Fechar</button></div><div class="panel" id="formBody"></div></section>
@@ -358,7 +357,7 @@ async function disablePushNotifications(){
 
 async function loadEmployees(){
  if(!isAdmin())return;
- const lists=['employeeList','homeEmployeeList'].map(id=>document.getElementById(id)).filter(Boolean);
+ const lists=['homeEmployeeList'].map(id=>document.getElementById(id)).filter(Boolean);
  if(!lists.length)return;
  lists.forEach(list=>list.innerHTML='<p class="muted">Carregando equipe...</p>');
  try{
