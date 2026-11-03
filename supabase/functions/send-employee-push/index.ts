@@ -74,7 +74,7 @@ function base64UrlEncode(value: Uint8Array | string): string {
   const bytes = typeof value === "string" ? new TextEncoder().encode(value) : value;
   let binary = "";
   for (const byte of bytes) binary += String.fromCharCode(byte);
-  return btoa(binary).replace(/\\+/g, "-").replace(/\\//g, "_").replace(/=+$/g, "");
+  return btoa(binary).replaceAll("+", "-").replaceAll("/", "_").replaceAll("=", "");
 }
 
 async function getFirebaseAccessToken(): Promise<{ token: string; projectId: string } | null> {
@@ -98,7 +98,7 @@ async function getFirebaseAccessToken(): Promise<{ token: string; projectId: str
     exp: now + 3600,
   }));
   const unsigned = header + "." + claim;
-  const pem = String(account.private_key).replace(/-----BEGIN PRIVATE KEY-----|-----END PRIVATE KEY-----|\\s/g, "");
+  const pem = String(account.private_key).replaceAll("-----BEGIN PRIVATE KEY-----", "").replaceAll("-----END PRIVATE KEY-----", "").replaceAll("\\n", "").replaceAll("\\r", "").replaceAll(" ", "").replaceAll("\\t", "");
   const keyBytes = Uint8Array.from(atob(pem), (character) => character.charCodeAt(0));
   const privateKey = await crypto.subtle.importKey(
     "pkcs8",
@@ -135,11 +135,6 @@ async function sendFcmNotifications(
   body: string,
   targetUserId?: string,
 ) {
-  const { data: devices, error } = await admin.from("fcm_device_tokens")
-    .select("id,token")
-    .eq("company_id", companyId)
-    .maybeSingle();
-  // The query below is repeated as a list query because a company can have multiple Android devices.
   const listQuery = admin.from("fcm_device_tokens").select("id,token").eq("company_id", companyId);
   const { data: deviceList, error: listError } = targetUserId
     ? await listQuery.eq("user_id", targetUserId)
