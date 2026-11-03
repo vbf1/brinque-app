@@ -248,7 +248,7 @@ async function loginApp(){
   if(me)throw me;if(!members||!members.length){await sb.auth.signOut();throw new Error('Esta conta ainda não está vinculada a uma empresa. Peça ao proprietário para conferir o cadastro do funcionário.');}
   companyId=members[0].company_id;companyRole=members[0].role;
   const {data:co,error:ce}=await sb.from('companies').select('id,name').eq('id',companyId).single();if(ce)throw ce;
-  document.getElementById('company').value=co.name;await loadCloudData();showApp(true);render();go('inicio',null,true);toast('Conectado à nuvem com sucesso.');
+  document.getElementById('company').value=co.name;await loadCloudData();showApp(true);render();go('inicio',null,true);if(isAdmin())await loadEmployees();toast('Conectado à nuvem com sucesso.');
  }catch(e){authMessage(translateError(e),true);await sb.auth.signOut().catch(()=>{});}finally{btn.disabled=false;btn.textContent='Entrar';}
 }
 async function logoutApp(){
@@ -465,7 +465,7 @@ function render(){
 async function saveCompany(){if(!isAdmin())return toast('Somente proprietário e administradores podem alterar configurações.');try{const name=document.getElementById('company').value.trim();if(!name)return toast('Informe o nome da empresa.');await cloudError(await sb.from('companies').update({name}).eq('id',companyId));toast('Nome da empresa atualizado na nuvem.')}catch(e){toast('Erro ao atualizar empresa: '+translateError(e))}}
 render();
 showApp(false);
-async function resumeSession(){const {data}=await sb.auth.getSession();if(!data.session)return;try{currentUser=data.session.user;updateGreetingUser(currentUser);const {data:members,error}=await sb.from('company_members').select('company_id,role').eq('user_id',currentUser.id);if(error)throw error;if(!members?.length)throw new Error('Usuário sem vínculo com empresa.');companyId=members[0].company_id;companyRole=members[0].role;const {data:co,error:ce}=await sb.from('companies').select('id,name').eq('id',companyId).single();if(ce)throw ce;document.getElementById('company').value=co.name;await loadCloudData();showApp(true);render();go('inicio');}catch(e){await sb.auth.signOut({scope:'local'});currentUser=null;companyId=null;companyRole=null;products=[];clients=[];rentals=[];transactions=[];showApp(false);authMessage(translateError(e),true)}}
+async function resumeSession(){const {data}=await sb.auth.getSession();if(!data.session)return;try{currentUser=data.session.user;updateGreetingUser(currentUser);const {data:members,error}=await sb.from('company_members').select('company_id,role').eq('user_id',currentUser.id);if(error)throw error;if(!members?.length)throw new Error('Usuário sem vínculo com empresa.');companyId=members[0].company_id;companyRole=members[0].role;const {data:co,error:ce}=await sb.from('companies').select('id,name').eq('id',companyId).single();if(ce)throw ce;document.getElementById('company').value=co.name;await loadCloudData();showApp(true);render();go('inicio');if(isAdmin())await loadEmployees();}catch(e){await sb.auth.signOut({scope:'local'});currentUser=null;companyId=null;companyRole=null;products=[];clients=[];rentals=[];transactions=[];showApp(false);authMessage(translateError(e),true)}}
 initializeAuthFlow();
 if('serviceWorker' in navigator && location.protocol.startsWith('http'))navigator.serviceWorker.register('sw.js').catch(()=>{});
 </script>
