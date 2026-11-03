@@ -53,3 +53,29 @@ test('aplicativo não depende de arquivos remotos para renderizar a estrutura in
   expect(html).toContain('resumeSession()');
   expect(html).toContain('id="inicio"');
 });
+test('logout encerra a sessão simulada e retorna à tela de login', async ({ page }) => {
+  await page.locator('#loginEmail').fill('owner@test.invalid');
+  await page.locator('#loginPassword').fill('senha-de-teste');
+  await page.getByRole('button', { name: 'Entrar' }).click();
+  await expect(page.locator('#inicio')).toBeVisible();
+  await page.locator('.menu-trigger').click();
+  await page.locator('#menuLogoutButton').click();
+  await expect(page.locator('#authGate')).toBeVisible();
+  await expect(page.locator('#loginFields')).toBeVisible();
+});
+test('layout móvel não cria rolagem horizontal na tela inicial e nas telas internas', async ({ page }) => {
+  await page.locator('#loginEmail').fill('owner@test.invalid');
+  await page.locator('#loginPassword').fill('senha-de-teste');
+  await page.getByRole('button', { name: 'Entrar' }).click();
+  for (const screen of ['inicio', 'agenda', 'locacoes', 'clientes', 'estoque', 'financeiro', 'config']) {
+    if (screen !== 'inicio') {
+      await page.locator('.menu-trigger').click();
+      await page.locator('#menuPanel [data-page="' + screen + '"]').click();
+    }
+    const dimensions = await page.evaluate(() => ({
+      viewport: document.documentElement.clientWidth,
+      content: document.documentElement.scrollWidth
+    }));
+    expect(dimensions.content, 'overflow horizontal em ' + screen).toBeLessThanOrEqual(dimensions.viewport + 1);
+  }
+});
