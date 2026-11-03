@@ -1,0 +1,8 @@
+{
+  "appId": "br.com.sonhokids.kidsloc",
+  "appName": "KidsLoc App",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "https"
+  }
+}
