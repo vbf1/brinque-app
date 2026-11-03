@@ -67,7 +67,7 @@ label{font-size:12px;color:var(--muted);font-weight:650}.formgrid{display:grid;g
 </div>
 <header>
  <div class="headrow"><div class="brand"><div class="logo">✦</div><div>BRINQUE APP<div class="sub">GESTÃO DE LOCAÇÕES</div></div></div><div class="head-actions"><button class="btn-small" onclick="toggleTheme()">◐ Tema</button><nav id="nav" aria-label="Navegação principal"><button class="menu-trigger" onclick="toggleMenu()" aria-label="Abrir menu" aria-expanded="false"><span class="menu-icon"><i></i><i></i><i></i></span></button></nav></div></div>
- <div class="greeting">Olá! Bem-vindo 👋<small>Sonho Kids Brinquedos · Gestão de locações sincronizada.</small></div>
+ <div class="greeting">Olá, <span id="greetingName">Bem-vindo</span> 👋<small>Sonho Kids Brinquedos · Gestão de locações sincronizada.</small></div>
 </header>
 <div id="menuBackdrop" class="menu-backdrop hidden" onclick="toggleMenu(false)"></div>
 <div id="menuPanel" class="menu-panel hidden" aria-label="Menus de navegação">
@@ -126,6 +126,7 @@ const SUPABASE_ANON_KEY='sb_publishable_hC1UBMmLe0U41oUHfFxfMQ_mYrsel51';
 const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}});
 let currentUser=null,companyId=null,companyRole=null,recoveryFlowActive=false,recoveryUserId=null;
 function isAdmin(){return ['owner','admin'].includes(companyRole)}
+function updateGreetingUser(user){const target=document.getElementById('greetingName');if(!target)return;const metadata=user?.user_metadata||{};const fullName=String(metadata.full_name||metadata.name||metadata.display_name||'').trim();let parts=fullName.split(/\s+/).filter(Boolean);if(!parts.length){const emailName=String(user?.email||'').split('@')[0].replace(/[._-]+/g,' ').trim();parts=emailName.split(/\s+/).filter(Boolean);}const first=parts[0]||'Bem-vindo';const last=parts.length>1?` ${Array.from(parts[parts.length-1])[0].toLocaleUpperCase('pt-BR')}.`:'';target.textContent=first+last;}
 function applyRoleUI(){document.querySelectorAll('[data-admin-only]').forEach(el=>el.classList.toggle('hidden',!isAdmin()));document.querySelectorAll('[data-owner-role]').forEach(el=>el.disabled=companyRole!=='owner');if(companyRole!=='owner'&&document.getElementById('employeeRole'))document.getElementById('employeeRole').value='staff'}
 function authMessage(msg,isError=false){const el=document.getElementById('authMessage');el.textContent=msg;el.style.color=isError?'#c94b4b':'var(--muted)'}
 function translateError(error){
@@ -206,7 +207,7 @@ sb.auth.onAuthStateChange((event,session)=>{if(event==='PASSWORD_RECOVERY'){curr
 sb.auth.onAuthStateChange((event,session)=>{
  if(event==='PASSWORD_RECOVERY'&&session?.user){recoveryFlowActive=true;recoveryUserId=session.user.id;currentUser=session.user;showRecoveryScreen();}
  if(event==='SIGNED_OUT'){
-  currentUser=null;companyId=null;companyRole=null;recoveryFlowActive=false;recoveryUserId=null;
+  currentUser=null;companyId=null;companyRole=null;recoveryFlowActive=false;recoveryUserId=null;updateGreetingUser(null);
   products=[];clients=[];rentals=[];transactions=[];
   try{localStorage.clear();sessionStorage.clear();}catch(e){}
   if('caches' in window)caches.keys().then(keys=>Promise.all(keys.filter(k=>k.startsWith('brinque-app-')).map(k=>caches.delete(k)))).catch(()=>{});
@@ -464,7 +465,7 @@ function render(){
 async function saveCompany(){if(!isAdmin())return toast('Somente proprietário e administradores podem alterar configurações.');try{const name=document.getElementById('company').value.trim();if(!name)return toast('Informe o nome da empresa.');await cloudError(await sb.from('companies').update({name}).eq('id',companyId));toast('Nome da empresa atualizado na nuvem.')}catch(e){toast('Erro ao atualizar empresa: '+translateError(e))}}
 render();
 showApp(false);
-async function resumeSession(){const {data}=await sb.auth.getSession();if(!data.session)return;try{currentUser=data.session.user;const {data:members,error}=await sb.from('company_members').select('company_id,role').eq('user_id',currentUser.id);if(error)throw error;if(!members?.length)throw new Error('Usuário sem vínculo com empresa.');companyId=members[0].company_id;companyRole=members[0].role;const {data:co,error:ce}=await sb.from('companies').select('id,name').eq('id',companyId).single();if(ce)throw ce;document.getElementById('company').value=co.name;await loadCloudData();showApp(true);render();go('inicio');}catch(e){await sb.auth.signOut({scope:'local'});currentUser=null;companyId=null;companyRole=null;products=[];clients=[];rentals=[];transactions=[];showApp(false);authMessage(translateError(e),true)}}
+async function resumeSession(){const {data}=await sb.auth.getSession();if(!data.session)return;try{currentUser=data.session.user;updateGreetingUser(currentUser);const {data:members,error}=await sb.from('company_members').select('company_id,role').eq('user_id',currentUser.id);if(error)throw error;if(!members?.length)throw new Error('Usuário sem vínculo com empresa.');companyId=members[0].company_id;companyRole=members[0].role;const {data:co,error:ce}=await sb.from('companies').select('id,name').eq('id',companyId).single();if(ce)throw ce;document.getElementById('company').value=co.name;await loadCloudData();showApp(true);render();go('inicio');}catch(e){await sb.auth.signOut({scope:'local'});currentUser=null;companyId=null;companyRole=null;products=[];clients=[];rentals=[];transactions=[];showApp(false);authMessage(translateError(e),true)}}
 initializeAuthFlow();
 if('serviceWorker' in navigator && location.protocol.startsWith('http'))navigator.serviceWorker.register('sw.js').catch(()=>{});
 </script>
