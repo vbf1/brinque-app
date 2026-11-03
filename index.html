@@ -292,12 +292,14 @@ header{padding-top:calc(12px + var(--kids-safe-area-top))}
  <div class="panel" style="width:min(430px,100%);margin:0">
   <div style="font-size:22px;font-weight:850;color:var(--ink);margin-bottom:5px">KIDSLOC APP</div>
   <div class="muted" style="margin-bottom:18px">Acesse sua empresa Sonho Kids Brinquedos</div>
-  <div id="loginFields">
+  <div id="authLoading" style="text-align:center;padding:18px 8px;color:var(--muted)">Verificando sua sessão e preparando o aplicativo...</div>
+  <div id="loginFields" class="hidden">
    <label>E-mail</label><input id="loginEmail" type="email" autocomplete="username" placeholder="seuemail@exemplo.com">
    <label>Senha</label><input id="loginPassword" type="password" autocomplete="current-password" placeholder="Sua senha">
    <button class="full" id="loginButton" onclick="loginApp()">Entrar</button>
    <button type="button" class="btn-light full" style="margin-top:9px" onclick="showForgotPassword()">Esqueci minha senha</button>
    <p id="authMessage" class="muted" style="margin:12px 0 0">Entre com a conta que já foi cadastrada no Supabase.</p>
+   <button type="button" id="restoreSessionButton" class="btn-light full hidden" style="margin-top:9px" onclick="initializeAuthFlow()">Tentar restaurar minha sessão</button>
   </div>
   <div id="forgotPasswordPanel" class="hidden" style="margin-top:18px;border-top:1px solid var(--line);padding-top:16px">
    <b style="display:block;margin-bottom:8px">Recuperar senha</b>
@@ -450,6 +452,7 @@ function translateError(error){
 }
 
 function showPasswordSetupScreen(flowType='recovery'){
+ document.getElementById('authLoading')?.classList.add('hidden');
  showApp(false);
  document.getElementById('forgotPasswordPanel').classList.add('hidden');
  document.getElementById('recoveryPanel').classList.remove('hidden');
@@ -468,6 +471,7 @@ function showForgotPassword(){
  document.getElementById('forgotMessage').textContent='';
 }
 function showLoginScreen(message=''){
+ document.getElementById('authLoading')?.classList.add('hidden');
  document.getElementById('recoveryPanel').classList.add('hidden');
  document.getElementById('forgotPasswordPanel').classList.add('hidden');
  document.getElementById('loginFields').classList.remove('hidden');
@@ -523,6 +527,9 @@ sb.auth.onAuthStateChange((event,session)=>{
  }
 });
 async function initializeAuthFlow(){
+ document.getElementById('authLoading')?.classList.remove('hidden');
+ document.getElementById('loginFields')?.classList.add('hidden');
+ document.getElementById('restoreSessionButton')?.classList.add('hidden');
  const hash=new URLSearchParams(window.location.hash.replace(/^#/,'')); 
  const query=new URLSearchParams(window.location.search);
  const code=query.get('code'),tokenHash=query.get('token_hash'),type=query.get('type')||hash.get('type');
@@ -547,7 +554,12 @@ async function initializeAuthFlow(){
   }
   return;
  }
- await resumeSession();
+ try{await resumeSession()}
+ catch(error){
+  console.error('Falha ao verificar a sessão salva:',error);
+  showApp(false);showLoginScreen('Não foi possível verificar sua sessão. Confira a conexão e tente restaurar novamente.');
+  document.getElementById('restoreSessionButton')?.classList.remove('hidden');
+ }
 }
 async function loginApp(){
  const email=document.getElementById('loginEmail').value.trim(),password=document.getElementById('loginPassword').value;
@@ -590,20 +602,13 @@ async function loadCloudData(){
  ]);
  for(const r of [cr,pr,ur,rr,tr,ir,mr,ar,or,op])if(r.error)throw r.error;
  const memberRows=mr.data||[];
- const profileResult=memberRows.length
-  ?await sb.from('profiles').select('id,full_name').in('id',memberRows.map(m=>m.user_id))
-  :{data:[],error:null};
+ const [profileResult,employeeResult]=await Promise.all([
+  memberRows.length?sb.from('profiles').select('id,full_name').in('id',memberRows.map(m=>m.user_id)):Promise.resolve({data:[],error:null}),
+  isAdmin()?employeeApi({action:'list'}).catch(error=>{console.warn('Não foi possível carregar e-mails da equipe para identificação:',error);return {members:[]}}):Promise.resolve({members:[]})
+ ]);
  if(profileResult.error)throw profileResult.error;
  const profileNames=new Map((profileResult.data||[]).map(profile=>[profile.id,profile.full_name]));
- // Administradores podem consultar a lista segura da Edge Function, que já retorna o e-mail de cada membro.
- // Isso permite identificar membros sem nome cadastrado sem expor e-mails por consultas públicas ao Auth.
- let memberDetailsById=new Map();
- if(isAdmin()){
-  try{
-   const employeeData=await employeeApi({action:'list'});
-   memberDetailsById=new Map((employeeData.members||[]).map(member=>[member.user_id,member]));
-  }catch(error){console.warn('Não foi possível carregar e-mails da equipe para identificação:',error)}
- }
+ const memberDetailsById=new Map((employeeResult.members||[]).map(member=>[member.user_id,member]));
  companyEmployees=memberRows.map(m=>{
   const details=memberDetailsById.get(m.user_id)||{};
   const profileName=String(profileNames.get(m.user_id)||'').trim();
@@ -615,9 +620,16 @@ async function loadCloudData(){
  clients=(cr.data||[]).map(c=>({id:c.id,name:c.name,phone:c.phone||'',address:c.address||''}));
  productUnits=ur.data||[];
  products=(pr.data||[]).map(p=>({id:p.id,name:p.name,mode:p.inventory_mode==='individual'?'Individual':'Quantidade',total:p.total_quantity,available:p.inventory_mode==='individual'?productUnits.filter(u=>u.product_id===p.id&&u.status==='available').length:p.total_quantity,price:Number(p.daily_price||0)}));
- productImages=await Promise.all((ir.data||[]).map(async image=>{const signed=await sb.storage.from('product-images').createSignedUrl(image.storage_path,86400);return {...image,url:signed.error?'':signed.data?.signedUrl||''}}));
+ const productImageRows=ir.data||[];
  const occurrencePhotoRows=op.data||[];
- occurrenceReports=await Promise.all((or.data||[]).map(async item=>({...item,photos:await Promise.all(occurrencePhotoRows.filter(photo=>photo.occurrence_id===item.id).map(async photo=>{const signed=await sb.storage.from('occurrence-photos').createSignedUrl(photo.storage_path,86400);return {...photo,url:signed.error?'':signed.data?.signedUrl||''}}))})));
+ const [productSigned,occurrenceSigned]=await Promise.all([
+  productImageRows.length?sb.storage.from('product-images').createSignedUrls(productImageRows.map(image=>image.storage_path),86400):Promise.resolve({data:[],error:null}),
+  occurrencePhotoRows.length?sb.storage.from('occurrence-photos').createSignedUrls(occurrencePhotoRows.map(photo=>photo.storage_path),86400):Promise.resolve({data:[],error:null})
+ ]);
+ const productUrlByPath=new Map((productSigned.data||[]).map(item=>[item.path,item.signedUrl||'']));
+ const occurrenceUrlByPath=new Map((occurrenceSigned.data||[]).map(item=>[item.path,item.signedUrl||'']));
+ productImages=productImageRows.map(image=>({...image,url:productUrlByPath.get(image.storage_path)||''}));
+ occurrenceReports=(or.data||[]).map(item=>({...item,photos:occurrencePhotoRows.filter(photo=>photo.occurrence_id===item.id).map(photo=>({...photo,url:occurrenceUrlByPath.get(photo.storage_path)||''}))}));
  rentals=(rr.data||[]).map(r=>({id:r.id,customerId:r.customer_id,name:r.customers?.name||'Cliente',deliveryAddress:r.delivery_address||'',responsibles:rentalResponsibleRows.filter(x=>x.rental_id===r.id).map(x=>({id:x.user_id,name:x.employee_name_snapshot})),responsibleIds:rentalResponsibleRows.filter(x=>x.rental_id===r.id&&x.user_id).map(x=>x.user_id),items:(r.rental_items||[]).map(i=>({productId:i.product_id,name:i.products?.name||'Brinquedo',quantity:i.quantity,unitPrice:Number(i.unit_price||0),unitIds:(i.rental_item_units||[]).map(x=>x.product_unit_id),unitCodes:(i.rental_item_units||[]).map(x=>x.product_units?.asset_code).filter(Boolean)})),toy:(r.rental_items||[]).map(i=>`${i.quantity}× ${i.products?.name||'Brinquedo'}`).join(', '),date:r.start_date,endDate:r.end_date,dbStatus:r.status,price:Number(r.total_amount||0),mode:r.delivery_method==='customer_pickup'?'Retirada pelo cliente':'Entrega própria',status:r.status==='confirmed'?'Confirmada':r.status==='cancelled'?'Cancelada':r.status==='completed'?'Concluída':'Pendente'}));
  transactions=isAdmin()?(tr.data||[]).map(t=>({id:t.id,name:t.description,type:t.transaction_type==='income'?'Entrada':'Saída',value:Number(t.amount||0)})):[];
  persist();
@@ -1273,7 +1285,34 @@ function installCustomSelects(){const layer=document.createElement('div');layer.
 
 render();
 showApp(false);
-async function resumeSession(){const {data}=await sb.auth.getSession();if(!data.session)return;try{currentUser=data.session.user;updateGreetingUser(currentUser);const {data:members,error}=await sb.from('company_members').select('company_id,role').eq('user_id',currentUser.id);if(error)throw error;if(!members?.length)throw new Error('Usuário sem vínculo com empresa.');companyId=members[0].company_id;companyRole=members[0].role;const {data:co,error:ce}=await sb.from('companies').select('id,name').eq('id',companyId).single();if(ce)throw ce;document.getElementById('company').value=co.name;await loadCloudData();showApp(true);render();go('inicio');if(isAdmin()){await loadEmployees();await refreshPushStatus();}}catch(e){await sb.auth.signOut({scope:'local'});currentUser=null;companyId=null;companyRole=null;products=[];clients=[];rentals=[];transactions=[];showApp(false);authMessage(translateError(e),true)}}
+async function resumeSession(){
+ const {data,error:sessionError}=await sb.auth.getSession();
+ if(sessionError)throw sessionError;
+ if(!data.session){showLoginScreen();return false}
+ currentUser=data.session.user;updateGreetingUser(currentUser);
+ try{
+  const {data:members,error}=await sb.from('company_members').select('company_id,role').eq('user_id',currentUser.id);
+  if(error)throw error;
+  if(!members?.length){
+   await sb.auth.signOut({scope:'local'});
+   currentUser=null;companyId=null;companyRole=null;
+   showLoginScreen('Esta conta ainda não está vinculada a uma empresa. Peça ao proprietário para conferir seu acesso.');
+   return false;
+  }
+  companyId=members[0].company_id;companyRole=members[0].role;
+  const {data:co,error:ce}=await sb.from('companies').select('id,name').eq('id',companyId).single();
+  if(ce)throw ce;
+  document.getElementById('company').value=co.name;
+  await loadCloudData();
+  showApp(true);render();go('inicio',null,true);
+  if(isAdmin())Promise.all([loadEmployees(),refreshPushStatus()]).catch(error=>console.warn('Falha ao atualizar recursos em segundo plano:',error));
+  return true;
+ }catch(e){
+  console.error('Não foi possível restaurar os dados da sessão:',e);
+  showApp(false);showLoginScreen('Sua sessão foi preservada, mas não foi possível carregar os dados. Verifique a internet e toque em “Tentar restaurar minha sessão”.');
+  document.getElementById('restoreSessionButton')?.classList.remove('hidden');
+  return false;
+ }}
 initializeAuthFlow();
 if('serviceWorker' in navigator && location.protocol.startsWith('http'))navigator.serviceWorker.register('sw.js').catch(()=>{});
 </script>
