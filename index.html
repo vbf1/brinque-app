@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#172b4d">
+<title>Brinque App | Gestão</title>
+<link rel="manifest" href="manifest.webmanifest">
+<style>
+:root{--bg:#f2f5fa;--surface:#fff;--ink:#172b4d;--muted:#718096;--line:#e3e9f2;--blue:#3478e5;--navy:#172b4d;--green:#16845b;--yellow:#ffd34e;--red:#c94b4b}
+[data-theme=dark]{--bg:#101827;--surface:#1d293b;--ink:#f3f6fb;--muted:#aab6c8;--line:#354257;--navy:#101827}
+*{box-sizing:border-box}html{overscroll-behavior:none}body{margin:0;background:var(--bg);color:var(--ink);font:15px system-ui,-apple-system,Segoe UI,sans-serif}body.menu-open{position:fixed;width:100%;overflow:hidden;}
+header{background:var(--navy);color:white;padding:12px 16px 14px;position:sticky;top:0;z-index:4;box-shadow:0 4px 18px #12213a18}
+.brand{display:flex;align-items:center;gap:11px;font-weight:850;letter-spacing:.7px}.logo{width:42px;height:42px;border-radius:13px;background:var(--yellow);color:var(--navy);display:grid;place-items:center;font-size:23px}
+.sub{font-size:11px;color:#b9c9df;letter-spacing:1.3px;margin-top:2px}.headrow{display:flex;align-items:center;justify-content:space-between}.greeting{margin-top:11px;font-size:21px;font-weight:750}.greeting small{display:block;font-size:12px;font-weight:400;color:#c6d3e5;margin-top:3px}
+main{max-width:850px;margin:auto;padding:17px 15px 100px}.section-title{display:flex;justify-content:space-between;align-items:center;margin:5px 0 13px;font-weight:750;font-size:18px}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}.card{background:var(--surface);border:1px solid var(--line);border-radius:17px;padding:15px;box-shadow:0 3px 12px #172b4d08}.metric-label{color:var(--muted);font-size:12px}.metric{font-size:24px;font-weight:800;margin:7px 0 3px}.positive{color:var(--green);font-size:12px}
+button,input,select,textarea{font:inherit}button{border:0;border-radius:12px;padding:11px 14px;background:var(--blue);color:white;font-weight:700;cursor:pointer}.btn-light{background:var(--bg);color:var(--ink);border:1px solid var(--line)}.btn-small{padding:8px 10px;font-size:12px}.full{width:100%}
+.actions{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}.action{background:var(--surface);border:1px solid var(--line);color:var(--ink);padding:13px 5px;border-radius:14px;text-align:center;font-size:12px}.action b{display:block;font-size:22px;margin-bottom:5px}
+.list{display:flex;flex-direction:column;gap:9px}.item{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 0;border-bottom:1px solid var(--line)}.item:last-child{border:0}.muted{color:var(--muted);font-size:12px}.tag{border-radius:30px;padding:5px 9px;background:#e7f6ef;color:#16764f;font-size:11px;font-weight:700;white-space:nowrap}.tag.warn{background:#fff3d9;color:#95630c}.tag.red{background:#fde9e9;color:#a63838}
+#nav{position:relative;z-index:12;display:block;padding:0;background:transparent;border:0}
+.menu-trigger{width:44px;height:44px;display:grid;place-items:center;padding:0;border-radius:12px;background:transparent;color:#fff;border:1px solid #ffffff40;box-shadow:none;font-size:0}
+.menu-trigger:active{background:#ffffff18}.menu-icon{display:flex;flex-direction:column;gap:5px;width:21px}.menu-icon i{display:block;width:21px;height:2px;border-radius:3px;background:#fff}
+.menu-panel{position:fixed;top:78px;right:14px;width:min(320px,calc(100vw - 28px));max-height:calc(100dvh - 100px);overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;touch-action:pan-y;background:var(--surface);border:1px solid var(--line);border-radius:17px;padding:10px;box-shadow:0 14px 38px #10213d35;display:grid;grid-template-columns:1fr;gap:6px;z-index:20}
+.menu-panel.hidden{display:none!important}.menu-panel button{background:transparent;color:var(--ink);border:1px solid transparent;padding:12px 13px;display:flex;align-items:center;gap:12px;text-align:left;font-size:14px;border-radius:11px}.menu-panel button span{font-size:19px;width:25px;text-align:center}.menu-panel button.active{background:#eaf1ff;border-color:#c9d9fb;color:var(--blue)}[data-theme=dark] .menu-panel button.active{background:#263b5d;border-color:#3d5b89}
+.head-actions{display:flex;align-items:center;gap:8px}.menu-backdrop{position:fixed;inset:0;background:#08142655;z-index:11}.menu-backdrop.hidden{display:none!important}
+.toy-picker{display:grid;gap:9px;margin:8px 0 14px}.toy-option{display:grid;grid-template-columns:22px minmax(0,1fr) 82px;align-items:center;gap:9px;padding:11px;border:1px solid var(--line);border-radius:13px;background:var(--surface)}.toy-option.selected{border-color:var(--blue);background:#eef4ff}.toy-option input[type=checkbox]{width:18px;height:18px;margin:0;accent-color:var(--blue)}.toy-option .toy-name{font-weight:650;font-size:13px}.toy-option .toy-price{display:block;color:var(--muted);font-size:11px;margin-top:2px}.toy-option input[type=number]{width:100%;margin:0;padding:8px 5px;text-align:center}.selection-summary{padding:10px 12px;background:var(--bg);border:1px solid var(--line);border-radius:12px;margin:8px 0 14px;font-size:12px;color:var(--muted)}
+@media(min-width:700px){.menu-panel{width:300px}}
+input,select,textarea{width:100%;padding:12px;border:1px solid var(--line);border-radius:11px;background:var(--bg);color:var(--ink);margin:5px 0 12px}input:focus,select:focus,textarea:focus{outline:2px solid #3478e533;border-color:var(--blue)}button:focus-visible{outline:3px solid #3478e566;outline-offset:2px}
+label{font-size:12px;color:var(--muted);font-weight:650}.formgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:17px;padding:16px;margin:12px 0}
+.bar{height:10px;background:var(--line);border-radius:10px;overflow:hidden;margin:9px 0}.bar i{display:block;height:100%;background:var(--blue);border-radius:10px}
+.hidden{display:none!important}.toast{position:fixed;top:15px;left:50%;transform:translateX(-50%);background:#172b4d;color:white;padding:12px 16px;border-radius:12px;z-index:20;box-shadow:0 5px 20px #0003;max-width:90%;font-size:13px}
+@media(min-width:700px){main{padding:25px 24px 40px}.grid{grid-template-columns:repeat(4,1fr)}.actions{grid-template-columns:repeat(6,1fr)}}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+<div id="authGate" style="position:fixed;inset:0;z-index:50;background:var(--bg);display:grid;place-items:center;padding:22px">
+ <div class="panel" style="width:min(430px,100%);margin:0">
+  <div style="font-size:22px;font-weight:850;color:var(--ink);margin-bottom:5px">BRINQUE APP</div>
+  <div class="muted" style="margin-bottom:18px">Acesse sua empresa Sonho Kids Brinquedos</div>
+  <label>E-mail</label><input id="loginEmail" type="email" autocomplete="username" placeholder="seuemail@exemplo.com">
+  <label>Senha</label><input id="loginPassword" type="password" autocomplete="current-password" placeholder="Sua senha">
+  <button class="full" id="loginButton" onclick="loginApp()">Entrar</button>
+  <p id="authMessage" class="muted" style="margin:12px 0 0">Entre com a conta que já foi cadastrada no Supabase.</p>
+ </div>
+</div>
+<header>
+ <div class="headrow"><div class="brand"><div class="logo">✦</div><div>BRINQUE APP<div class="sub">GESTÃO DE LOCAÇÕES</div></div></div><div class="head-actions"><button class="btn-small" onclick="toggleTheme()">◐ Tema</button><button class="btn-small" onclick="logoutApp()">Sair</button><nav id="nav" aria-label="Navegação principal"><button class="menu-trigger" onclick="toggleMenu()" aria-label="Abrir menu" aria-expanded="false"><span class="menu-icon"><i></i><i></i><i></i></span></button></nav></div></div>
+ <div class="greeting">Olá! Bem-vindo 👋<small>Sonho Kids Brinquedos · Gestão de locações sincronizada.</small></div>
+</header>
+<div id="menuBackdrop" class="menu-backdrop hidden" onclick="toggleMenu(false)"></div>
+<div id="menuPanel" class="menu-panel hidden" aria-label="Menus de navegação">
+ <button data-page="inicio" onclick="go('inicio')"><span>▦</span>Início</button>
+ <button data-page="agenda" onclick="go('agenda')"><span>▣</span>Agenda</button>
+ <button data-page="locacoes" onclick="go('locacoes')"><span>📋</span>Locações</button>
+ <button data-page="clientes" onclick="go('clientes')"><span>♙</span>Clientes</button>
+ <button data-page="estoque" onclick="go('estoque')"><span>▤</span>Estoque</button>
+ <button data-page="financeiro" onclick="go('financeiro')"><span>＄</span>Financeiro</button>
+ <button data-page="relatorios" onclick="go('relatorios')"><span>▥</span>Relatórios</button>
+ <button data-page="config" onclick="go('config')"><span>⚙</span>Configurações</button>
+</div>
+<main>
+<section id="inicio">
+ <div class="section-title">Resumo do negócio <span class="muted">Seus dados</span></div>
+ <div class="grid">
+  <div class="card"><div class="metric-label">Faturamento do mês</div><div class="metric" id="revenue">R$ 0,00</div><div class="muted">Total de entradas cadastradas</div></div>
+  <div class="card"><div class="metric-label">Locações cadastradas</div><div class="metric" id="rentalCount">0</div><div class="muted">Cadastradas por você</div></div>
+  <div class="card"><div class="metric-label">A receber</div><div class="metric" id="receivable">R$ 0,00</div><div class="muted">Lançamentos cadastrados</div></div>
+  <div class="card"><div class="metric-label">Despesas</div><div class="metric" id="expenses">R$ 0,00</div><div class="muted">Total de saídas cadastradas</div></div>
+ </div>
+ <div class="panel"><div class="section-title">Acesso rápido</div><div class="actions">
+  <button class="action" onclick="openForm('rental')"><b>＋</b>Nova locação</button>
+  <button class="action" onclick="go('clientes')"><b>♙</b>Clientes</button>
+  <button class="action" onclick="go('estoque')"><b>▤</b>Brinquedos</button>
+  <button class="action" onclick="go('financeiro')"><b>＄</b>Financeiro</button>
+  <button class="action" onclick="go('agenda')"><b>▣</b>Agenda</button>
+  <button class="action" onclick="go('relatorios')"><b>▥</b>Relatórios</button>
+ </div></div>
+ <div class="panel"><div class="section-title">Próximas locações <button class="btn-small" onclick="go('locacoes')">Ver todas</button></div><div class="list" id="homeRentals"></div></div>
+</section>
+<section id="agenda" class="hidden"><div class="section-title">Agenda de eventos</div><div class="panel"><label>Consultar data</label><input type="date" id="agendaDate"><div class="muted">As reservas cadastradas aparecem abaixo.</div><div class="list" id="agendaList"></div></div></section>
+<section id="locacoes" class="hidden"><div class="section-title">Locações <button onclick="openForm('rental')">＋ Nova</button></div><div class="panel"><input id="rentalSearch" placeholder="Buscar cliente ou brinquedo..." oninput="render()"><div class="list" id="rentalList"></div></div></section>
+<section id="clientes" class="hidden"><div class="section-title">Clientes <button onclick="openForm('client')">＋ Novo</button></div><div class="panel"><input id="clientSearch" placeholder="Pesquisar cliente..." oninput="render()"><div class="list" id="clientList"></div></div></section>
+<section id="estoque" class="hidden"><div class="section-title">Brinquedos e estoque <button onclick="openForm('product')">＋ Novo item</button></div><div class="panel"><div class="muted">Controle híbrido: individual ou por quantidade.</div><div class="list" id="productList"></div></div></section>
+<section id="financeiro" class="hidden"><div class="section-title">Financeiro <button onclick="openForm('transaction')">＋ Lançamento</button></div><div class="grid"><div class="card"><div class="metric-label">Entradas</div><div class="metric" id="financeIncome">R$ 0,00</div></div><div class="card"><div class="metric-label">Saídas</div><div class="metric" id="financeExpense">R$ 0,00</div></div></div><div class="panel"><div class="section-title">Movimentações</div><div class="list" id="transactionList"></div></div></section>
+<section id="relatorios" class="hidden"><div class="section-title">Relatórios</div><div class="panel"><b>Faturamento mensal</b><div class="muted">O gráfico será preenchido conforme você registrar suas movimentações.</div><div id="bars"></div></div><div class="panel"><b>Indicadores operacionais</b><p class="muted">A versão conectada ao banco calculará lucro líquido, taxa de ocupação, ticket médio e rentabilidade por brinquedo.</p></div></section>
+<section id="config" class="hidden"><div class="section-title">Configurações</div><div class="panel"><label>Nome da empresa</label><input id="company" placeholder="Digite o nome da sua empresa"><button onclick="saveCompany()">Salvar dados</button><p class="muted">Os dados operacionais são carregados e salvos na nuvem quando você está conectado.</p></div></section>
+<section id="form" class="hidden"><div class="section-title"><span id="formTitle">Novo cadastro</span><button class="btn-light" onclick="go('locacoes')">Fechar</button></div><div class="panel" id="formBody"></div></section>
+</main>
+<div id="toast" class="toast hidden"></div>
+<script>
+// Mantém os dados locais antigos como cópia de segurança; a fonte principal passa a ser o Supabase.
+let products=JSON.parse(localStorage.getItem('brq_products')||'[]');
+let clients=JSON.parse(localStorage.getItem('brq_clients')||'[]');
+let rentals=JSON.parse(localStorage.getItem('brq_rentals')||'[]');
+let transactions=JSON.parse(localStorage.getItem('brq_transactions')||'[]');
+function persist(){localStorage.setItem('brq_products',JSON.stringify(products));localStorage.setItem('brq_clients',JSON.stringify(clients));localStorage.setItem('brq_rentals',JSON.stringify(rentals));localStorage.setItem('brq_transactions',JSON.stringify(transactions))}
+const SUPABASE_URL='https://wcxvswomcfpeuhnbxivh.supabase.co';
+const SUPABASE_ANON_KEY='sb_publishable_hC1UBMmLe0U41oUHfFxfMQ_mYrsel51';
+const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+let currentUser=null,companyId=null,companyRole=null;
+function authMessage(msg,isError=false){const el=document.getElementById('authMessage');el.textContent=msg;el.style.color=isError?'#c94b4b':'var(--muted)'}
+function showApp(show){document.getElementById('authGate').style.display=show?'none':'grid';document.querySelector('header').style.display=show?'':'none';document.querySelector('main').style.display=show?'':'none';document.getElementById('menuBackdrop').style.display=show?'':'none';document.getElementById('menuPanel').style.display=show?'':'none'}
+async function loginApp(){
+ const email=document.getElementById('loginEmail').value.trim(),password=document.getElementById('loginPassword').value;
+ if(!email||!password)return authMessage('Informe seu e-mail e sua senha.',true);
+ const btn=document.getElementById('loginButton');btn.disabled=true;btn.textContent='Entrando...';authMessage('Validando seu acesso...');
+ try{const {data,error}=await sb.auth.signInWithPassword({email,password});if(error)throw error;currentUser=data.user;
+  const {data:members,error:me}=await sb.from('company_members').select('company_id,role').eq('user_id',currentUser.id);
+  if(me)throw me;if(!members||!members.length){await sb.auth.signOut();throw new Error('Esta conta ainda não está vinculada a uma empresa. Peça ao proprietário para conferir o cadastro do funcionário.');}
+  companyId=members[0].company_id;companyRole=members[0].role;
+  const {data:co,error:ce}=await sb.from('companies').select('id,name').eq('id',companyId).single();if(ce)throw ce;
+  document.getElementById('company').value=co.name;await loadCloudData();showApp(true);render();go('inicio');toast('Conectado à nuvem com sucesso.');
+ }catch(e){authMessage(e.message||'Não foi possível entrar.',true);await sb.auth.signOut().catch(()=>{});}finally{btn.disabled=false;btn.textContent='Entrar';}
+}
+async function logoutApp(){await sb.auth.signOut();currentUser=null;companyId=null;showApp(false);authMessage('Você saiu da sua conta. Entre novamente para acessar os dados.')}
+async function loadCloudData(){
+ if(!localStorage.getItem('brq_legacy_backup_v1')){localStorage.setItem('brq_legacy_backup_v1',JSON.stringify({products:localStorage.getItem('brq_products'),clients:localStorage.getItem('brq_clients'),rentals:localStorage.getItem('brq_rentals'),transactions:localStorage.getItem('brq_transactions'),company:localStorage.getItem('brq_company')}));}
+ const [cr,pr,rr,tr]=await Promise.all([
+  sb.from('customers').select('*').eq('company_id',companyId).order('name'),
+  sb.from('products').select('*').eq('company_id',companyId).eq('active',true).order('name'),
+  sb.from('rentals').select('*,customers(name),rental_items(quantity,unit_price,products(name))').eq('company_id',companyId).order('start_date'),
+  sb.from('financial_transactions').select('*').eq('company_id',companyId).order('created_at',{ascending:false})
+ ]);
+ for(const r of [cr,pr,rr,tr])if(r.error)throw r.error;
+ clients=(cr.data||[]).map(c=>({id:c.id,name:c.name,phone:c.phone||'',address:c.address||''}));
+ products=(pr.data||[]).map(p=>({id:p.id,name:p.name,mode:p.inventory_mode==='individual'?'Individual':'Quantidade',total:p.total_quantity,available:p.total_quantity,price:Number(p.daily_price||0)}));
+ rentals=(rr.data||[]).map(r=>({id:r.id,customerId:r.customer_id,name:r.customers?.name||'Cliente',items:(r.rental_items||[]).map(i=>({productId:i.product_id,name:i.products?.name||'Brinquedo',quantity:i.quantity,unitPrice:Number(i.unit_price||0)})),toy:(r.rental_items||[]).map(i=>`${i.quantity}× ${i.products?.name||'Brinquedo'}`).join(', '),date:r.start_date,endDate:r.end_date,dbStatus:r.status,price:Number(r.total_amount||0),mode:r.delivery_method==='customer_pickup'?'Retirada pelo cliente':'Entrega própria',status:r.status==='confirmed'?'Confirmada':r.status==='cancelled'?'Cancelada':r.status==='completed'?'Concluída':'Pendente'}));
+ transactions=(tr.data||[]).map(t=>({id:t.id,name:t.description,type:t.transaction_type==='income'?'Entrada':'Saída',value:Number(t.amount||0)}));
+ persist();
+}
+async function cloudError(result){if(result?.error)throw result.error;return result?.data}
+
+function money(v){return Number(v).toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}
+function dateBR(d){if(!d)return '';let [y,m,day]=d.split('-');return `${day}/${m}/${y}`}
+function toast(s){let t=document.getElementById('toast');t.textContent=s;t.classList.remove('hidden');setTimeout(()=>t.classList.add('hidden'),2400)}
+let menuScrollY=0;function toggleMenu(force){const panel=document.getElementById('menuPanel'),backdrop=document.getElementById('menuBackdrop'),btn=document.querySelector('.menu-trigger');const open=typeof force==='boolean'?force:panel.classList.contains('hidden');if(open&&!document.body.classList.contains('menu-open')){menuScrollY=window.scrollY||window.pageYOffset;document.body.style.top=`-${menuScrollY}px`;document.body.classList.add('menu-open')}panel.classList.toggle('hidden',!open);backdrop.classList.toggle('hidden',!open);btn.setAttribute('aria-expanded',String(open));if(!open&&document.body.classList.contains('menu-open')){document.body.classList.remove('menu-open');document.body.style.top='';window.scrollTo(0,menuScrollY)}}
+function go(id,btn){document.querySelectorAll('main section').forEach(s=>s.classList.add('hidden'));document.getElementById(id).classList.remove('hidden');document.querySelectorAll('#menuPanel button').forEach(b=>b.classList.toggle('active',b.dataset.page===id));toggleMenu(false);render();window.scrollTo({top:0,behavior:'smooth'})}
+function availableForDate(product,date){if(!product)return 0;const day=date||document.getElementById('fDate')?.value;if(!day)return Number(product.total||product.available||0);const used=rentals.filter(r=>r.dbStatus!=='cancelled'&&r.status!=='Cancelada'&&r.date<=day&&(r.endDate||r.date)>=day).reduce((sum,r)=>sum+(r.items||[]).filter(i=>i.productId===product.id).reduce((n,i)=>n+Number(i.quantity||0),0),0);return Math.max(0,Number(product.total||0)-used)}
+function refreshToyAvailability(){document.querySelectorAll('.toy-option').forEach(row=>{const check=row.querySelector('.toy-check'),qty=row.querySelector('.toy-qty'),p=products[Number(check.dataset.index)],avail=availableForDate(p,document.getElementById('fDate')?.value);const label=row.querySelector('.toy-price');if(label)label.textContent=`${money(p.price)} por unidade/diária · ${avail} disponível(is) nesta data`;check.disabled=avail<=0&&!check.checked;qty.max=Math.max(1,avail);if(Number(qty.value)>avail)qty.value=Math.max(1,avail)});updateToySelection()}
+function updateToySelection(){let count=0,total=0,parts=[];document.querySelectorAll('.toy-option').forEach(row=>{const check=row.querySelector('.toy-check'),qty=row.querySelector('.toy-qty'),p=products[Number(check.dataset.index)];qty.disabled=!check.checked;row.classList.toggle('selected',check.checked);if(check.checked){const limit=availableForDate(p,document.getElementById('fDate')?.value);const n=Math.max(1,Math.min(Number(qty.value)||1,limit));qty.value=n;count+=n;total+=n*Number(p.price||0);parts.push(`${n} × ${p.name}`)}});const summary=document.getElementById('selectionSummary');if(summary)summary.textContent=count?`${count} unidade(s): ${parts.join(' · ')} | Total sugerido: ${money(total)}`:'Nenhum brinquedo selecionado.';const price=document.getElementById('fPrice');if(price&&(!price.dataset.manual||price.value===''))price.value=total?total.toFixed(2):''}
+
+function toggleTheme(){document.body.dataset.theme=document.body.dataset.theme==='dark'?'':'dark';localStorage.setItem('brq_theme',document.body.dataset.theme)}
+if(localStorage.getItem('brq_theme'))document.body.dataset.theme=localStorage.getItem('brq_theme');
+function openForm(type){go('form');let title=document.getElementById('formTitle'),body=document.getElementById('formBody');
+if(type==='rental'){title.textContent='Cadastrar locação';body.innerHTML=`<label>Cliente</label><select id="fClient"><option value="">Selecione um cliente</option>${clients.map(c=>`<option value="${c.id}">${c.name}</option>`).join('')}</select><label>Brinquedos desta locação</label><div class="muted">A disponibilidade é estimada pelas locações já registradas para a data escolhida. Para este primeiro estágio, a reserva não possui bloqueio transacional simultâneo.</div><div class="toy-picker" id="toyPicker">${products.map((p,i)=>`<label class="toy-option"><input type="checkbox" class="toy-check" data-index="${i}" onchange="updateToySelection()" ${availableForDate(p,'')<=0?'disabled':''}><span><span class="toy-name">${p.name}</span><span class="toy-price">${money(p.price)} por unidade/diária · ${availableForDate(p,'')} disponível(is) (selecione a data)</span></span><input type="number" class="toy-qty" data-index="${i}" min="1" max="${Math.max(1,p.available)}" value="1" disabled aria-label="Quantidade de ${p.name}" onchange="updateToySelection()"></label>`).join('')||'<div class="muted">Cadastre os brinquedos no Estoque antes de criar uma locação.</div>'}</div><div class="selection-summary" id="selectionSummary">Nenhum brinquedo selecionado.</div><div class="formgrid"><div><label>Data do evento</label><input id="fDate" type="date" onchange="refreshToyAvailability()"></div><div><label>Valor total (R$)</label><input id="fPrice" type="number" min="0" step="0.01" placeholder="0,00" oninput="this.dataset.manual='1'"></div></div><label>Modalidade</label><select id="fMode"><option>Entrega própria</option><option>Retirada pelo cliente</option></select><label>Status</label><select id="fStatus"><option>Orçamento</option><option>Confirmada</option><option>Pendente</option></select><button class="full" onclick="saveRental()">Salvar locação</button>`}
+if(type==='client'){title.textContent='Novo cliente';body.innerHTML=`<label>Nome</label><input id="fName" placeholder="Nome completo"><label>Telefone</label><input id="fPhone" placeholder="Telefone"><label>Endereço</label><input id="fAddress" placeholder="Endereço"><button class="full" onclick="saveClient()">Salvar cliente</button>`}
+if(type==='product'){title.textContent='Novo brinquedo';body.innerHTML=`<label>Nome do brinquedo</label><input id="fProduct" placeholder="Ex.: Tobogã inflável"><label>Tipo de controle</label><select id="fMode"><option>Individual</option><option>Quantidade</option></select><div class="formgrid"><div><label>Quantidade total</label><input id="fTotal" type="number" min="1" placeholder="Quantidade"></div><div><label>Preço da diária</label><input id="fPPrice" type="number" min="0" placeholder="0,00"></div></div><button class="full" onclick="saveProduct()">Salvar brinquedo</button>`}
+if(type==='transaction'){title.textContent='Novo lançamento';body.innerHTML=`<label>Descrição</label><input id="fDesc" placeholder="Ex.: Combustível"><label>Tipo</label><select id="fType"><option>Entrada</option><option>Saída</option></select><label>Valor (R$)</label><input id="fValue" type="number" min="0" placeholder="0,00"><button class="full" onclick="saveTransaction()">Salvar lançamento</button>`}}
+async function saveRental(){
+ const items=[];document.querySelectorAll('.toy-option').forEach(row=>{const check=row.querySelector('.toy-check');if(check.checked){const i=Number(check.dataset.index),p=products[i],qty=Number(row.querySelector('.toy-qty').value);if(p&&qty>0&&qty<=Number(p.available))items.push({productIndex:i,productId:p.id,name:p.name,quantity:qty,unitPrice:Number(p.price||0)})}});
+ const customerId=document.getElementById('fClient').value,date=document.getElementById('fDate').value,price=Number(document.getElementById('fPrice').value);
+ if(!customerId||!items.length||!date||price<=0)return toast('Informe cliente, ao menos um brinquedo, data e valor.');
+ if(items.some(it=>!it.productId||it.quantity>availableForDate(products[it.productIndex],date)))return toast('Confira os brinquedos e as quantidades.');
+ const mode=document.getElementById('fMode').value,status=document.getElementById('fStatus').value;
+ try{
+  const rental=await cloudError(await sb.from('rentals').insert({company_id:companyId,customer_id:customerId,start_date:date,end_date:date,status:status==='Confirmada'?'confirmed':'pending',delivery_method:mode==='Retirada pelo cliente'?'customer_pickup':'delivery',total_amount:price,created_by:currentUser.id}).select().single());
+  const rows=items.map(i=>({company_id:companyId,rental_id:rental.id,product_id:i.productId,quantity:i.quantity,unit_price:i.unitPrice,subtotal:i.quantity*i.unitPrice}));
+  const saved=await sb.from('rental_items').insert(rows);if(saved.error){await sb.from('rentals').delete().eq('id',rental.id);throw saved.error;}
+  await loadCloudData();go('locacoes');toast('Locação salva na nuvem.');
+ }catch(e){toast('Erro ao salvar locação: '+(e.message||'verifique sua conexão'));}
+}
+async function saveClient(){if(!fName.value.trim())return toast('Informe o nome.');try{await cloudError(await sb.from('customers').insert({company_id:companyId,name:fName.value.trim(),phone:fPhone.value.trim(),address:fAddress.value.trim()}));await loadCloudData();go('clientes');toast('Cliente salvo na nuvem!')}catch(e){toast('Erro ao salvar cliente: '+e.message)}}
+async function saveProduct(){if(!fProduct.value.trim()||!fTotal.value||Number(fTotal.value)<1)return toast('Confira os dados.');try{await cloudError(await sb.from('products').insert({company_id:companyId,name:fProduct.value.trim(),inventory_mode:fMode.value==='Individual'?'individual':'quantity',total_quantity:Number(fTotal.value),daily_price:Number(fPPrice.value||0)}));await loadCloudData();go('estoque');toast('Brinquedo salvo na nuvem!')}catch(e){toast('Erro ao salvar brinquedo: '+e.message)}}
+async function saveTransaction(){if(!fDesc.value.trim()||Number(fValue.value)<=0)return toast('Informe descrição e valor.');try{await cloudError(await sb.from('financial_transactions').insert({company_id:companyId,transaction_type:fType.value==='Entrada'?'income':'expense',description:fDesc.value.trim(),amount:Number(fValue.value),status:'paid',paid_at:new Date().toISOString().slice(0,10),created_by:currentUser.id}));await loadCloudData();go('financeiro');toast('Lançamento salvo na nuvem!')}catch(e){toast('Erro ao salvar lançamento: '+e.message)}}
+
+function render(){
+ const sumType=type=>transactions.filter(t=>t.type===type).reduce((s,t)=>s+Number(t.value||0),0);
+ const income=sumType('Entrada'), expense=sumType('Saída');
+ document.getElementById('rentalCount').textContent=rentals.length;
+ document.getElementById('revenue').textContent=money(income);
+ document.getElementById('receivable').textContent=money(0);
+ document.getElementById('expenses').textContent=money(expense);
+ document.getElementById('financeIncome').textContent=money(income);
+ document.getElementById('financeExpense').textContent=money(expense);
+ document.getElementById('homeRentals').innerHTML=rentals.length?rentals.slice(-4).reverse().map(r=>`<div class="item"><div><b>${r.name}</b><div class="muted">${r.items?r.items.map(i=>`${i.quantity}× ${i.name}`).join(', '):r.toy} · ${dateBR(r.date)}</div></div><span class="tag ${r.status==='Pendente'?'warn':''}">${r.status}</span></div>`).join(''):'<div class="muted">Nenhuma locação cadastrada ainda.</div>';
+ let q=(document.getElementById('rentalSearch')?.value||'').toLowerCase();
+ document.getElementById('rentalList').innerHTML=rentals.length?rentals.filter(r=>(r.name+r.toy).toLowerCase().includes(q)).map(r=>`<div class="item"><div><b>${r.name}</b><div class="muted">${r.items?r.items.map(i=>`${i.quantity}× ${i.name}`).join(', '):r.toy} · ${dateBR(r.date)} · ${r.mode}</div><b>${money(r.price)}</b></div><span class="tag ${r.status==='Pendente'?'warn':''}">${r.status}</span></div>`).join(''):'<div class="muted">Nenhuma locação cadastrada ainda.</div>';
+ let cq=(document.getElementById('clientSearch')?.value||'').toLowerCase();
+ document.getElementById('clientList').innerHTML=clients.length?clients.filter(c=>(c.name+c.phone).toLowerCase().includes(cq)).map(c=>`<div class="item"><div><b>${c.name}</b><div class="muted">${c.phone||''} · ${c.address||''}</div></div><span class="tag">Cliente</span></div>`).join(''):'<div class="muted">Nenhum cliente cadastrado ainda.</div>';
+ document.getElementById('productList').innerHTML=products.length?products.map(p=>`<div class="item"><div><b>${p.name}</b><div class="muted">${p.mode} · ${money(p.price)} / diária</div><div class="muted">${p.available} disponíveis de ${p.total}</div></div><span class="tag ${p.available===0?'red':''}">${p.available===0?'Indisponível':'Disponível'}</span></div>`).join(''):'<div class="muted">Nenhum brinquedo cadastrado ainda.</div>';
+ document.getElementById('agendaList').innerHTML=rentals.length?rentals.slice().sort((a,b)=>a.date.localeCompare(b.date)).map(r=>`<div class="item"><div><b>${dateBR(r.date)} · ${r.name}</b><div class="muted">${r.items?r.items.map(i=>`${i.quantity}× ${i.name}`).join(', '):r.toy} · ${r.mode}</div></div><span class="tag ${r.status==='Pendente'?'warn':''}">${r.status}</span></div>`).join(''):'<div class="muted">Nenhum evento na agenda.</div>';
+ document.getElementById('transactionList').innerHTML=transactions.length?transactions.map(t=>`<div class="item"><div><b>${t.name}</b><div class="muted">${t.type}</div></div><b style="color:${t.type==='Entrada'?'#16845b':'#c94b4b'}">${t.type==='Entrada'?'+':'−'} ${money(t.value)}</b></div>`).join(''):'<div class="muted">Nenhuma movimentação cadastrada ainda.</div>';
+ document.getElementById('bars').innerHTML='';
+}
+async function saveCompany(){try{const name=document.getElementById('company').value.trim();if(!name)return toast('Informe o nome da empresa.');await cloudError(await sb.from('companies').update({name}).eq('id',companyId));toast('Nome da empresa atualizado na nuvem.')}catch(e){toast('Erro ao atualizar empresa: '+e.message)}}
+render();
+showApp(false);
+async function resumeSession(){const {data}=await sb.auth.getSession();if(!data.session)return;try{currentUser=data.session.user;const {data:members,error}=await sb.from('company_members').select('company_id,role').eq('user_id',currentUser.id);if(error)throw error;if(!members?.length)throw new Error('Usuário sem vínculo com empresa.');companyId=members[0].company_id;companyRole=members[0].role;const {data:co,error:ce}=await sb.from('companies').select('id,name').eq('id',companyId).single();if(ce)throw ce;document.getElementById('company').value=co.name;await loadCloudData();showApp(true);render();go('inicio');}catch(e){await sb.auth.signOut();authMessage(e.message||'Faça login novamente.',true)}}
+resumeSession();
+if('serviceWorker' in navigator && location.protocol.startsWith('http'))navigator.serviceWorker.register('sw.js').catch(()=>{});
+</script>
+</body></html>
