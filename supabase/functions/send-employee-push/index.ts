@@ -199,7 +199,7 @@ Deno.serve(async (req: Request) => {
     const body = await req.json();
 
     if (body?.action === "diagnostics") {
-      const token = (req.headers.get("Authorization") || "").replace(/^Bearer\\s+/i, "");
+      const token = (req.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "");
       if (!token) return reply({ error: "Entre novamente no aplicativo." }, 401);
       const authClient = createClient(url, anonKey, { auth: { persistSession: false, autoRefreshToken: false } });
       const { data: authData, error: authError } = await authClient.auth.getUser(token);
