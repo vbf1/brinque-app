@@ -271,7 +271,13 @@ body.modal-open{overflow:hidden}
 :root{
  --kids-safe-area-top:var(--safe-area-inset-top,env(safe-area-inset-top,0px));
  --kids-safe-area-bottom:var(--safe-area-inset-bottom,env(safe-area-inset-bottom,0px));
+ --kids-safe-area-left:var(--safe-area-inset-left,env(safe-area-inset-left,0px));
+ --kids-safe-area-right:var(--safe-area-inset-right,env(safe-area-inset-right,0px));
 }
+#authGate{padding:calc(22px + var(--kids-safe-area-top)) calc(22px + var(--kids-safe-area-right)) calc(22px + var(--kids-safe-area-bottom)) calc(22px + var(--kids-safe-area-left))!important}
+.image-lightbox{padding:calc(18px + var(--kids-safe-area-top)) calc(18px + var(--kids-safe-area-right)) calc(18px + var(--kids-safe-area-bottom)) calc(18px + var(--kids-safe-area-left))}
+.delete-modal{padding:calc(20px + var(--kids-safe-area-top)) calc(20px + var(--kids-safe-area-right)) calc(20px + var(--kids-safe-area-bottom)) calc(20px + var(--kids-safe-area-left))}
+.select-sheet-backdrop{padding:calc(16px + var(--kids-safe-area-top)) calc(16px + var(--kids-safe-area-right)) calc(16px + var(--kids-safe-area-bottom)) calc(16px + var(--kids-safe-area-left))}
 header{padding-top:calc(12px + var(--kids-safe-area-top))}
 .menu-panel{
  top:calc(78px + var(--kids-safe-area-top));
@@ -965,6 +971,7 @@ window.addEventListener('popstate',event=>{
   go(page,null,true);
  }
 });
+let lastHomeBackAt=0;
 window.kidsLocHandleBack=function(){
  const photoPreview=document.getElementById('occurrencePhotoPreview');
  if(photoPreview){photoPreview.remove();return true}
@@ -975,13 +982,20 @@ window.kidsLocHandleBack=function(){
  if(menu&&!menu.classList.contains('hidden')){toggleMenu(false);return true}
  const visibleModal=document.querySelector('.delete-modal.is-visible');
  if(visibleModal){const cancel=visibleModal.querySelector('.delete-modal-cancel');if(cancel){cancel.click();return true}}
- if(document.getElementById('authGate')?.style.display!=='none')return false;
+ const selectSheet=document.getElementById('selectSheetBackdrop');
+ if(selectSheet?.classList.contains('open')){closeCustomSelect();return true}
+ if(document.getElementById('authGate')?.style.display!=='none')return 'exit';
  if(typeof currentPage!=='undefined'&&currentPage!=='inicio'){
-  if(history.state?.brinquePage)history.back();else go('inicio');
+  if(history.state?.brinquePage&&history.state.brinquePage!==currentPage)history.back();
+  else go('inicio');
   return true;
  }
- return false;
-};
+ const now=Date.now();
+ if(now-lastHomeBackAt<1800)return 'exit';
+ lastHomeBackAt=now;
+ if(typeof toast==='function')toast('Pressione voltar novamente para sair do aplicativo.');
+ return true;
+}
 function availableForDate(product,date,endDate){if(!product)return 0;const start=date||document.getElementById('fDate')?.value;const end=endDate||document.getElementById('fEndDate')?.value||start;if(!start)return product.mode==='Individual'?productUnits.filter(u=>u.product_id===product.id&&u.status==='available').length:Number(product.total||0);const overlapping=rentals.filter(r=>['pending','confirmed','ongoing'].includes(r.dbStatus)&&r.date<=end&&(r.endDate||r.date)>=start);if(product.mode==='Individual'){const used=new Set(overlapping.flatMap(r=>(r.items||[]).filter(i=>i.productId===product.id).flatMap(i=>i.unitIds||[])));return productUnits.filter(u=>u.product_id===product.id&&u.status==='available'&&!used.has(u.id)).length}const used=overlapping.reduce((sum,r)=>sum+(r.items||[]).filter(i=>i.productId===product.id).reduce((n,i)=>n+Number(i.quantity||0),0),0);return Math.max(0,Number(product.total||0)-used)}
 function refreshToyAvailability(){document.querySelectorAll('.toy-option').forEach(row=>{const check=row.querySelector('.toy-check'),qty=row.querySelector('.toy-qty'),p=products[Number(check.dataset.index)],avail=availableForDate(p,document.getElementById('fDate')?.value,document.getElementById('fEndDate')?.value);const label=row.querySelector('.toy-price');if(label)label.textContent=`${money(p.price)} por unidade/diária · ${avail} disponível(is) no período`;check.disabled=avail<=0&&!check.checked;qty.max=Math.max(1,avail);if(Number(qty.value)>avail)qty.value=Math.max(1,avail)});updateToySelection()}
 function updateToySelection(){let count=0,total=0,parts=[];document.querySelectorAll('.toy-option').forEach(row=>{const check=row.querySelector('.toy-check'),qty=row.querySelector('.toy-qty'),p=products[Number(check.dataset.index)];qty.disabled=!check.checked;row.classList.toggle('selected',check.checked);if(check.checked){const limit=availableForDate(p,document.getElementById('fDate')?.value,document.getElementById('fEndDate')?.value);const n=Math.max(1,Math.min(Number(qty.value)||1,limit));qty.value=n;count+=n;total+=n*Number(p.price||0);parts.push(`${n} × ${p.name}`)}});const summary=document.getElementById('selectionSummary');if(summary)summary.textContent=count?`${count} unidade(s): ${parts.join(' · ')} | Total sugerido: ${money(total)}`:'Nenhum brinquedo selecionado.';const price=document.getElementById('fPrice');if(price&&(!price.dataset.manual||price.value===''))price.value=total?total.toFixed(2):''}
