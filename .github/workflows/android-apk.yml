@@ -47,6 +47,27 @@ jobs:
       - name: Install JavaScript dependencies
         run: npm install --no-audit --no-fund
 
+      - name: Validate Firebase Android configuration
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          config = json.loads(Path("google-services.json").read_text())
+          project = config.get("project_info", {}).get("project_id")
+          clients = config.get("client", [])
+          expected_package = "br.com.sonhokids.kidsloc"
+          matches = [item for item in clients if item.get("client_info", {}).get("android_client_info", {}).get("package_name") == expected_package]
+          if project != "kidsloc-app-32009":
+              raise SystemExit(f"Firebase project incorreto: {project!r}")
+          if not matches:
+              raise SystemExit(f"google-services.json não contém o pacote Android {expected_package}")
+          if not matches[0].get("client_info", {}).get("mobilesdk_app_id"):
+              raise SystemExit("Firebase mobilesdk_app_id ausente.")
+          if not matches[0].get("api_key"):
+              raise SystemExit("Firebase API key ausente.")
+          print(f"Firebase Android validado: projeto={project}, pacote={expected_package}")
+          PY
+
       - name: Prepare web assets
         run: |
           mkdir -p www
@@ -80,6 +101,7 @@ jobs:
         working-directory: android
         run: |
           chmod +x gradlew
+          ./gradlew :app:processDebugGoogleServices --no-daemon
           ./gradlew assembleDebug --no-daemon
 
       - name: Upload installable APK
