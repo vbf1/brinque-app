@@ -1,0 +1,9 @@
+{
+  "name": "Brinque App - Gestão de Locações",
+  "short_name": "Brinque App",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#f2f5fa",
+  "theme_color": "#172b4d",
+  "description": "Gestão interna de locação de brinquedos."
+}
