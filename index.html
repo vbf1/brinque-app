@@ -292,7 +292,11 @@ let menuScrollY=0;function toggleMenu(force){const panel=document.getElementById
 function employeeEscape(value){return String(value||'').replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
 async function employeeApi(payload){
  const {data,error}=await sb.functions.invoke('manage-employees',{body:{...payload,company_id:companyId}});
- if(error)throw error;if(data&&data.error)throw new Error(data.error);return data;
+ if(error){
+  try{if(error.context&&typeof error.context.json==='function'){const detail=await error.context.json();if(detail&&(detail.error||detail.message))throw new Error(detail.error||detail.message)}}catch(detailError){if(detailError instanceof Error&&detailError.message!=='')throw detailError}
+  throw error;
+ }
+ if(data&&data.error)throw new Error(data.error);return data;
 }
 function employeeMessage(message,isError=false){const el=document.getElementById('employeeMessage');if(el){el.textContent=message;el.style.color=isError?'#c94b4b':'var(--green)'}}
 async function loadEmployees(){
