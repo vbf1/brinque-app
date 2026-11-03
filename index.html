@@ -274,7 +274,7 @@ async function loadCloudData(){
   sb.from('customers').select('*').eq('company_id',companyId).order('name'),
   sb.from('products').select('*').eq('company_id',companyId).eq('active',true).order('name'),
   sb.from('product_units').select('*').eq('company_id',companyId).order('asset_code'),
-  sb.from('rentals').select('*,customers(name),rental_items(quantity,unit_price,products(name),rental_item_units(product_unit_id,product_units(asset_code)))').eq('company_id',companyId).order('start_date'),
+  sb.from('rentals').select('*,customers(name),rental_items(product_id,quantity,unit_price,products(name),rental_item_units(product_unit_id,product_units(asset_code)))').eq('company_id',companyId).order('start_date'),
   isAdmin()?sb.from('financial_transactions').select('*').eq('company_id',companyId).order('created_at',{ascending:false}):Promise.resolve({data:[],error:null})
  ]);
  for(const r of [cr,pr,ur,rr,tr])if(r.error)throw r.error;
