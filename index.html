@@ -671,10 +671,18 @@ function urlBase64ToUint8Array(value){
  return output;
 }
 function withPushTimeout(promise,milliseconds,message){let timer;return Promise.race([Promise.resolve(promise),new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error(message)),milliseconds)})]).finally(()=>clearTimeout(timer))}
+function setNativePushStage(stage){window.__kidsLocPushStage=stage;const el=document.getElementById('pushStatus');if(el)el.textContent=stage}
 async function getNativePushPlugin(){
- if(!window.Capacitor?.isNativePlatform?.()||window.Capacitor?.getPlatform?.()!=='android')return null;
- if(!window.KidsLocPushNotifications)throw new Error('O módulo nativo de notificações não foi inicializado. Reinicie o app; se persistir, será necessário reinstalar a versão atualizada.');
- return window.KidsLocPushNotifications;
+ setNativePushStage('Diagnóstico: verificando a ponte nativa do Capacitor...');
+ const cap=window.Capacitor;
+ if(!cap)throw new Error('Capacitor JS não foi carregado no APK (window.Capacitor ausente).');
+ let native=false,platform='desconhecida';
+ try{native=!!cap.isNativePlatform?.();platform=cap.getPlatform?.()||'desconhecida'}catch(error){throw new Error('A ponte Capacitor não respondeu ao identificar a plataforma: '+String(error?.message||error))}
+ if(!native||platform!=='android')throw new Error('O APK não está sendo identificado como Android nativo (nativo: '+native+', plataforma: '+platform+').');
+ const plugin=window.KidsLocPushNotifications||cap.Plugins?.PushNotifications;
+ if(!plugin)throw new Error('A ponte Capacitor está ativa, mas o plugin PushNotifications não foi registrado no JavaScript.');
+ window.KidsLocPushNotifications=plugin;
+ return plugin;
 }
 let nativePushListenersReady=false;
 let nativePushRegistrationPending=false;
@@ -686,13 +694,17 @@ function finishNativePushRegistration(active,message){
  updatePushUI(!!active,message);
 }
 async function registerNativePush(requestPermission=false){
- const plugin=await withPushTimeout(getNativePushPlugin(),10000,'O módulo de notificações não respondeu. Reinicie o aplicativo e tente novamente.');
+ setNativePushStage('Diagnóstico: localizando o plugin nativo de notificações...');
+ const plugin=await getNativePushPlugin();
  if(!plugin)return false;
+ setNativePushStage('Diagnóstico: preparando o canal Android de notificações...');
  try{await withPushTimeout(plugin.createChannel({id:'kidsloc_notifications',name:'Avisos do KidsLoc',description:'Notificações importantes do KidsLoc App',importance:5,sound:'default',visibility:1}),6000,'O Android demorou para preparar o canal de notificações.')}catch(error){console.warn('Não foi possível criar o canal de notificações:',error)}
- let permission=await withPushTimeout(plugin.checkPermissions(),8000,'O Android não respondeu à consulta de permissão de notificações.');
- if(permission.receive!=='granted'&&requestPermission)permission=await withPushTimeout(plugin.requestPermissions(),20000,'A solicitação de permissão do Android não foi concluída. Verifique as permissões do KidsLoc nas configurações do celular.');
+ setNativePushStage('Diagnóstico: consultando a permissão do Android...');
+ let permission=await withPushTimeout(plugin.checkPermissions(),8000,'ETAPA checkPermissions: o plugin Android não respondeu à consulta de permissão.');
+ if(permission.receive!=='granted'&&requestPermission){setNativePushStage('Diagnóstico: aguardando a autorização do Android...');permission=await withPushTimeout(plugin.requestPermissions(),20000,'ETAPA requestPermissions: o Android não concluiu a solicitação de permissão. Verifique as permissões do KidsLoc nas configurações do celular.')}
  if(permission.receive!=='granted')throw new Error('Permita notificações do KidsLoc App nas configurações do Android.');
  if(!nativePushListenersReady){
+  setNativePushStage('Diagnóstico: registrando listener de token FCM...');
   await withPushTimeout(plugin.addListener('registration',async result=>{
    const token=String(result?.value||'').trim();
    if(!token||!currentUser?.id||!companyId){finishNativePushRegistration(false,'O Firebase retornou um token, mas não foi possível identificar a conta ativa.');return}
@@ -707,11 +719,14 @@ async function registerNativePush(requestPermission=false){
     finishNativePushRegistration(false,'O Android gerou o token, mas o cadastro no servidor falhou: '+translateError(error));
    }
   }),8000,'Não foi possível preparar o recebimento do token do Firebase.');
+  setNativePushStage('Diagnóstico: registrando listener de erros FCM...');
   await withPushTimeout(plugin.addListener('registrationError',error=>{
    console.error('Erro no registro FCM:',error);
    finishNativePushRegistration(false,'Falha no registro do Firebase: '+String(error?.error||error?.message||'verifique a conexão e a configuração do Android.'));
   }),8000,'Não foi possível preparar o tratamento de erros do Firebase.');
+  setNativePushStage('Diagnóstico: registrando listener de notificações recebidas...');
   await withPushTimeout(plugin.addListener('pushNotificationReceived',notification=>toast(String(notification?.title||'KidsLoc App')+': '+String(notification?.body||'Você recebeu uma nova notificação.'))),8000,'Não foi possível preparar o recebimento de notificações.');
+  setNativePushStage('Diagnóstico: registrando listener de toque na notificação...');
   await withPushTimeout(plugin.addListener('pushNotificationActionPerformed',()=>{if(typeof go==='function')go('inicio')}),8000,'Não foi possível preparar a abertura das notificações.');
   nativePushListenersReady=true;
  }
@@ -775,7 +790,8 @@ async function enablePushNotifications(){
   toast('A ativação demorou demais. O botão foi liberado para uma nova tentativa.','error');
  },35000);
  try{
-  const nativePlugin=await withPushTimeout(getNativePushPlugin(),12000,'O módulo Android de notificações não respondeu. Feche e abra o KidsLoc e tente novamente.');
+  setNativePushStage('Diagnóstico: identificando o Android e o plugin de notificações...');
+  const nativePlugin=await getNativePushPlugin();
   if(nativePlugin){
    updatePushUI(false,'Verificando a permissão de notificações do Android...');
    await withPushTimeout(registerNativePush(true),30000,'O registro do aparelho no Firebase não foi concluído. Tente novamente.');
@@ -801,9 +817,10 @@ async function enablePushNotifications(){
   updatePushUI(true,'Notificações ativadas neste aparelho.');
   toast('Notificações ativadas com sucesso!');
  }catch(e){
-  console.error('Falha ao ativar notificações:',e);
-  updatePushUI(false,'Não foi possível ativar: '+translateError(e));
-  toast('Falha ao ativar notificações: '+translateError(e),'error');
+  console.error('Falha ao ativar notificações na etapa '+String(window.__kidsLocPushStage||'não identificada')+':',e);
+  const diagnostic='Etapa: '+String(window.__kidsLocPushStage||'não identificada')+'. '+translateError(e);
+  updatePushUI(false,'Não foi possível ativar: '+diagnostic);
+  toast('Falha ao ativar notificações: '+diagnostic,'error');
  }finally{
   completed=true;clearTimeout(watchdog);
   if(button){button.disabled=false;button.textContent='Ativar notificações'}
