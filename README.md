@@ -8,6 +8,7 @@ Aplicativo web instalável (PWA), preparado para publicação no GitHub Pages e 
 - Cadastro e leitura em nuvem de clientes, brinquedos, locações, itens das locações e lançamentos financeiros.
 - Atualização dos dados ao entrar no aplicativo.
 - Sessão de login persistente no aparelho.
+- Tela para criar uma nova senha ao abrir um link de recuperação enviado pelo Supabase.
 
 ## Publicação
 1. Envie `index.html`, `manifest.webmanifest`, `sw.js` e `README.md` para a raiz do repositório GitHub.
@@ -19,6 +20,9 @@ Aplicativo web instalável (PWA), preparado para publicação no GitHub Pages e 
 A aplicação usa a URL do projeto e a chave pública `publishable` no navegador. Isso é esperado para aplicações Supabase; a proteção dos dados depende de Auth e RLS no banco. Nunca coloque `service_role` ou `sb_secret` no código do navegador.
 
 As contas precisam existir em **Authentication → Users** e estar vinculadas à empresa em `company_members`.
+
+## Recuperação de senha
+Ao abrir o link de recuperação enviado pelo Supabase, o aplicativo reconhece o evento `PASSWORD_RECOVERY` e exibe o formulário para cadastrar e confirmar uma nova senha. O endereço do GitHub Pages deve estar cadastrado em **Authentication → URL Configuration → Redirect URLs**.
 
 ## Limitações importantes desta etapa
 - A locação registra o intervalo como um único dia (data do evento).
