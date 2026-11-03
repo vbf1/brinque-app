@@ -35,6 +35,7 @@ create table public.occurrence_photos (
  created_at timestamptz not null default now()
 );
 create index occurrence_photos_occurrence_idx on public.occurrence_photos(company_id,occurrence_id,created_at);
+create index occurrence_photos_occurrence_id_idx on public.occurrence_photos(occurrence_id);
 create index occurrence_photos_uploaded_by_idx on public.occurrence_photos(uploaded_by) where uploaded_by is not null;
 alter table public.occurrence_photos enable row level security;
 create policy occurrence_photos_select_company on public.occurrence_photos for select to authenticated using (public.is_company_member(company_id));
