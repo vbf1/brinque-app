@@ -5,6 +5,7 @@ on:
     branches:
       - 'migration/**'
       - 'deploy/**'
+      - 'design/**'
   workflow_dispatch:
 
 concurrency:
