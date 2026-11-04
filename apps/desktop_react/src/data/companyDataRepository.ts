@@ -59,6 +59,30 @@ export function createCompanyDataRepository(
       if (error) throw error;
       return data ?? [];
     },
+    async setProductUnitStatus(unitId: string, status: 'available' | 'maintenance') {
+      const { data: unit, error: unitError } = await client.from('product_units')
+        .select('id, product_id, status').eq('id', unitId)
+        .eq('company_id', companyId).single();
+      if (unitError) throw unitError;
+      if (status === 'maintenance') {
+        const { error } = await client.from('maintenance_records').insert({
+          company_id: companyId, product_id: unit.product_id, product_unit_id: unit.id,
+          description: 'Unidade enviada para manutenção pelo controle de estoque.',
+          status: 'open',
+        });
+        if (error) throw error;
+      } else if (unit.status === 'maintenance') {
+        const { error } = await client.from('maintenance_records').update({
+          status: 'completed', completed_at: new Date().toISOString().slice(0, 10),
+        }).eq('product_unit_id', unit.id).eq('company_id', companyId).eq('status', 'open');
+        if (error) throw error;
+      }
+      const { data, error } = await client.from('product_units').update({ status })
+        .eq('id', unitId).eq('company_id', companyId).select('id').maybeSingle();
+      if (error) throw error;
+      if (!data) throw new Error('Unidade não encontrada ou sem permissão para atualizar.');
+    },
+
 
     async createRentalWithItems(input: {
       customerId: string;
