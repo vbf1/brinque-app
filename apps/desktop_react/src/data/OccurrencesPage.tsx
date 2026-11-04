@@ -82,7 +82,7 @@ export function OccurrencesPage({ companyId, role }: { companyId: string; role: 
   function canManage(item: Occurrence) { return isAdmin || item.created_by === currentUserId; }
   async function save(event: FormEvent) {
     event.preventDefault();
-    if (form.title.trim().length < 3 || !form.occurred_at || form.location.trim().length < 2 || form.description.trim().length < 5 || Number(form.loss_amount || 0) < 0) {
+    if (form.title.trim().length < 3 || !form.occurred_at || form.location.trim().length < 2 || form.description.trim().length < 5 || (!Number.isFinite(Number(form.loss_amount || 0)) || Number(form.loss_amount || 0) < 0)) {
       setError('Preencha título, data, local e descrição corretamente.'); return;
     }
     if (files.some((file) => !['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || file.size > 8 * 1024 * 1024)) {
@@ -106,7 +106,8 @@ export function OccurrencesPage({ companyId, role }: { companyId: string; role: 
         if (updateError) throw updateError;
         if (!data) throw new Error('Você não tem permissão para editar este relato.');
       } else {
-        const fullName = String(auth.user.user_metadata?.full_name || auth.user.user_metadata?.name || '').trim();
+        const { data: profile } = await supabase.from('profiles').select('full_name').eq('id', auth.user.id).maybeSingle();
+        const fullName = String(profile?.full_name || auth.user.user_metadata?.full_name || auth.user.user_metadata?.name || '').trim();
         const createdName = fullName || auth.user.email?.split('@')[0] || 'Usuário';
         const { data, error: insertError } = await supabase.from('occurrence_reports').insert({
           ...payload, company_id: companyId, created_by: auth.user.id,
