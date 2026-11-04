@@ -6,10 +6,10 @@ type Conversation = { id: string; conversation_type: string; title: string | nul
 type Message = { id: string; conversation_id: string; sender_id: string; body: string; created_at: string };
 
 export function TeamChatPage({ companyId }: { companyId: string }) {
-  const userId = supabase.auth.getUser ? undefined : undefined;
   const [viewerId, setViewerId] = useState('');
   const [members, setMembers] = useState<Member[]>([]);
   const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [conversationPeers, setConversationPeers] = useState<Map<string, string>>(new Map());
   const [messages, setMessages] = useState<Message[]>([]);
   const [active, setActive] = useState<Conversation | null>(null);
   const [recipient, setRecipient] = useState('');
@@ -30,7 +30,9 @@ export function TeamChatPage({ companyId }: { companyId: string }) {
       .select('conversation_id, user_id').in('conversation_id', ids);
     if (memberError) throw memberError;
     const mine = new Set((memberships ?? []).filter(row => row.user_id === uid).map(row => row.conversation_id));
-    setConversations((rows ?? []).filter(row => mine.has(row.id)) as Conversation[]);
+    const visible = (rows ?? []).filter(row => mine.has(row.id)) as Conversation[];
+    setConversations(visible);
+    setConversationPeers(new Map((memberships ?? []).filter(row => row.user_id !== uid).map(row => [row.conversation_id, row.user_id])));
   }, [companyId]);
 
   const load = useCallback(async () => {
@@ -52,7 +54,11 @@ export function TeamChatPage({ companyId }: { companyId: string }) {
       const names = new Map((profiles ?? []).map(row => [row.id, row.full_name || 'Funcionário']));
       setMembers((memberRows ?? []).map(row => ({ user_id: row.user_id, role: row.role, name: names.get(row.user_id) || 'Funcionário' })));
       await loadConversations(auth.user.id);
-      if (groupId) setActive(current => current?.id === groupId ? current : null);
+      if (groupId) {
+        const { data: group } = await supabase.from('team_conversations')
+          .select('id, conversation_type, title, created_at').eq('id', groupId).maybeSingle();
+        if (group) setConversations(current => current.some(item => item.id === groupId) ? current : [group as Conversation, ...current]);
+      }
     } catch (error) { setMessage(error instanceof Error ? error.message : 'Não foi possível carregar as conversas.'); }
     finally { setLoading(false); }
   }, [companyId, loadConversations]);
@@ -113,8 +119,7 @@ export function TeamChatPage({ companyId }: { companyId: string }) {
   const memberName = (id: string) => members.find(member => member.user_id === id)?.name || 'Membro da equipe';
   const conversationName = (conversation: Conversation) => {
     if (conversation.conversation_type === 'team') return 'Grupo da equipe';
-    const member = conversations.find(item => item.id === conversation.id);
-    return member ? (conversation.title || 'Conversa privada') : 'Conversa';
+    return memberName(conversationPeers.get(conversation.id) || '') || 'Conversa privada';
   };
 
   return <section className="module-content team-chat-page">
