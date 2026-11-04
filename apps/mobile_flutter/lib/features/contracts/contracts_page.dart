@@ -214,7 +214,7 @@ class _ContractsPageState extends State<ContractsPage> {
 
   Future<void> _uploadSigned(Map<String, dynamic> contract) async {
     final result = await FilePicker.platform.pickFiles(type: FileType.custom, allowedExtensions: const ['pdf'], withData: true);
-    if (result == null || result.files.isEmpty) return;
+    if (!mounted || result == null || result.files.isEmpty) return;
     final file = result.files.single;
     final bytes = file.bytes;
     if (bytes == null || file.size > 10 * 1024 * 1024) { _message('Selecione um PDF de até 10 MB.'); return; }
@@ -249,7 +249,7 @@ class _ContractsPageState extends State<ContractsPage> {
         FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Cancelar')),
       ],
     ));
-    if (ok != true) return;
+    if (!mounted || ok != true) return;
     setState(() => _busy = true);
     try {
       await _db.from('rental_contracts').update({
