@@ -41,6 +41,70 @@ class CompanyDataRepository {
     return List<Map<String, dynamic>>.from(rows);
   }
 
+  /// Creates a rental and all selected toys in one database transaction.
+  /// Stock validation and individual-unit allocation remain server-side.
+  Future<String> createRentalWithItems({
+    required String customerId,
+    required String startDate,
+    required String endDate,
+    required String status,
+    required String deliveryMethod,
+    required num totalAmount,
+    required List<Map<String, dynamic>> items,
+    String? deliveryAddress,
+    List<String> responsibleUserIds = const [],
+  }) async {
+    final result = await _client.rpc(
+      'create_rental_with_items',
+      params: {
+        'p_company_id': companyId,
+        'p_customer_id': customerId,
+        'p_start_date': startDate,
+        'p_end_date': endDate,
+        'p_status': status,
+        'p_delivery_method': deliveryMethod,
+        'p_total_amount': totalAmount,
+        'p_items': items,
+        'p_delivery_address': deliveryAddress,
+        'p_responsible_user_ids': responsibleUserIds,
+      },
+    );
+    return result as String;
+  }
+
+  /// Replaces rental details and the full toy list atomically. Sending an empty
+  /// list is rejected by the existing database function; callers must retain
+  /// at least one toy in every rental.
+  Future<void> updateRentalWithItems({
+    required String rentalId,
+    required String customerId,
+    required String startDate,
+    required String endDate,
+    required String status,
+    required String deliveryMethod,
+    required num totalAmount,
+    required List<Map<String, dynamic>> items,
+    String? deliveryAddress,
+    List<String> responsibleUserIds = const [],
+  }) async {
+    await _client.rpc(
+      'update_rental_with_items',
+      params: {
+        'p_company_id': companyId,
+        'p_rental_id': rentalId,
+        'p_customer_id': customerId,
+        'p_start_date': startDate,
+        'p_end_date': endDate,
+        'p_status': status,
+        'p_delivery_method': deliveryMethod,
+        'p_total_amount': totalAmount,
+        'p_items': items,
+        'p_delivery_address': deliveryAddress,
+        'p_responsible_user_ids': responsibleUserIds,
+      },
+    );
+  }
+
   /// Loads rentals and their selected toys using the same relations consumed
   /// by the currently deployed application.
   Future<List<Map<String, dynamic>>> fetchRentals() async {
