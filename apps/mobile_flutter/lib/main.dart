@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'core/app_messenger.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'core/supabase_config.dart';
 import 'features/auth/auth_gate.dart';
@@ -16,6 +17,7 @@ class KidsLocApp extends StatelessWidget {
     const green = Color(0xFF218653);
     return MaterialApp(
       title: 'KidsLoc App',
+      scaffoldMessengerKey: appMessengerKey,
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: green),
