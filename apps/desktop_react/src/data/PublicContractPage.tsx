@@ -84,7 +84,7 @@ export function PublicContractPage({ token }: { token: string }) {
       <label style={{display:'flex',gap:10,alignItems:'flex-start',margin:'18px 0'}}><input type="checkbox" checked={consent} onChange={e=>setConsent(e.target.checked)}/>Declaro que li o contrato completo e concordo com suas condições.</label>
       <button type="button" disabled={saving} onClick={()=>void sign()} style={buttonPrimary}>{saving?'Registrando...':'Assinar contrato'}</button>
     </>}
-    {signed && <h2>Contrato assinado com sucesso. A empresa foi notificada pelo registro no KidsLoc.</h2>}
+    {signed && <h2>Contrato assinado com sucesso. Sua assinatura e os dados do aceite foram registrados no KidsLoc. A empresa poderá consultar o documento assinado.</h2>}
     {message && <p role="status" style={{padding:12,background:'#fff4df',borderRadius:8}}>{message}</p>}
   </main>;
 }
