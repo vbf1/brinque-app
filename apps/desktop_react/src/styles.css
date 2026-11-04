@@ -50,3 +50,17 @@ button.secondary-button { background: #edf4ef; color: #246b43; }
 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .form-actions { display: flex; justify-content: flex-end; gap: 10px; }
 @media (max-width: 600px) { .module-header { align-items: flex-start; flex-direction: column; } .module-toolbar { flex-direction: column; } .form-grid { grid-template-columns: 1fr; } .customer-row { gap: 10px; padding: 10px; } .customer-row button { padding: 8px 10px; } .app-topbar { flex-wrap: wrap; } }
+
+
+.customer-form select { width: 100%; min-height: 44px; padding: 10px 12px; border: 1px solid #d5e0d9; border-radius: 10px; background: #fff; color: #17251e; font: inherit; }
+.rental-form { margin-top: 20px; }
+.rental-items-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 12px; }
+.rental-items-heading h3 { margin: 0; }
+.rental-item-editor { display: grid; gap: 10px; padding: 14px; border: 1px solid #e1e9e4; border-radius: 12px; background: #fff; }
+.rental-item-top { display: flex; align-items: center; justify-content: space-between; }
+.remove-item-button { padding: 6px 10px; background: transparent; color: #a33b36; }
+.remove-item-button:disabled { opacity: .35; cursor: not-allowed; }
+.rental-total { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px; border-radius: 12px; background: #edf5ef; color: #234c34; }
+.rental-total strong { font-size: 20px; }
+.rental-row .customer-info span { white-space: normal; line-height: 1.5; }
+@media (max-width: 600px) { .rental-items-heading { align-items: flex-start; flex-direction: column; } .rental-total { align-items: flex-start; flex-direction: column; } }
