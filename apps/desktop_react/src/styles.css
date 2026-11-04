@@ -96,3 +96,38 @@ button.secondary-button { background: #edf4ef; color: #246b43; }
 .data-list-row>div:first-child { display:grid; gap:5px; min-width:0; }
 .danger-button { border:1px solid #d99; color:#a22; background:transparent; border-radius:8px; padding:8px 11px; }
 @media(max-width:640px) { .data-page-heading { align-items:flex-start; flex-direction:column; } .data-list-row { grid-template-columns:minmax(0,1fr) auto; } .data-row-actions { grid-column:1/-1; justify-content:flex-end; } }
+
+
+/* Individual toy-unit inventory and maintenance controls */
+.record-card-units {
+  display: grid;
+  gap: 8px;
+  width: 100%;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line, #e3e9f2);
+}
+.record-unit-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 6px 12px;
+  padding: 10px;
+  border: 1px solid var(--line, #e3e9f2);
+  border-radius: 10px;
+}
+.record-unit-row > span {
+  display: grid;
+  gap: 3px;
+}
+.record-unit-row small {
+  color: var(--muted, #718096);
+  font-size: 12px;
+}
+.record-unit-history {
+  grid-column: 1 / -1;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 640px) {
+  .record-unit-row { grid-template-columns: minmax(0, 1fr) auto; }
+}
