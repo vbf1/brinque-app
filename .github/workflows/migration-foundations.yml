@@ -83,3 +83,31 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git commit -m "build: lock Flutter and React dependencies"
           git push origin "HEAD:${GITHUB_REF_NAME}"
+
+  preview-apk:
+    needs: [flutter, react]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - name: Generate isolated Android host project
+        run: |
+          flutter create --platforms=android --org br.com.sonhokids --project-name kidslocpreview /tmp/kidsloc-preview
+          cp -R apps/mobile_flutter/lib /tmp/kidsloc-preview/
+          cp apps/mobile_flutter/pubspec.yaml /tmp/kidsloc-preview/pubspec.yaml
+          cp apps/mobile_flutter/pubspec.lock /tmp/kidsloc-preview/pubspec.lock
+      - name: Resolve dependencies
+        working-directory: /tmp/kidsloc-preview
+        run: flutter pub get
+      - name: Build preview APK
+        working-directory: /tmp/kidsloc-preview
+        run: flutter build apk --debug --build-number=${GITHUB_RUN_NUMBER}
+      - name: Upload preview APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: kidsloc-flutter-preview-${{ github.run_number }}
+          path: /tmp/kidsloc-preview/build/app/outputs/flutter-apk/app-debug.apk
+          if-no-files-found: error
+          retention-days: 14
