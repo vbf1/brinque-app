@@ -8,6 +8,7 @@ import '../finance/finance_page.dart';
 import '../occurrences/occurrences_page.dart';
 import '../team_chat/team_chat_page.dart';
 import '../../core/native_push_service.dart';
+import '../reminders/reminder_settings_page.dart';
 
 class CompanyHomePage extends StatefulWidget {
   const CompanyHomePage({super.key});
@@ -123,6 +124,24 @@ class _CompanyHomePageState extends State<CompanyHomePage> {
                     ]),
                   ),
                 ),
+                if (data['role'] == 'owner' || data['role'] == 'admin') ...[
+                  const SizedBox(height: 10),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: () => Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) => ReminderSettingsPage(
+                            companyId: data['id'] as String,
+                            role: data['role'] as String,
+                          ),
+                        ),
+                      ),
+                      icon: const Icon(Icons.notifications_active_outlined),
+                      label: const Text('Configurar lembretes das locações'),
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 20),
                 const Text('Acesse os primeiros módulos da migração.', textAlign: TextAlign.center),
                 const SizedBox(height: 20),
