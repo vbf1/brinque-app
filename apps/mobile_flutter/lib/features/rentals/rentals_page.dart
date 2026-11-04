@@ -21,14 +21,18 @@ class _RentalsPageState extends State<RentalsPage> {
 
   Future<_RentalData> _load() async {
     final results = await Future.wait([
-      repo.fetchRentals(), repo.fetchCustomers(), repo.fetchProducts(),
+      repo.fetchRentals(), repo.fetchCustomers(), repo.fetchProducts(), repo.fetchCompanyMembers(),
     ]);
     return _RentalData(
-      rentals: results[0], customers: results[1], products: results[2],
+      rentals: results[0], customers: results[1], products: results[2], employees: results[3],
     );
   }
 
-  Future<void> reload() async => setState(() => future = _load());
+  Future<void> reload() async {
+    final next = _load();
+    setState(() => future = next);
+    await next;
+  }
 
   Future<void> editRental(_RentalData data, [Map<String, dynamic>? rental]) async {
     final customerId = ValueNotifier<String?>(rental?['customer_id'] as String?);
@@ -37,6 +41,17 @@ class _RentalsPageState extends State<RentalsPage> {
     final status = ValueNotifier<String>(rental?['status'] as String? ?? 'pending');
     final delivery = ValueNotifier<String>(rental?['delivery_method'] as String? ?? 'customer_pickup');
     final address = TextEditingController(text: rental?['delivery_address'] as String? ?? '');
+    final totalController = TextEditingController(text: rental?['total_amount']?.toString() ?? '');
+    final selectedResponsibleIds = <String>{
+      ...((rental?['rental_responsibles'] as List? ?? []).whereType<Map>()
+        .map((row) => row['user_id']).whereType<String>()),
+    };
+    if (rental == null) {
+      final currentUserId = Supabase.instance.client.auth.currentUser?.id;
+      if (currentUserId != null && data.employees.any((e) => e['user_id'] == currentUserId)) {
+        selectedResponsibleIds.add(currentUserId);
+      }
+    }
     final itemRows = <_RentalItemDraft>[];
     for (final item in (rental?['rental_items'] as List? ?? [])) {
       final map = Map<String, dynamic>.from(item as Map);
@@ -105,6 +120,7 @@ class _RentalsPageState extends State<RentalsPage> {
                 final item = itemRows[index];
                 return Card(
                   margin: const EdgeInsets.only(bottom: 8),
+                  key: ValueKey(item),
                   child: Padding(padding: const EdgeInsets.all(10), child: Column(children: [
                     Row(children: [
                       Expanded(child: DropdownButtonFormField<String>(
@@ -144,8 +160,27 @@ class _RentalsPageState extends State<RentalsPage> {
                 );
               }),
               const SizedBox(height: 8),
-              Text('Período: ${days > 0 ? days : 0} dia(s) · Total estimado: R\$ ${total.toStringAsFixed(2)}', style: Theme.of(context).textTheme.titleMedium),
-              if (rental != null) const Text('Os responsáveis atuais serão preservados nesta edição.', style: TextStyle(fontSize: 12)),
+              TextFormField(
+                controller: totalController,
+                decoration: const InputDecoration(labelText: 'Valor total da locação (R$) *'),
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                validator: (v) => (double.tryParse((v ?? '').replaceAll(',', '.')) ?? -1) < 0 ? 'Informe um valor válido.' : null,
+              ),
+              const SizedBox(height: 12),
+              Align(alignment: Alignment.centerLeft, child: Text('Funcionários responsáveis', style: Theme.of(context).textTheme.titleMedium)),
+              ...data.employees.map((employee) {
+                final id = employee['user_id'] as String;
+                return CheckboxListTile(
+                  contentPadding: EdgeInsets.zero,
+                  value: selectedResponsibleIds.contains(id),
+                  title: Text(employee['name'] as String? ?? 'Funcionário'),
+                  subtitle: Text(employee['role'] as String? ?? 'Funcionário'),
+                  onChanged: (checked) => setDialogState(() {
+                    if (checked == true) { selectedResponsibleIds.add(id); } else { selectedResponsibleIds.remove(id); }
+                  }),
+                );
+              }),
+              Text('Período: ${days > 0 ? days : 0} dia(s). O valor total pode ser ajustado manualmente.', style: const TextStyle(fontSize: 12)),
             ])),
           )),
           actions: [
@@ -169,12 +204,11 @@ class _RentalsPageState extends State<RentalsPage> {
     if (saved == true && mounted) {
       try {
         final days = end.value.difference(start.value).inDays + 1;
-        final total = itemRows.fold<double>(0, (sum, item) => sum + item.quantity * item.price * days);
+        final total = double.tryParse(totalController.text.replaceAll(',', '.')) ?? 0;
         final items = itemRows.map((item) => {
           'product_id': item.productId, 'quantity': item.quantity, 'unit_price': item.price,
         }).toList();
-        final responsibleIds = (rental?['rental_responsibles'] as List? ?? [])
-          .whereType<Map>().map((row) => row['user_id']).whereType<String>().toList();
+        final responsibleIds = selectedResponsibleIds.toList();
         if (rental == null) {
           await repo.createRentalWithItems(
             customerId: customerId.value!, startDate: _iso(start.value), endDate: _iso(end.value),
@@ -195,7 +229,7 @@ class _RentalsPageState extends State<RentalsPage> {
         if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Não foi possível salvar: $error')));
       }
     }
-    customerId.dispose(); start.dispose(); end.dispose(); status.dispose(); delivery.dispose(); address.dispose();
+    customerId.dispose(); start.dispose(); end.dispose(); status.dispose(); delivery.dispose(); address.dispose(); totalController.dispose();
   }
 
   Widget _dateField(BuildContext context, String label, ValueNotifier<DateTime> value, void Function(void Function()) refresh) {
@@ -253,10 +287,11 @@ class _RentalsPageState extends State<RentalsPage> {
 }
 
 class _RentalData {
-  _RentalData({required this.rentals, required this.customers, required this.products});
+  _RentalData({required this.rentals, required this.customers, required this.products, required this.employees});
   final List<Map<String, dynamic>> rentals;
   final List<Map<String, dynamic>> customers;
   final List<Map<String, dynamic>> products;
+  final List<Map<String, dynamic>> employees;
 }
 
 class _RentalItemDraft {
