@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'core/app_messenger.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+
+import 'core/app_messenger.dart';
 import 'core/supabase_config.dart';
 import 'features/auth/auth_gate.dart';
 
