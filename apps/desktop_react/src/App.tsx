@@ -196,7 +196,7 @@ export default function App() {
   const pageTitle = navigation.find(item => item.id === page)?.label ?? 'Início';
   const visibleNavigation = navigation.filter(item => !item.admin || isAdmin);
 
-  if (loading) return <main className="legacy-auth-screen"><section className="legacy-auth-card"><div className="legacy-auth-brand">KIDSLOC APP</div><p className="legacy-muted">Acesse sua empresa Sonho Kids Brinquedos</p><div className="legacy-loading">Verificando sua sessão e preparando o aplicativo...</div></section></main>;
+  if (loading) return <main className="legacy-auth-screen"><section className="legacy-auth-card"><div className="legacy-auth-brand">KIDSLOC APP</div></section></main>;
 
   if (recovery && session) return (
     <main className="legacy-auth-screen"><section className="legacy-auth-card">
