@@ -126,13 +126,12 @@ class _LoginPageState extends State<LoginPage> {
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.toys_rounded, size: 56, color: Theme.of(context).colorScheme.primary),
-                        const SizedBox(height: 16),
-                        Text(recovery ? 'Definir nova senha' : _forgot ? 'Recuperar senha' : 'KidsLoc App',
-                          textAlign: TextAlign.center, style: Theme.of(context).textTheme.headlineSmall),
-                        const SizedBox(height: 8),
-                        Text('SONHO KIDS BRINQUEDOS', textAlign: TextAlign.center,
-                          style: Theme.of(context).textTheme.labelSmall?.copyWith(letterSpacing: 1.2)),
+                        Image.asset('assets/kidsloc-brand.webp', width: 168, height: 168, fit: BoxFit.contain),
+                        if (recovery || _forgot) ...[
+                          const SizedBox(height: 8),
+                          Text(recovery ? 'Definir nova senha' : 'Recuperar senha',
+                            textAlign: TextAlign.center, style: Theme.of(context).textTheme.headlineSmall),
+                        ],
                         const SizedBox(height: 24),
                         if (recovery) ...[
                           _field(_newPassword, 'Nova senha', password: true),
