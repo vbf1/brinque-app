@@ -5,6 +5,11 @@ version: 0.1.0+1
 environment:
   sdk: '>=3.9.0 <4.0.0'
 dependencies:
+  crypto: ^3.0.6
+  file_picker: ^10.3.3
+  pdf: ^3.11.3
+  printing: ^5.14.2
+  url_launcher: ^6.3.3
   flutter:
     sdk: flutter
   cupertino_icons: 1.0.8
