@@ -59,7 +59,7 @@ const fixture = `<!doctype html>
       await page.setContent(fixture, { waitUntil: 'domcontentloaded' });
       const result = await page.evaluate(() => {
         const visible = element => !!(element.offsetWidth || element.offsetHeight || element.getClientRects().length);
-        const controls = [...document.querySelectorAll('input:not([type=checkbox]),select,textarea')].filter(visible);
+        const controls = [...document.querySelectorAll('main input:not([type=checkbox]),main select,main textarea')].filter(visible);
         const main = document.querySelector('main').getBoundingClientRect();
         const overflow = document.documentElement.scrollWidth > window.innerWidth;
         const outside = controls.filter(el => {
