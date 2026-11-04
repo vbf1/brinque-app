@@ -5,7 +5,7 @@ import 'features/auth/auth_gate.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Supabase.initialize(url: SupabaseConfig.url, anonKey: SupabaseConfig.publishableKey);
+  await Supabase.initialize(url: SupabaseConfig.url, publishableKey: SupabaseConfig.publishableKey);
   runApp(const KidsLocApp());
 }
 
