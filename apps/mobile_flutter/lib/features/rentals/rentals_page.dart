@@ -229,6 +229,29 @@ class _RentalsPageState extends State<RentalsPage> {
     customerId.dispose(); start.dispose(); end.dispose(); status.dispose(); delivery.dispose(); address.dispose(); totalController.dispose();
   }
 
+
+  Future<void> _deleteRental(Map<String, dynamic> rental) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Excluir locação?'),
+        content: const Text('Os brinquedos e eventos vinculados serão removidos. Lançamentos financeiros e pagamentos relacionados serão preservados quando houver vínculo configurado. Esta ação não poderá ser desfeita.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('Cancelar')),
+          FilledButton.tonal(onPressed: () => Navigator.pop(dialogContext, true), child: const Text('Excluir')),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    try {
+      await repo.deleteRental(rental['id'] as String);
+      await reload();
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Locação excluída.')));
+    } catch (error) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Não foi possível excluir: $error')));
+    }
+  }
+
   Widget _dateField(BuildContext context, String label, ValueNotifier<DateTime> value, void Function(void Function()) refresh) {
     return ValueListenableBuilder<DateTime>(
       valueListenable: value,
@@ -276,7 +299,10 @@ class _RentalsPageState extends State<RentalsPage> {
                 title: Text(r['customers']?['name'] as String? ?? 'Cliente'),
                 subtitle: Text('${dateFormat.format(_date(r['start_date']) ?? DateTime.now())} a ${dateFormat.format(_date(r['end_date']) ?? DateTime.now())}\n$names\nStatus: ${r['status']} · R\$ ${r['total_amount']}'),
                 isThreeLine: true,
-                trailing: Icon(canEdit ? Icons.edit_outlined : Icons.lock_outline),
+                trailing: canEdit ? Row(mainAxisSize: MainAxisSize.min, children: [
+                  IconButton(tooltip: 'Editar locação', onPressed: () => editRental(data, r), icon: const Icon(Icons.edit_outlined)),
+                  IconButton(tooltip: 'Excluir locação', onPressed: () => _deleteRental(r), icon: const Icon(Icons.delete_outline)),
+                ]) : const Icon(Icons.lock_outline),
                 onTap: canEdit ? () => editRental(data, r) : null,
               ));
             },
