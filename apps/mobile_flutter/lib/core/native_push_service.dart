@@ -29,6 +29,32 @@ class NativePushService {
   bool get isAndroid =>
       !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
 
+  Future<bool> registerIfAuthorized({
+    required String companyId,
+    required String userId,
+  }) async {
+    if (!isAndroid) return false;
+    _companyId = companyId;
+    _userId = userId;
+
+    if (Firebase.apps.isEmpty) {
+      await Firebase.initializeApp();
+    }
+    FirebaseMessaging.onBackgroundMessage(kidsLocFirebaseBackgroundHandler);
+    final messaging = FirebaseMessaging.instance;
+    final settings = await messaging.getNotificationSettings();
+    final authorized =
+        settings.authorizationStatus == AuthorizationStatus.authorized ||
+        settings.authorizationStatus == AuthorizationStatus.provisional;
+    if (!authorized) return false;
+
+    _listen(messaging);
+    final token = await messaging.getToken();
+    if (token == null || token.trim().isEmpty) return false;
+    await _saveToken(token);
+    return true;
+  }
+
   Future<bool> requestAndRegister({
     required String companyId,
     required String userId,
