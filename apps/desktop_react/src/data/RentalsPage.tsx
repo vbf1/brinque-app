@@ -116,10 +116,10 @@ export function RentalsPage({ companyId }: { companyId: string }) {
     setSaving(true);
     try {
       const { data: existingContract, error: contractError } = await supabase
-        .from('rental_contracts').select('id').eq('rental_id', rental.id).limit(1).maybeSingle();
+        .from('rental_contracts').select('id,status').eq('rental_id', rental.id).in('status', ['sent','viewed','signed']).limit(1).maybeSingle();
       if (contractError) throw contractError;
       if (existingContract) {
-        setMessage('Esta locação já possui um contrato. A exclusão foi bloqueada para preservar o histórico e os documentos assinados.');
+        setMessage('Esta locação possui um contrato enviado ou assinado. A exclusão foi bloqueada para preservar o histórico e os documentos.');
         return;
       }
       const confirmed = window.confirm('Excluir esta locação? Os itens e eventos vinculados serão removidos. Lançamentos financeiros e pagamentos relacionados serão preservados quando houver vínculo configurado. Esta ação não poderá ser desfeita.');
