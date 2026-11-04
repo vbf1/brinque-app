@@ -99,7 +99,7 @@ export function RentalsPage({ companyId }: { companyId: string }) {
         responsibleUserIds: responsibleIds,
       };
       if (editing) await repo.updateRentalWithItems({ rentalId: editing.id, ...payload });
-      else await repo.createRentalWithItems({ ...payload, status: status as 'pending' | 'confirmed' | 'ongoing', responsibleUserIds: [] });
+      else await repo.createRentalWithItems({ ...payload, status: status as 'pending' | 'confirmed' | 'ongoing' });
       setFormOpen(false); await load(); setMessage('Locação salva com sucesso.');
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Não foi possível salvar a locação.');
@@ -131,8 +131,9 @@ export function RentalsPage({ companyId }: { companyId: string }) {
         }}><option value="">Selecione</option>{products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select></label>
         <div className="form-grid"><label>Quantidade<input type="number" min="1" step="1" required value={item.quantity} onChange={e => setItems(items.map((current, i) => i === index ? { ...current, quantity: Number(e.target.value) } : current))} /></label><label>Diária por unidade (R$)<input inputMode="decimal" required value={item.price} onChange={e => setItems(items.map((current, i) => i === index ? { ...current, price: e.target.value } : current))} /></label></div>
       </div>)}
-      <div className="rental-total"><span>{days} diária(s) · Total estimado</span><strong>{money(total)}</strong></div>
-      {editing && <p className="module-description">Os responsáveis já vinculados serão preservados nesta edição.</p>}
+      <label>Valor total da locação (R$) *<input type="number" min="0" step="0.01" required value={totalAmount} onChange={e => setTotalAmount(e.target.value)} placeholder="0,00" /></label>
+      <p className="module-description">Período: {days} diária(s). O valor total é informado manualmente, como no sistema atual.</p>
+      <div className="rental-responsibles"><h3>Funcionários responsáveis</h3>{employees.length ? employees.map(employee => <label className="rental-responsible-option" key={employee.user_id}><input type="checkbox" checked={responsibleIds.includes(employee.user_id)} onChange={event => setResponsibleIds(current => event.target.checked ? [...current, employee.user_id] : current.filter(id => id !== employee.user_id))} /><span><strong>{employee.name}</strong><small>{employee.role}</small></span></label>) : <p className="module-description">Nenhum funcionário disponível para seleção.</p>}</div>
       <div className="form-actions"><button type="button" className="secondary-button" onClick={() => setFormOpen(false)}>Cancelar</button><button type="submit" disabled={saving}>{saving ? 'Salvando...' : 'Salvar locação'}</button></div>
     </form>}
     {loading ? <p className="module-empty">Carregando locações...</p> : visible.length === 0 ? <p className="module-empty">Nenhuma locação encontrada.</p> : <div className="customer-list">{visible.map(rental => <article className="customer-row rental-row" key={rental.id}>
