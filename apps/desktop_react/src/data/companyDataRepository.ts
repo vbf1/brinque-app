@@ -215,6 +215,41 @@ export function createCompanyDataRepository(
       return data;
     },
 
+    async fetchTransactions() {
+      const { data, error } = await client.from('financial_transactions')
+        .select('id, company_id, transaction_type, description, amount, status, paid_at, created_at')
+        .eq('company_id', companyId).order('created_at', { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+
+    async saveTransaction(input: { id?: string; type: 'income' | 'expense'; description: string; amount: number }) {
+      const description = input.description.trim();
+      if (!description || !Number.isFinite(input.amount) || input.amount <= 0) {
+        throw new Error('Informe descrição e um valor maior que zero.');
+      }
+      const values = { transaction_type: input.type, description, amount: input.amount };
+      if (input.id) {
+        const { data, error } = await client.from('financial_transactions').update(values)
+          .eq('id', input.id).eq('company_id', companyId).select().single();
+        if (error) throw error;
+        return data;
+      }
+      const { data, error } = await client.from('financial_transactions').insert({
+        company_id: companyId, ...values, status: 'paid',
+        paid_at: new Date().toISOString().slice(0, 10),
+      }).select().single();
+      if (error) throw error;
+      return data;
+    },
+
+    async deleteTransaction(id: string) {
+      const { data, error } = await client.from('financial_transactions').delete()
+        .eq('id', id).eq('company_id', companyId).select('id').maybeSingle();
+      if (error) throw error;
+      if (!data) throw new Error('Lançamento não encontrado ou sem permissão para excluir.');
+    },
+
     async saveCustomer(input: {
       id?: string;
       name: string;
