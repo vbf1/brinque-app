@@ -115,7 +115,7 @@ export function MarketingPage({ companyId, userId }: { companyId: string; userId
    '',
    'Observação: este arquivo reúne o material preparado no aplicativo. A publicação deve ser feita manualmente na plataforma escolhida.'
   ].join(String.fromCharCode(10));
-  const safeName=ad.title.normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').replace(/[^a-z0-9]+/gi,'-').replace(/^-|-$/g,'').toLowerCase()||'anuncio';
+  const safeName=ad.title.normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/gi,'-').replace(/^-|-$/g,'').toLowerCase()||'anuncio';
   const file=new Blob([String.fromCharCode(65279),content],{type:'text/plain;charset=utf-8'});
   const url=URL.createObjectURL(file);
   const link=document.createElement('a');
