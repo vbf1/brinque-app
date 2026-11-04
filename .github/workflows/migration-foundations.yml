@@ -13,8 +13,10 @@ on:
   workflow_dispatch:
 
 concurrency:
+  # Lockfile generation can create a follow-up push. Queue runs instead of
+  # cancelling an in-progress validation/build when that happens.
   group: migration-foundations-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 permissions:
   contents: read
