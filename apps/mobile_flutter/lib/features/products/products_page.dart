@@ -52,9 +52,11 @@ class _ProductsPageState extends State<ProductsPage> {
     try {
       await _repository.setProductUnitStatus(id, next);
       await _reload();
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(next == 'maintenance' ? 'Unidade enviada para manutenção.' : 'Unidade liberada para locação.'),
-      ));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(next == 'maintenance' ? 'Unidade enviada para manutenção.' : 'Unidade liberada para locação.'),
+        ));
+      }
     } catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Não foi possível atualizar a unidade: $error')));
