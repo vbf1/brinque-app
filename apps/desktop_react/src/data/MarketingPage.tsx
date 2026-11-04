@@ -63,7 +63,7 @@ export function MarketingPage({ companyId, userId }: { companyId: string; userId
  function edit(ad:Ad){setEditing(ad);setProductId(ad.product_id??'');setTitle(ad.title);setDescription(ad.description);setKeywords(ad.keywords.join(', '));setImageUrl(ad.image_url??'');setImageLoadError(false);setImagePrompt(ad.image_prompt??'');setPlatforms(ad.platforms??['facebook_marketplace']);setTab('ads');}
  function duplicateAd(ad:Ad){setEditing(null);setProductId(ad.product_id??'');setTitle((ad.title+' (cópia)').slice(0,180));setDescription(ad.description);setKeywords(ad.keywords.join(', '));setImageUrl(ad.image_url??'');setImageLoadError(false);setImagePrompt(ad.image_prompt??'');setPlatforms(ad.platforms??['facebook_marketplace']);setTab('ads');setMessage('Cópia preparada como novo rascunho. Revise o conteúdo antes de salvar.');}
  async function copyAd(ad:Ad){
-  const content=[ad.title,ad.description,ad.keywords.length?'Palavras-chave: '+ad.keywords.join(', '):'', 'Canais sugeridos: '+ad.platforms.map(v=>channels.find(ch=>ch.id===v)?.label??v).join(', ')].filter(Boolean).join('\n\n');
+  const content=[ad.title,ad.description,ad.keywords.length?'Palavras-chave: '+ad.keywords.join(', '):'', 'Canais sugeridos: '+ad.platforms.map(v=>channels.find(ch=>ch.id===v)?.label??v).join(', '), settings.default_call_to_action.trim()?'Chamada para ação: '+settings.default_call_to_action.trim():'', settings.whatsapp.trim()?'WhatsApp: '+settings.whatsapp.trim(): ''].filter(Boolean).join('\n\n');
   try{
    if(navigator.clipboard?.writeText){
     await navigator.clipboard.writeText(content);
@@ -109,6 +109,11 @@ export function MarketingPage({ companyId, userId }: { companyId: string; userId
    '',
    'ORIENTAÇÃO PARA A IMAGEM',
    ad.image_prompt||'Não informada',
+   '',
+   'CHAMADA PARA AÇÃO',
+   settings.default_call_to_action.trim()||'Não configurada',
+   'WHATSAPP',
+   settings.whatsapp.trim()||'Não configurado',
    '',
    'STATUS NO KIDSLOC',
    labels[ad.status]??ad.status,
@@ -198,6 +203,11 @@ export function MarketingPage({ companyId, userId }: { companyId: string; userId
     '',
     'ORIENTAÇÃO PARA A IMAGEM',
     ad.image_prompt||'Não informada',
+    '',
+    'CHAMADA PARA AÇÃO',
+    settings.default_call_to_action.trim()||'Não configurada',
+    'WHATSAPP',
+    settings.whatsapp.trim()||'Não configurado',
     '',
     'STATUS',
     labels[ad.status]??ad.status
