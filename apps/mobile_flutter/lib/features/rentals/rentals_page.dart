@@ -80,8 +80,8 @@ class _RentalsPageState extends State<RentalsPage> {
                   DropdownMenuItem(value: 'pending', child: Text('Pendente')),
                   DropdownMenuItem(value: 'confirmed', child: Text('Confirmada')),
                   DropdownMenuItem(value: 'ongoing', child: Text('Em andamento')),
-                  DropdownMenuItem(value: 'completed', child: Text('Concluída')),
-                  DropdownMenuItem(value: 'cancelled', child: Text('Cancelada')),
+                  if (rental != null) const DropdownMenuItem(value: 'completed', child: Text('Concluída')),
+                  if (rental != null) const DropdownMenuItem(value: 'cancelled', child: Text('Cancelada')),
                 ],
                 onChanged: (v) => setDialogState(() => status.value = v ?? status.value),
               ),
@@ -113,7 +113,10 @@ class _RentalsPageState extends State<RentalsPage> {
                         items: data.products.map((p) => DropdownMenuItem<String>(value: p['id'] as String, child: Text(p['name'] as String? ?? 'Brinquedo', overflow: TextOverflow.ellipsis))).toList(),
                         onChanged: (v) => setDialogState(() {
                           item.productId = v;
-                          final selected = data.products.where((p) => p['id'] == v).firstOrNull;
+                          Map<String, dynamic>? selected;
+                          for (final product in data.products) {
+                            if (product['id'] == v) { selected = product; break; }
+                          }
                           if (selected != null) item.price = (selected['daily_price'] as num).toDouble();
                         }),
                         validator: (v) => v == null ? 'Selecione.' : null,
