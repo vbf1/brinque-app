@@ -107,13 +107,15 @@ export function OccurrencesPage({ companyId, role }: { companyId: string; role: 
         if (!data) throw new Error('Você não tem permissão para editar este relato.');
       } else {
         const fullName = String(auth.user.user_metadata?.full_name || auth.user.user_metadata?.name || '').trim();
+        const createdName = fullName || auth.user.email?.split('@')[0] || 'Usuário';
         const { data, error: insertError } = await supabase.from('occurrence_reports').insert({
           ...payload, company_id: companyId, created_by: auth.user.id,
-          created_by_name: fullName || auth.user.email?.split('@')[0] || 'Usuário',
+          created_by_name: createdName,
           created_by_email: auth.user.email ?? null,
-        }).select('id').single();
+        }).select('id, created_at').single();
         if (insertError) throw insertError;
         occurrenceId = data.id;
+        setEditing({ ...payload, id: data.id, company_id: companyId, created_by: auth.user.id, created_by_name: createdName, created_at: data.created_at, photos: [] });
       }
       for (const file of files) {
         const ext = file.type === 'image/png' ? 'png' : file.type === 'image/webp' ? 'webp' : 'jpg';
