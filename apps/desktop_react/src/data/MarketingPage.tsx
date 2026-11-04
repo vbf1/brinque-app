@@ -6,7 +6,7 @@ type Ad = { id: string; product_id: string | null; title: string; description: s
 type Settings = { business_name: string; whatsapp: string; service_regions: string[]; default_description: string; default_call_to_action: string };
 const initialSettings: Settings = { business_name: '', whatsapp: '', service_regions: ['Contagem', 'Belo Horizonte'], default_description: '', default_call_to_action: 'Chame no WhatsApp para consultar disponibilidade' };
 const channels = [{id:'facebook_marketplace',label:'Facebook Marketplace'},{id:'facebook_page',label:'Página do Facebook'},{id:'facebook_groups',label:'Grupos do Facebook'},{id:'instagram',label:'Instagram'}];
-const labels: Record<string,string> = {draft:'Rascunho',pending_approval:'Aguardando aprovação',approved:'Aprovado',published:'Publicado',rejected:'Precisa de ajustes'};
+const labels: Record<string,string> = {draft:'Rascunho',pending_approval:'Aguardando aprovação',approved:'Aprovado',published:'Status marcado como publicado (sem integração)',rejected:'Precisa de ajustes'};
 
 export function MarketingPage({ companyId, userId }: { companyId: string; userId: string }) {
  const [settings,setSettings]=useState<Settings>(initialSettings);
@@ -58,12 +58,20 @@ export function MarketingPage({ companyId, userId }: { companyId: string; userId
   setImagePrompt('Fotografia publicitária realista e original de '+p.name+' para locação em festa infantil. Brinquedo em destaque, ambiente alegre, sem textos, marcas ou marcas d’água.');
  }
  function edit(ad:Ad){setEditing(ad);setProductId(ad.product_id??'');setTitle(ad.title);setDescription(ad.description);setKeywords(ad.keywords.join(', '));setImageUrl(ad.image_url??'');setImagePrompt(ad.image_prompt??'');setPlatforms(ad.platforms??['facebook_marketplace']);setTab('ads');}
+ async function copyAd(ad:Ad){
+  const content=[ad.title,ad.description,ad.keywords.length?'Palavras-chave: '+ad.keywords.join(', '):'', 'Canais sugeridos: '+ad.platforms.map(v=>channels.find(ch=>ch.id===v)?.label??v).join(', ')].filter(Boolean).join('\n\n');
+  try{
+   if(!navigator.clipboard?.writeText)throw new Error('A cópia automática não está disponível neste navegador.');
+   await navigator.clipboard.writeText(content);
+   setMessage('Anúncio copiado. Revise e publique manualmente no canal escolhido.');
+  }catch(e){setMessage(e instanceof Error?e.message:'Não foi possível copiar o anúncio.');}
+ }
  async function saveSettings(e:FormEvent){
   e.preventDefault();setSaving(true);
   try{
    const payload={company_id:companyId,...settings,service_regions:regions.split(',').map(v=>v.trim()).filter(Boolean),updated_by:userId};
    const {error}=await supabase.from('marketing_settings').upsert(payload,{onConflict:'company_id'});if(error)throw error;
-   setMessage('Configurações salvas e prontas para os próximos anúncios.');await load();
+   await load();setMessage('Configurações salvas e prontas para os próximos anúncios.');
   }catch(e){setMessage(e instanceof Error?e.message:'Falha ao salvar configurações.');}
   finally{setSaving(false);}
  }
@@ -74,7 +82,7 @@ export function MarketingPage({ companyId, userId }: { companyId: string; userId
   setSaving(true);
   try{
    const payload={company_id:companyId,product_id:productId||null,title:title.trim(),description:description.trim(),keywords:keywords.split(',').map(v=>v.trim()).filter(Boolean),image_url:imageUrl.trim()||null,image_prompt:imagePrompt.trim(),platforms,status:send?'pending_approval':'draft',created_by:userId};
-   const result=editing?await supabase.from('marketing_ads').update({product_id:payload.product_id,title:payload.title,description:payload.description,keywords:payload.keywords,image_url:payload.image_url,image_prompt:payload.image_prompt,platforms:payload.platforms,status:payload.status}).eq('id',editing.id).eq('company_id',companyId):await supabase.from('marketing_ads').insert(payload);
+   const result=editing?await supabase.from('marketing_ads').update({product_id:payload.product_id,title:payload.title,description:payload.description,keywords:payload.keywords,image_url:payload.image_url,image_prompt:payload.image_prompt,platforms:payload.platforms,status:payload.status,approved_by:null,approved_at:null,approval_note:null}).eq('id',editing.id).eq('company_id',companyId):await supabase.from('marketing_ads').insert(payload);
    if(result.error)throw result.error;
    clearForm();await load();setMessage(send?'Anúncio enviado para revisão.':'Rascunho salvo.');
   }catch(e){setMessage(e instanceof Error?e.message:'Falha ao salvar anúncio.');}
@@ -83,17 +91,17 @@ export function MarketingPage({ companyId, userId }: { companyId: string; userId
  async function status(ad:Ad,next:'pending_approval'|'approved'|'rejected'){
   const patch:any={status:next,approval_note:next==='rejected'?'Revise o conteúdo antes de enviar novamente.':null,approved_by:next==='approved'?userId:null,approved_at:next==='approved'?new Date().toISOString():null};
   const {error}=await supabase.from('marketing_ads').update(patch).eq('id',ad.id).eq('company_id',companyId);
-  if(error)setMessage(error.message);else{setMessage(next==='approved'?'Anúncio aprovado. Nenhuma publicação foi realizada.':'Status atualizado.');await load();}
+  if(error)setMessage(error.message);else{await load();setMessage(next==='approved'?'Anúncio aprovado. Nenhuma publicação foi realizada.':'Status atualizado.');}
  }
  async function remove(ad:Ad){
   if(!window.confirm('Excluir este anúncio?'))return;
   const {error}=await supabase.from('marketing_ads').delete().eq('id',ad.id).eq('company_id',companyId);
-  if(error)setMessage(error.message);else{setMessage('Anúncio excluído.');await load();}
+  if(error)setMessage(error.message);else{await load();setMessage('Anúncio excluído.');}
  }
  const visible=useMemo(()=>ads.filter(a=>filter==='all'||a.status===filter),[ads,filter]);
  const selected=products.find(p=>p.id===productId);
  return <section className="module-shell marketing-module">
-  <header className="module-header"><div><p className="eyebrow">DIVULGAÇÃO DA EMPRESA</p><h2>Marketing e anúncios</h2><p className="module-description">Prepare anúncios, revise o conteúdo e aprove antes de qualquer publicação.</p></div><button type="button" onClick={()=>{clearForm();setTab('ads');}}>＋ Novo anúncio</button></header>
+  <header className="module-header"><div><p className="eyebrow">DIVULGAÇÃO DA EMPRESA</p><h2>Marketing e anúncios</h2><p className="module-description">Prepare anúncios, revise o conteúdo e aprove antes de qualquer publicação.</p><p className="marketing-manual-note">A publicação automática ainda não está conectada. Depois da aprovação, copie o conteúdo e publique manualmente na plataforma escolhida.</p></div><button type="button" onClick={()=>{clearForm();setTab('ads');}}>＋ Novo anúncio</button></header>
   <div className="marketing-tabs"><button type="button" className={tab==='ads'?'active':''} onClick={()=>setTab('ads')}>Anúncios</button><button type="button" className={tab==='settings'?'active':''} onClick={()=>setTab('settings')}>Configurações fixas</button></div>
   {message&&<p className="module-feedback" role="status">{message}</p>}
   {tab==='settings'?<form className="customer-form marketing-settings" onSubmit={saveSettings}>
@@ -110,7 +118,7 @@ export function MarketingPage({ companyId, userId }: { companyId: string; userId
    {loading?<p className="module-empty">Carregando anúncios...</p>:visible.length===0?<p className="module-empty">Nenhum anúncio nesta lista. Crie o primeiro usando um brinquedo do estoque.</p>:<div className="marketing-ad-list">{visible.map(ad=><article className="marketing-ad-card" key={ad.id}>
     {ad.image_url?<img src={ad.image_url} alt="Imagem do anúncio"/>:<div className="marketing-image-placeholder">Imagem ainda não adicionada</div>}
     <div className="marketing-ad-content"><div className="marketing-ad-top"><span className={'marketing-status status-'+ad.status}>{labels[ad.status]??ad.status}</span><small>{new Date(ad.created_at).toLocaleDateString('pt-BR')}</small></div><h3>{ad.title}</h3><p>{ad.description}</p><div className="marketing-tags">{ad.platforms.map(v=><span key={v}>{channels.find(c=>c.id===v)?.label??v}</span>)}</div><small>Palavras-chave: {ad.keywords.join(', ')||'Não informadas'}</small>
-    <div className="marketing-actions"><button type="button" className="secondary-button" onClick={()=>edit(ad)}>Editar</button>{ad.status==='draft'||ad.status==='rejected'?<button type="button" onClick={()=>void status(ad,'pending_approval')}>Enviar para revisão</button>:null}{ad.status==='pending_approval'?<><button type="button" onClick={()=>void status(ad,'approved')}>Aprovar</button><button type="button" className="secondary-button" onClick={()=>void status(ad,'rejected')}>Solicitar ajustes</button></>:null}{ad.status==='approved'?<span className="marketing-not-published">Aprovado · publicação não conectada</span>:null}<button type="button" className="danger-button" onClick={()=>void remove(ad)}>Excluir</button></div>
+    <div className="marketing-actions"><button type="button" className="secondary-button" onClick={()=>void copyAd(ad)}>Copiar anúncio</button><button type="button" className="secondary-button" onClick={()=>edit(ad)}>Editar</button>{ad.status==='draft'||ad.status==='rejected'?<button type="button" onClick={()=>void status(ad,'pending_approval')}>Enviar para revisão</button>:null}{ad.status==='pending_approval'?<><button type="button" onClick={()=>void status(ad,'approved')}>Aprovar</button><button type="button" className="secondary-button" onClick={()=>void status(ad,'rejected')}>Solicitar ajustes</button></>:null}{ad.status==='approved'?<span className="marketing-not-published">Aprovado · publicação não conectada</span>:null}<button type="button" className="danger-button" onClick={()=>void remove(ad)}>Excluir</button></div>
     </div></article>)}</div>}
    <form className="customer-form marketing-editor" onSubmit={e=>void saveAd(e,false)}>
     <h3>{editing?'Editar anúncio':'Preparar anúncio'}</h3><p className="module-description">Selecione um brinquedo para preencher uma primeira versão. Você pode revisar todos os campos antes de salvar.</p>
