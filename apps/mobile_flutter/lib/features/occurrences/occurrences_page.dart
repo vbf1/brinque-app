@@ -72,7 +72,7 @@ class _OccurrencesPageState extends State<OccurrencesPage> {
         } : null),
         TextFormField(controller: location, enabled: canEdit, decoration: const InputDecoration(labelText: 'Local'), validator: (v) => (v ?? '').trim().length < 2 ? 'Informe o local.' : null),
         TextFormField(controller: description, enabled: canEdit, minLines: 3, maxLines: 5, decoration: const InputDecoration(labelText: 'Descrição'), validator: (v) => (v ?? '').trim().length < 5 ? 'Descreva o ocorrido.' : null),
-        TextFormField(controller: loss, enabled: canEdit, keyboardType: const TextInputType.numberWithOptions(decimal: true), decoration: const InputDecoration(labelText: 'Prejuízo estimado (R\$), opcional'), validator: (v) => (double.tryParse((v ?? '').replaceAll(',', '.')) ?? 0) < 0 ? 'Valor inválido.' : null),
+        TextFormField(controller: loss, enabled: canEdit, keyboardType: const TextInputType.numberWithOptions(decimal: true), decoration: const InputDecoration(labelText: 'Prejuízo estimado (R\$), opcional'), validator: (v) { final raw = (v ?? '').trim(); final parsed = double.tryParse(raw.replaceAll(',', '.')); return raw.isNotEmpty && (parsed == null || !parsed.isFinite || parsed < 0) ? 'Valor inválido.' : null; }),
         if (row != null) ...[
           const Align(alignment: Alignment.centerLeft, child: Text('Fotos anexadas')),
           ...((row['photos'] as List? ?? []).map((p) => ListTile(dense: true, contentPadding: EdgeInsets.zero, leading: const Icon(Icons.image_outlined), title: const Text('Foto anexada'), onTap: () => showDialog<void>(context: context, builder: (_) => Dialog(child: InteractiveViewer(child: Image.network(p['url'] as String)))), trailing: canEdit ? IconButton(icon: const Icon(Icons.delete_outline), onPressed: () async {
@@ -108,7 +108,8 @@ class _OccurrencesPageState extends State<OccurrencesPage> {
         };
         String id;
         if (row == null) {
-          final name = user.userMetadata?['full_name'] ?? user.userMetadata?['name'] ?? user.email?.split('@').first ?? 'Usuário';
+          final profile = await _client.from('profiles').select('full_name').eq('id', user.id).maybeSingle();
+          final name = profile?['full_name'] ?? user.userMetadata?['full_name'] ?? user.userMetadata?['name'] ?? user.email?.split('@').first ?? 'Usuário';
           final inserted = await _client.from('occurrence_reports').insert({...payload, 'company_id': widget.companyId, 'created_by': user.id, 'created_by_name': name, 'created_by_email': user.email}).select('id').single();
           id = inserted['id'] as String;
         } else {
