@@ -3,8 +3,8 @@ const path = require('node:path');
 const { chromium } = require('playwright');
 
 const source = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
-const styles = [...source.matchAll(/<style[^>]*>([\\s\\S]*?)<\\/style>/gi)]
-  .map(match => match[1]).join('\\n');
+const styles = [...source.matchAll(/<style[^>]*>([\s\S]*?)<\/style>/gi)]
+  .map(match => match[1]).join('\n');
 
 const fixture = `<!doctype html>
 <html lang="pt-BR" style="--safe-area-inset-left:18px;--safe-area-inset-right:18px;--safe-area-inset-top:12px;--safe-area-inset-bottom:16px">
