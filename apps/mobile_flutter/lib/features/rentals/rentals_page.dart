@@ -346,7 +346,7 @@ class _RentalsPageState extends State<RentalsPage> {
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: const Text('Excluir locação?'),
-        content: const Text('Os brinquedos e eventos vinculados serão removidos. Lançamentos financeiros e pagamentos relacionados serão preservados quando houver vínculo configurado. Esta ação não poderá ser desfeita.'),
+        content: const Text('Os brinquedos e eventos vinculados serão removidos. Contratos emitidos serão preservados com seu histórico e documentos. Lançamentos financeiros e pagamentos relacionados serão preservados quando houver vínculo configurado. Esta ação não poderá ser desfeita.'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('Cancelar')),
           FilledButton.tonal(onPressed: () => Navigator.pop(dialogContext, true), child: const Text('Excluir')),
