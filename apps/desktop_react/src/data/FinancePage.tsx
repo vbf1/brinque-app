@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { createCompanyDataRepository } from './companyDataRepository';
 import { supabase } from '../lib/supabase';
 
@@ -35,7 +35,7 @@ export function FinancePage({ companyId }: { companyId: string }) {
     setFormOpen(true); setEditing(row ?? null); setDescription(row?.description ?? '');
     setType(row?.transaction_type ?? 'income'); setAmount(row ? String(row.amount) : '');
   }
-  async function save(event: React.FormEvent) {
+  async function save(event: FormEvent) {
     event.preventDefault(); setBusy(true); setMessage('');
     try {
       await repository.saveTransaction({ id: editing?.id, description, type, amount: Number(amount.replace(',', '.')) });
