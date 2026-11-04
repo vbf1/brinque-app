@@ -13,6 +13,46 @@ class CompanyDataRepository {
   final SupabaseClient _client;
   final String companyId;
 
+  Future<List<Map<String, dynamic>>> fetchTransactions() async {
+    final rows = await _client.from('financial_transactions')
+        .select('id, company_id, transaction_type, description, amount, status, paid_at, created_at')
+        .eq('company_id', companyId).order('created_at', ascending: false);
+    return List<Map<String, dynamic>>.from(rows);
+  }
+
+  Future<void> saveTransaction({
+    String? id,
+    required String type,
+    required String description,
+    required num amount,
+  }) async {
+    final cleanDescription = description.trim();
+    if (cleanDescription.isEmpty || amount <= 0) {
+      throw ArgumentError('Informe descrição e um valor maior que zero.');
+    }
+    final values = {
+      'transaction_type': type,
+      'description': cleanDescription,
+      'amount': amount,
+    };
+    if (id != null) {
+      await _client.from('financial_transactions').update(values)
+          .eq('id', id).eq('company_id', companyId);
+    } else {
+      await _client.from('financial_transactions').insert({
+        'company_id': companyId,
+        ...values,
+        'status': 'paid',
+        'paid_at': DateTime.now().toIso8601String().substring(0, 10),
+      });
+    }
+  }
+
+  Future<void> deleteTransaction(String id) async {
+    await _client.from('financial_transactions').delete()
+        .eq('id', id).eq('company_id', companyId);
+  }
+
   Future<List<Map<String, dynamic>>> fetchCustomers() async {
     final rows = await _client
         .from('customers')
