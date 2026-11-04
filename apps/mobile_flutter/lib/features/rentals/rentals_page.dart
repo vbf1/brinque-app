@@ -79,9 +79,11 @@ class _RentalsPageState extends State<RentalsPage> {
       }
       reminderSettingsLoaded = true;
     } catch (error) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Não foi possível carregar os lembretes: $error')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Não foi possível carregar os lembretes: $error')),
+        );
+      }
     }
     final reminderMode = ValueNotifier<String>(
       rentalReminder == null ? 'global' : ((rentalReminder['enabled'] as bool? ?? false) ? 'custom' : 'off'),
@@ -93,6 +95,20 @@ class _RentalsPageState extends State<RentalsPage> {
       rentalReminder?['notifications_per_day'] as int? ?? globalReminder?['notifications_per_day'] as int? ?? 1,
     );
     final formKey = GlobalKey<FormState>();
+
+    if (!mounted) {
+      customerId.dispose();
+      start.dispose();
+      end.dispose();
+      status.dispose();
+      delivery.dispose();
+      reminderMode.dispose();
+      reminderDays.dispose();
+      reminderFrequency.dispose();
+      address.dispose();
+      totalController.dispose();
+      return;
+    }
 
     final saved = await showDialog<bool>(
       context: context,
@@ -291,12 +307,13 @@ class _RentalsPageState extends State<RentalsPage> {
             items: items, deliveryAddress: address.text, responsibleUserIds: responsibleIds,
           );
         }
-        if (reminderSettingsLoaded) try {
-          if (reminderMode.value == 'global') {
+        if (reminderSettingsLoaded) {
+          try {
+            if (reminderMode.value == 'global') {
             await Supabase.instance.client.from('rental_event_reminder_settings')
                 .delete().eq('company_id', widget.companyId).eq('rental_id', rentalId);
-          } else {
-            await Supabase.instance.client.from('rental_event_reminder_settings').upsert({
+            } else {
+              await Supabase.instance.client.from('rental_event_reminder_settings').upsert({
               'company_id': widget.companyId,
               'rental_id': rentalId,
               'enabled': reminderMode.value == 'custom',
@@ -304,12 +321,15 @@ class _RentalsPageState extends State<RentalsPage> {
               'notifications_per_day': reminderMode.value == 'custom' ? reminderFrequency.value : 1,
               'updated_by': Supabase.instance.client.auth.currentUser?.id,
               'updated_at': DateTime.now().toUtc().toIso8601String(),
-            }, onConflict: 'rental_id');
+              }, onConflict: 'rental_id');
+            }
+          } catch (reminderError) {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Locação salva, mas não foi possível salvar o lembrete: $reminderError')),
+              );
+            }
           }
-        } catch (reminderError) {
-          if (mounted) ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Locação salva, mas não foi possível salvar o lembrete: $reminderError')),
-          );
         }
         await reload();
         if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Locação salva com sucesso.')));
