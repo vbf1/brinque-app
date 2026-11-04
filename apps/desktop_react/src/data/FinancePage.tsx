@@ -14,6 +14,7 @@ export function FinancePage({ companyId }: { companyId: string }) {
   const [message, setMessage] = useState('');
   const [search, setSearch] = useState('');
   const [editing, setEditing] = useState<Transaction | null>(null);
+  const [formOpen, setFormOpen] = useState(false);
   const [description, setDescription] = useState('');
   const [type, setType] = useState<'income' | 'expense'>('income');
   const [amount, setAmount] = useState('');
@@ -31,7 +32,7 @@ export function FinancePage({ companyId }: { companyId: string }) {
   const filtered = rows.filter(row => row.description.toLowerCase().includes(search.toLowerCase()));
 
   function openForm(row?: Transaction) {
-    setEditing(row ?? null); setDescription(row?.description ?? '');
+    setFormOpen(true); setEditing(row ?? null); setDescription(row?.description ?? '');
     setType(row?.transaction_type ?? 'income'); setAmount(row ? String(row.amount) : '');
   }
   async function save(event: React.FormEvent) {
@@ -53,12 +54,12 @@ export function FinancePage({ companyId }: { companyId: string }) {
   return <section className="data-page">
     <div className="data-page-heading"><div><p className="eyebrow">GESTÃO FINANCEIRA</p><h1>Financeiro</h1><p>Entradas, saídas e movimentações registradas.</p></div><button type="button" onClick={() => openForm()}>Novo lançamento</button></div>
     <div className="data-summary-grid"><article className="data-summary"><span>Entradas</span><strong>{money(income)}</strong></article><article className="data-summary"><span>Saídas</span><strong>{money(expense)}</strong></article><article className="data-summary"><span>Saldo registrado</span><strong>{money(income-expense)}</strong></article></div>
-    {editing !== null || description || amount ? <form className="data-form" onSubmit={save}>
+    {formOpen ? <form className="data-form" onSubmit={save}>
       <h2>{editing ? 'Editar lançamento' : 'Novo lançamento'}</h2>
       <label>Descrição<input value={description} onChange={event => setDescription(event.target.value)} required maxLength={160} placeholder="Ex.: Combustível" /></label>
       <label>Tipo<select value={type} onChange={event => setType(event.target.value as 'income' | 'expense')}><option value="income">Entrada</option><option value="expense">Saída</option></select></label>
       <label>Valor (R$)<input value={amount} onChange={event => setAmount(event.target.value)} inputMode="decimal" required placeholder="0,00" /></label>
-      <div className="data-form-actions"><button disabled={busy} type="submit">{busy ? 'Salvando...' : 'Salvar'}</button><button className="secondary-button" type="button" onClick={() => { setEditing(null); setDescription(''); setAmount(''); }}>Cancelar</button></div>
+      <div className="data-form-actions"><button disabled={busy} type="submit">{busy ? 'Salvando...' : 'Salvar'}</button><button className="secondary-button" type="button" onClick={() => { setFormOpen(false); setEditing(null); setDescription(''); setAmount(''); }}>Cancelar</button></div>
     </form> : null}
     <div className="data-toolbar"><input aria-label="Pesquisar lançamento" value={search} onChange={event => setSearch(event.target.value)} placeholder="Pesquisar movimentação..." /></div>
     {message && <p className="feedback error" role="alert">{message}</p>}
