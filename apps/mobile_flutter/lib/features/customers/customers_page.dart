@@ -200,7 +200,7 @@ class _CustomersPageState extends State<CustomersPage> {
                       return Card(
                         child: ListTile(
                           leading: CircleAvatar(
-                            child: Text(customerName.isEmpty ? '?' : customerName.characters.first.toUpperCase()),
+                            child: Text(customerName.isEmpty ? '?' : customerName.substring(0, 1).toUpperCase()),
                           ),
                           title: Text(customerName, maxLines: 1, overflow: TextOverflow.ellipsis),
                           subtitle: Text([
