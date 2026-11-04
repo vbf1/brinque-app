@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { supabase } from './lib/supabase';
 import { CustomersPage } from './data/CustomersPage';
+import { ProductsPage } from './data/ProductsPage';
 
 type CompanyContext = { id: string; name: string; role: string };
 const PASSWORD_RESET_REDIRECT = 'https://vbf1.github.io/kidsloc-app/';
@@ -30,6 +31,7 @@ export default function App() {
   const [company, setCompany] = useState<CompanyContext | null>(null);
   const [companyLoading, setCompanyLoading] = useState(false);
   const [showCustomers, setShowCustomers] = useState(false);
+  const [showProducts, setShowProducts] = useState(false);
   const feedback = useCallback((value: string, error = false) => {
     setMessage(value);
     setIsError(error);
@@ -77,6 +79,7 @@ export default function App() {
       if (event === 'SIGNED_OUT') {
         setCompany(null);
         setShowCustomers(false);
+        setShowProducts(false);
         setRecovery(false);
         setForgot(false);
         setPassword('');
@@ -208,6 +211,19 @@ export default function App() {
     <button onClick={logout} disabled={busy}>Sair</button>
   </section></main>;
 
+  if (showProducts) return (
+    <main className="module-page">
+      <header className="app-topbar">
+        <strong>KidsLoc App · {company?.name ?? ''}</strong>
+        <div className="topbar-actions">
+          <button type="button" className="secondary-button" onClick={() => setShowProducts(false)}>Início</button>
+          <button type="button" onClick={logout} disabled={busy}>Sair</button>
+        </div>
+      </header>
+      {company && <ProductsPage companyId={company.id} />}
+    </main>
+  );
+
   if (showCustomers) return (
     <main className="module-page">
       <header className="app-topbar">
@@ -227,6 +243,7 @@ export default function App() {
     <p className="intro">Você está autenticado e vinculado à empresa <strong>{company.name}</strong>.</p>
     <div className="status"><span className="status-dot" /> Sessão ativa · Perfil: {company.role}</div>
     <button type="button" onClick={() => setShowCustomers(true)}>Gerenciar clientes</button>
+    <button type="button" className="secondary-button" onClick={() => setShowProducts(true)}>Brinquedos e estoque</button>
     <p className="note">Os módulos estão sendo migrados gradualmente. Os dados permanecem no banco atual.</p>
     <button onClick={logout} disabled={busy}>{busy ? 'Saindo...' : 'Sair da conta'}</button>
   </section></main>;
