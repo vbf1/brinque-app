@@ -5,51 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/supabase_config.dart';
 
-class _KidsLocBrandMark extends StatelessWidget {
-  const _KidsLocBrandMark();
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 112,
-      height: 112,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0xFF168CF0), Color(0xFF0752C7)],
-          ),
-          borderRadius: BorderRadius.circular(26),
-          boxShadow: const [BoxShadow(color: Color(0x22172B4D), blurRadius: 14, offset: Offset(0, 6))],
-        ),
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            const Positioned(
-              top: 7,
-              child: Icon(Icons.groups_rounded, size: 76, color: Color(0xFFFFD65A)),
-            ),
-            Positioned(
-              bottom: 9,
-              child: Container(
-                width: 68,
-                height: 67,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFFD8E9FF), width: 2),
-                ),
-                child: const Icon(Icons.assignment_turned_in_rounded, size: 48, color: Color(0xFF0752C7)),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key, this.passwordRecovery = false});
   final bool passwordRecovery;
@@ -171,7 +126,7 @@ class _LoginPageState extends State<LoginPage> {
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const _KidsLocBrandMark(),
+                        Image.asset('assets/kidsloc-brand.webp', width: 168, height: 168, fit: BoxFit.contain),
                         if (recovery || _forgot) ...[
                           const SizedBox(height: 8),
                           Text(recovery ? 'Definir nova senha' : 'Recuperar senha',
