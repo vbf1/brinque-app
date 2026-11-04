@@ -98,7 +98,7 @@ class NativePushService {
     final userId = _userId;
     if (companyId == null || userId == null || token.trim().isEmpty) return;
 
-    final result = await _client.from('fcm_device_tokens').upsert(
+    await _client.from('fcm_device_tokens').upsert(
       {
         'company_id': companyId,
         'user_id': userId,
@@ -108,7 +108,6 @@ class NativePushService {
       },
       onConflict: 'token',
     );
-    if (result.error != null) throw result.error!;
   }
 
   Future<void> unregisterCurrentDevice() async {
