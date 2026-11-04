@@ -67,37 +67,52 @@ export default function App() {
 
   useEffect(() => {
     let active = true;
-    const initialize = async () => {
-      const url = new URL(window.location.href);
-      const hash = new URLSearchParams(url.hash.replace(/^#/, ''));
-      const type = url.searchParams.get('type') ?? hash.get('type');
-      const code = url.searchParams.get('code');
-      const tokenHash = url.searchParams.get('token_hash');
-      const accessToken = hash.get('access_token');
-      const refreshToken = hash.get('refresh_token');
-      try {
-        if (code && (type === 'recovery' || type === 'invite')) {
-          await supabase.auth.exchangeCodeForSession(code);
-          setRecovery(true);
-          window.history.replaceState({}, document.title, url.pathname);
-        } else if (tokenHash && (type === 'recovery' || type === 'invite')) {
-          await supabase.auth.verifyOtp({ token_hash: tokenHash, type: type as 'recovery' | 'invite' });
-          setRecovery(true);
-          window.history.replaceState({}, document.title, url.pathname);
-        } else if (accessToken && refreshToken) {
-          await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
-          if (type === 'recovery' || type === 'invite') setRecovery(true);
-          window.history.replaceState({}, document.title, url.pathname);
-        }
-      } catch (error) {
-        feedback(friendlyError(error), true);
-        await supabase.auth.signOut({ scope: 'local' }).catch(() => undefined);
-      }
-      const { data, error } = await supabase.auth.getSession();
+    const timeoutId = window.setTimeout(() => {
       if (!active) return;
-      if (error) feedback(friendlyError(error), true);
-      setSession(data.session);
+      setSession(supabase.auth.currentSession);
       setLoading(false);
+      feedback('A verificação da sessão está demorando. Confira sua conexão e tente entrar novamente.', true);
+    }, 15000);
+    const initialize = async () => {
+      try {
+        const url = new URL(window.location.href);
+        const hash = new URLSearchParams(url.hash.replace(/^#/, ''));
+        const type = url.searchParams.get('type') ?? hash.get('type');
+        const code = url.searchParams.get('code');
+        const tokenHash = url.searchParams.get('token_hash');
+        const accessToken = hash.get('access_token');
+        const refreshToken = hash.get('refresh_token');
+        try {
+          if (code && (type === 'recovery' || type === 'invite')) {
+            await supabase.auth.exchangeCodeForSession(code);
+            setRecovery(true);
+            window.history.replaceState({}, document.title, url.pathname);
+          } else if (tokenHash && (type === 'recovery' || type === 'invite')) {
+            await supabase.auth.verifyOtp({ token_hash: tokenHash, type: type as 'recovery' | 'invite' });
+            setRecovery(true);
+            window.history.replaceState({}, document.title, url.pathname);
+          } else if (accessToken && refreshToken) {
+            await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
+            if (type === 'recovery' || type === 'invite') setRecovery(true);
+            window.history.replaceState({}, document.title, url.pathname);
+          }
+        } catch (error) {
+          feedback(friendlyError(error), true);
+          await supabase.auth.signOut({ scope: 'local' }).catch(() => undefined);
+        }
+        const { data, error } = await supabase.auth.getSession();
+        if (!active) return;
+        if (error) feedback(friendlyError(error), true);
+        setSession(data.session);
+      } catch (error) {
+        if (active) {
+          setSession(supabase.auth.currentSession);
+          feedback('Não foi possível verificar sua sessão: ' + friendlyError(error), true);
+        }
+      } finally {
+        window.clearTimeout(timeoutId);
+        if (active) setLoading(false);
+      }
     };
     void initialize();
     const { data } = supabase.auth.onAuthStateChange((event, nextSession) => {
@@ -115,7 +130,11 @@ export default function App() {
         setConfirmPassword('');
       }
     });
-    return () => { active = false; data.subscription.unsubscribe(); };
+    return () => {
+      active = false;
+      window.clearTimeout(timeoutId);
+      data.subscription.unsubscribe();
+    };
   }, [feedback]);
 
   useEffect(() => {
@@ -126,6 +145,12 @@ export default function App() {
       return;
     }
     setCompanyLoading(true);
+    const timeoutId = window.setTimeout(() => {
+      if (active) {
+        setCompanyLoading(false);
+        feedback('O carregamento dos dados da empresa demorou mais que o esperado. Atualize a página ou tente novamente.', true);
+      }
+    }, 15000);
     void (async () => {
       try {
         const { data: member, error: memberError } = await supabase.from('company_members')
@@ -139,10 +164,14 @@ export default function App() {
       } catch (error) {
         if (active) { setCompany(null); feedback(friendlyError(error), true); }
       } finally {
+        window.clearTimeout(timeoutId);
         if (active) setCompanyLoading(false);
       }
     })();
-    return () => { active = false; };
+    return () => {
+      active = false;
+      window.clearTimeout(timeoutId);
+    };
   }, [session, feedback]);
 
   async function login(event: FormEvent<HTMLFormElement>) {
