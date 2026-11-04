@@ -37,5 +37,14 @@ docs/
 - [ ] Validar APK instalado e desktop/web.
 - [ ] Planejar substituição total somente após aprovação.
 
+## Camada de dados — primeira entrega
+- Repositório de dados por empresa criado em Flutter e React.
+- Consultas preparadas para clientes, brinquedos, unidades individuais e locações com seus itens.
+- Cadastro/edição de clientes isolado por empresa.
+- Criação e edição de locações encaminhadas às RPCs transacionais já existentes:
+  `create_rental_with_items` e `update_rental_with_items`.
+- A lista de brinquedos de uma locação é enviada em conjunto; o banco continua responsável por validar estoque e alocar unidades individuais atomicamente.
+- Nenhuma tabela, política RLS, RPC, bucket ou Edge Function foi alterada nesta entrega.
+
 ## Estado
-Esta etapa cria apenas a estrutura inicial. Não substitui nem altera o aplicativo atualmente publicado.
+A autenticação e a primeira camada de dados estão preparadas, mas ainda não há telas operacionais migradas. A validação automatizada precisa passar antes de integrar estes repositórios às telas. Não substitui nem altera o aplicativo atualmente publicado.
