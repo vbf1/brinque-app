@@ -1,4 +1,6 @@
+import 'dart:convert';
 import 'dart:math';
+import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart';
 import 'package:file_picker/file_picker.dart';
@@ -43,8 +45,11 @@ class _ContractsPageState extends State<ContractsPage> {
   void initState() { super.initState(); _load(); }
 
   String _digits(Object? value) => (value?.toString() ?? '').replaceAll(RegExp(r'[^0-9]'), '');
-  String _token() => List<int>.generate(32, (_) => Random.secure().nextInt(256))
-      .map((v) => v.toRadixString(16).padLeft(2, '0')).join();
+  String _token() {
+    final random = Random.secure();
+    return List<int>.generate(32, (_) => random.nextInt(256))
+        .map((v) => v.toRadixString(16).padLeft(2, '0')).join();
+  }
   String _hash(String value) => sha256.convert(utf8.encode(value)).toString();
   String _dateText(Object? value) {
     final parsed = DateTime.tryParse(value?.toString() ?? '');
