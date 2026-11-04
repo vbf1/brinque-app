@@ -113,10 +113,17 @@ export function RentalsPage({ companyId }: { companyId: string }) {
 
 
   async function deleteRental(rental: Row) {
-    const confirmed = window.confirm('Excluir esta locação? Os itens e eventos vinculados serão removidos. Contratos emitidos serão preservados com seu histórico e documentos. Lançamentos financeiros e pagamentos relacionados serão preservados quando houver vínculo configurado. Esta ação não poderá ser desfeita.');
-    if (!confirmed) return;
     setSaving(true);
     try {
+      const { data: existingContract, error: contractError } = await supabase
+        .from('rental_contracts').select('id').eq('rental_id', rental.id).limit(1).maybeSingle();
+      if (contractError) throw contractError;
+      if (existingContract) {
+        setMessage('Esta locação já possui um contrato. A exclusão foi bloqueada para preservar o histórico e os documentos assinados.');
+        return;
+      }
+      const confirmed = window.confirm('Excluir esta locação? Os itens e eventos vinculados serão removidos. Lançamentos financeiros e pagamentos relacionados serão preservados quando houver vínculo configurado. Esta ação não poderá ser desfeita.');
+      if (!confirmed) return;
       await repo.deleteRental(rental.id);
       await load();
       setMessage('Locação excluída.');
