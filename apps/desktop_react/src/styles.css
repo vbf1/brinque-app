@@ -15,7 +15,7 @@ label{display:block;margin:9px 0 5px;color:var(--muted);font-size:12px;font-weig
 textarea{resize:vertical}
 .legacy-auth-screen{width:100%;min-height:100vh;min-height:100svh;min-height:100dvh;display:grid;grid-template-columns:minmax(0,1fr);place-items:center;justify-items:center;padding:22px;background:radial-gradient(circle at 12% 10%,#3478e51b,transparent 34%),var(--bg)}
 .legacy-auth-card{width:min(430px,100%);justify-self:center;align-self:center;padding:26px 25px 23px;margin:0 auto;background:var(--surface);border:1px solid var(--line);border-radius:20px;box-shadow:0 18px 50px #172b4d12}
-.legacy-auth-brand{display:flex;justify-content:center;align-items:center;margin:0 auto 14px}.legacy-auth-brand img{display:block;width:88px;height:88px;max-width:32vw;object-fit:contain}
+.legacy-auth-brand{display:flex;justify-content:center;align-items:center;margin:0 auto 14px}.legacy-auth-brand img{display:block;width:132px;height:132px;max-width:42vw;object-fit:contain}
 .legacy-muted{margin:3px 0 18px;color:var(--muted);font-size:12px}
 .legacy-login-accent{width:52px;height:5px;border-radius:9px;background:var(--yellow);margin:18px 0 17px}
 .legacy-auth-card h1{margin:0 0 6px;font-size:26px;letter-spacing:-.7px}
