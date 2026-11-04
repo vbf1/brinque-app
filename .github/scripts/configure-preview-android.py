@@ -103,5 +103,9 @@ adaptive = '''<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/a
 for density in ("mdpi", "hdpi", "xhdpi", "xxhdpi", "xxxhdpi"):
     target = res / f"mipmap-{density}"
     target.mkdir(parents=True, exist_ok=True)
+    for old_icon in ("ic_launcher.png", "ic_launcher_round.png"):
+        old_path = target / old_icon
+        if old_path.exists():
+            old_path.unlink()
     shutil.copyfile(source_icon, target / "ic_launcher.webp")
     shutil.copyfile(source_icon, target / "ic_launcher_round.webp")
