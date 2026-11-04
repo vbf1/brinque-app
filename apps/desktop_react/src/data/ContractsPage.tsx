@@ -41,7 +41,7 @@ export function ContractsPage({ companyId, companyName }: { companyId: string; c
 
   async function createContract() {
     const rental = rentals.find(r => r.id === selectedRental);
-    if (!rental) { setMessage('Selecione uma locação.'); return; }\n    const phoneDigits = String(rental.customers?.phone ?? '').replace(/\\D/g, '');\n    if (phoneDigits.length < 10 || phoneDigits.length > 13) { setMessage('Cadastre um telefone válido com DDD para preparar o WhatsApp.'); return; }
+    if (!rental) { setMessage('Selecione uma locação.'); return; }     const phoneDigits = String(rental.customers?.phone ?? '').replace(/\\D/g, '');     if (phoneDigits.length < 10 || phoneDigits.length > 13) { setMessage('Cadastre um telefone válido com DDD para preparar o WhatsApp.'); return; }
     setBusy(true); setMessage('');
     try {
       const rawToken = Array.from(crypto.getRandomValues(new Uint8Array(32)), b => b.toString(16).padStart(2, '0')).join('');
@@ -51,7 +51,7 @@ export function ContractsPage({ companyId, companyName }: { companyId: string; c
         customerAddress: rental.customers?.address ?? rental.delivery_address ?? '',
         startDate: rental.start_date, endDate: rental.end_date, totalAmount: rental.total_amount,
         rentalNumber: rental.rental_number,
-        items: (rental.rental_items ?? []).map((i: any) => ({ name: i.products?.name ?? 'Brinquedo', quantity: i.quantity, dailyPrice: i.unit_price, subtotal: i.subtotal ?? Number(i.unit_price) * Number(i.quantity) })),\n        clauses, depositAmount: rental.deposit_amount ?? 0, deliveryAddress: rental.delivery_address ?? '', rentalNotes: rental.notes ?? ''
+        items: (rental.rental_items ?? []).map((i: any) => ({ name: i.products?.name ?? 'Brinquedo', quantity: i.quantity, dailyPrice: i.unit_price, subtotal: i.subtotal ?? Number(i.unit_price) * Number(i.quantity) })),         clauses, depositAmount: rental.deposit_amount ?? 0, deliveryAddress: rental.delivery_address ?? '', rentalNotes: rental.notes ?? ''
       };
       const { data, error } = await supabase.from('rental_contracts').insert({
         company_id: companyId, rental_id: rental.id, signature_method: method, status: 'sent', sent_at: new Date().toISOString(),
