@@ -1,0 +1,55 @@
+name: Validate KidsLoc contract module
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  web-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: apps/desktop_react/package-lock.json
+      - name: Install web dependencies
+        working-directory: apps/desktop_react
+        run: npm ci --no-audit --no-fund
+      - name: Build web app
+        working-directory: apps/desktop_react
+        run: npm run build
+  flutter-validation:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Prepare Android host
+        run: |
+          flutter create --platforms=android --org br.com.sonhokids --project-name kidsloc /tmp/kidsloc-android
+          cp -R apps/mobile_flutter/lib /tmp/kidsloc-android/
+          cp -R apps/mobile_flutter/test /tmp/kidsloc-android/
+          cp apps/mobile_flutter/pubspec.yaml /tmp/kidsloc-android/pubspec.yaml
+          cp apps/mobile_flutter/pubspec.lock /tmp/kidsloc-android/pubspec.lock
+          cp google-services.json /tmp/kidsloc-android/android/app/google-services.json
+          python3 .github/scripts/configure-preview-android.py /tmp/kidsloc-android/android
+      - name: Resolve Flutter packages
+        working-directory: /tmp/kidsloc-android
+        run: flutter pub get
+      - name: Analyze Flutter
+        working-directory: /tmp/kidsloc-android
+        run: flutter analyze
+      - name: Run Flutter tests
+        working-directory: /tmp/kidsloc-android
+        run: flutter test
+      - name: Build Flutter APK
+        working-directory: /tmp/kidsloc-android
+        run: flutter build apk --release --build-number=${GITHUB_RUN_NUMBER}
