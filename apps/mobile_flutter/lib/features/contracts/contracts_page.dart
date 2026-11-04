@@ -32,12 +32,12 @@ class _ContractsPageState extends State<ContractsPage> {
   bool _busy = false;
 
   static const _clauses = [
-    'O contratante declara que recebeu as orientações sobre os brinquedos e compromete-se a utilizá-los corretamente.',
-    'O contratante deverá zelar pela conservação dos equipamentos durante todo o período da locação.',
-    'Danos, perdas ou avarias decorrentes de mau uso ou negligência poderão gerar obrigação de ressarcimento, mediante apuração.',
-    'A utilização deverá ocorrer no período contratado e respeitar as datas e condições combinadas com a locadora.',
+    'O contratante declara que recebeu as informações sobre os brinquedos alugados e compromete-se a utilizá-los conforme as orientações fornecidas pela locadora.',
+    'O contratante deverá zelar pela conservação dos equipamentos durante todo o período da locação e impedir o uso inadequado ou por pessoas não autorizadas.',
+    'Danos, perdas ou avarias decorrentes de mau uso, negligência ou descumprimento das orientações deverão ser comunicados imediatamente e poderão gerar obrigação de ressarcimento, mediante apuração.',
+    'A utilização deverá ocorrer no período contratado. A devolução ou retirada deverá respeitar as datas e condições combinadas com a locadora.',
     'Os valores, descontos, taxas e condições de pagamento são os apresentados neste contrato e no resumo da locação.',
-    'O contratante é responsável por supervisionar a utilização dos brinquedos e seguir as orientações de segurança.',
+    'O contratante declara ser responsável por supervisionar a utilização dos brinquedos e por seguir as instruções de segurança entregues pela locadora.',
     'Alterações e cancelamentos deverão ser comunicados à locadora e dependerão de confirmação entre as partes.',
   ];
 
@@ -101,7 +101,11 @@ class _ContractsPageState extends State<ContractsPage> {
     final doc = pw.Document();
     final items = (data['items'] as List? ?? []).map((raw) {
       final item = Map<String, dynamic>.from(raw as Map);
-      return pw.Text('${item['quantity']} × ${item['name']} — ${_currency.format(item['subtotal'] ?? 0)}');
+      return pw.Row(children: [
+        pw.Expanded(flex: 4, child: pw.Text('${item['name']} × ${item['quantity']}')),
+        pw.Expanded(flex: 3, child: pw.Text('Diária: ${_currency.format(item['dailyPrice'] ?? 0)}')),
+        pw.Expanded(flex: 3, child: pw.Text('Subtotal: ${_currency.format(item['subtotal'] ?? 0)}')),
+      ]);
     }).toList();
     doc.addPage(pw.MultiPage(build: (_) => [
       pw.Text('CONTRATO DE LOCAÇÃO DE BRINQUEDOS', style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold)),
@@ -111,7 +115,7 @@ class _ContractsPageState extends State<ContractsPage> {
       pw.Text('CLIENTE', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
       pw.Text('Nome: ${data['customerName']}'), pw.Text('Telefone: ${data['customerPhone']}'),
       pw.Text('Endereço: ${data['customerAddress']}'),
-      pw.Text('Período: ${data['startDate']} até ${data['endDate']}'),
+      pw.Text('Período: ${_dateText(data['startDate'])} até ${_dateText(data['endDate'])}'),
       pw.Text('Endereço de entrega: ${data['deliveryAddress']}'), pw.SizedBox(height: 12),
       pw.Text('ITENS LOCADOS', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)), ...items,
       pw.SizedBox(height: 8),
