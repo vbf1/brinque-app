@@ -146,6 +146,19 @@ export function MarketingPage({ companyId, userId }: { companyId: string; userId
     <label>Orientação para produzir a imagem<textarea rows={3} value={imagePrompt} onChange={e=>setImagePrompt(e.target.value)} placeholder="Descreva a imagem que deverá acompanhar o anúncio."/></label>
     <fieldset className="marketing-channel-field"><legend>Canais desejados</legend>{channels.map(c=><label className="marketing-check" key={c.id}><input type="checkbox" checked={platforms.includes(c.id)} onChange={e=>setPlatforms(e.target.checked?[...platforms,c.id]:platforms.filter(v=>v!==c.id))}/>{c.label}</label>)}</fieldset>
     <div className="form-actions"><button type="button" className="secondary-button" onClick={clearForm}>Limpar</button><button type="submit" disabled={saving}>{saving?'Salvando...':'Salvar rascunho'}</button><button type="button" disabled={saving} onClick={()=>void saveAd({preventDefault:()=>{}} as FormEvent,true)}>{saving?'Aguarde...':'Enviar para aprovação'}</button></div>
+    <section className="marketing-preview" aria-label="Prévia do anúncio">
+     <div className="marketing-preview-heading"><div><span>VISUALIZAÇÃO</span><h4>Prévia do anúncio</h4></div><small>Prévia aproximada · confira no canal antes de publicar</small></div>
+     <article className="marketing-preview-card">
+      <div className="marketing-preview-brand"><span className="marketing-preview-avatar">{(settings.business_name.trim()||'K').slice(0,1).toUpperCase()}</span><div><strong>{settings.business_name.trim()||'Nome da empresa'}</strong><small>{platforms.map(v=>channels.find(c=>c.id===v)?.label??v).join(' · ')||'Nenhum canal selecionado'}</small></div></div>
+      {imageUrl.trim()?<img className="marketing-preview-image" src={imageUrl.trim()} alt={selected?.name? 'Imagem de '+selected.name:'Imagem do anúncio'}/>:<div className="marketing-preview-image marketing-preview-no-image"><span>Imagem do anúncio</span><small>Adicione um link de imagem para visualizar aqui</small></div>}
+      <div className="marketing-preview-copy">
+       <strong>{title.trim()||'Título do anúncio'}</strong>
+       <p>{description.trim()||'A descrição do anúncio aparecerá aqui enquanto você preenche o formulário.'}</p>
+       {keywords.trim()&&<small>#{keywords.split(',').map(v=>v.trim()).filter(Boolean).join(' #')}</small>}
+      </div>
+     </article>
+     <div className="marketing-preview-count"><span>Título: {title.length}/180 caracteres</span><span>Descrição: {description.length}/5000 caracteres</span></div>
+    </section>
    </form>
   </>}
  </section>;
