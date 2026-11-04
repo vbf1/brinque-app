@@ -101,7 +101,8 @@ export function createCompanyDataRepository(
         .from('rentals')
         .select(
           '*, customers(name), rental_items(id, product_id, quantity, unit_price, subtotal, ' +
-          'products(name), rental_item_units(product_unit_id, product_units(asset_code)))',
+          'products(name), rental_item_units(product_unit_id, product_units(asset_code)), ' +
+          'rental_responsibles(user_id, employee_name_snapshot))',
         )
         .eq('company_id', companyId)
         .order('start_date');
