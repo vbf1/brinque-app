@@ -1,0 +1,89 @@
+name: Validate migration foundations
+
+on:
+  push:
+    branches:
+      - 'migration/**'
+  workflow_dispatch:
+
+concurrency:
+  # Lockfile generation can create a follow-up push. Queue runs instead of
+  # cancelling an in-progress validation/build when that happens.
+  group: migration-foundations-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  flutter:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - name: Resolve Flutter dependencies
+        working-directory: apps/mobile_flutter
+        run: flutter pub get
+      - name: Commit resolved Flutter lockfile
+        run: |
+          if ! git diff --quiet -- apps/mobile_flutter/pubspec.lock; then
+            git config user.name 'github-actions[bot]'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git add apps/mobile_flutter/pubspec.lock
+            git commit -m 'chore: refresh Flutter dependency lockfile'
+            git push
+          fi
+      - name: Analyze Flutter
+        working-directory: apps/mobile_flutter
+        run: flutter analyze
+      - name: Test Flutter
+        working-directory: apps/mobile_flutter
+        run: flutter test
+
+  react:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: apps/desktop_react/package.json
+      - name: Install React dependencies
+        working-directory: apps/desktop_react
+        run: npm install --no-audit --no-fund
+      - name: Build React
+        working-directory: apps/desktop_react
+        run: npm run build
+
+  preview-apk:
+    needs: [flutter, react]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - name: Generate isolated Android host project
+        run: |
+          flutter create --platforms=android --org br.com.sonhokids --project-name kidsloc /tmp/kidsloc-preview
+          cp -R apps/mobile_flutter/lib /tmp/kidsloc-preview/
+          cp apps/mobile_flutter/pubspec.yaml /tmp/kidsloc-preview/pubspec.yaml
+          cp apps/mobile_flutter/pubspec.lock /tmp/kidsloc-preview/pubspec.lock
+          cp google-services.json /tmp/kidsloc-preview/android/app/google-services.json
+          python3 .github/scripts/configure-preview-android.py /tmp/kidsloc-preview/android
+      - name: Resolve dependencies
+        working-directory: /tmp/kidsloc-preview
+        run: flutter pub get
+      - name: Build preview APK
+        working-directory: /tmp/kidsloc-preview
+        run: flutter build apk --debug --build-number=${GITHUB_RUN_NUMBER}
+      - name: Upload preview APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: kidsloc-flutter-preview-${{ github.run_number }}
+          path: /tmp/kidsloc-preview/build/app/outputs/flutter-apk/app-debug.apk
+          if-no-files-found: error
+          retention-days: 14
