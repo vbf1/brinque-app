@@ -134,7 +134,7 @@ class _RentalsPageState extends State<RentalsPage> {
                       const SizedBox(width: 12),
                       Expanded(child: TextFormField(
                         initialValue: item.price.toStringAsFixed(2),
-                        decoration: const InputDecoration(labelText: 'Diária por unidade (R$)'),
+                        decoration: const InputDecoration(labelText: 'Diária por unidade (R\$)'),
                         keyboardType: const TextInputType.numberWithOptions(decimal: true),
                         validator: (v) => (double.tryParse((v ?? '').replaceAll(',', '.')) ?? -1) < 0 ? 'Preço inválido.' : null,
                         onChanged: (v) => item.price = double.tryParse(v.replaceAll(',', '.')) ?? -1,
@@ -144,7 +144,7 @@ class _RentalsPageState extends State<RentalsPage> {
                 );
               }),
               const SizedBox(height: 8),
-              Text('Período: ${days > 0 ? days : 0} dia(s) · Total estimado: R$ ${total.toStringAsFixed(2)}', style: Theme.of(context).textTheme.titleMedium),
+              Text('Período: ${days > 0 ? days : 0} dia(s) · Total estimado: R\$ ${total.toStringAsFixed(2)}', style: Theme.of(context).textTheme.titleMedium),
               if (rental != null) const Text('Os responsáveis atuais serão preservados nesta edição.', style: TextStyle(fontSize: 12)),
             ])),
           )),
@@ -240,7 +240,7 @@ class _RentalsPageState extends State<RentalsPage> {
               return Card(child: ListTile(
                 leading: const CircleAvatar(child: Icon(Icons.event_note_outlined)),
                 title: Text(r['customers']?['name'] as String? ?? 'Cliente'),
-                subtitle: Text('${dateFormat.format(_date(r['start_date']) ?? DateTime.now())} a ${dateFormat.format(_date(r['end_date']) ?? DateTime.now())}\n$names\nStatus: ${r['status']} · R$ ${r['total_amount']}'),
+                subtitle: Text('${dateFormat.format(_date(r['start_date']) ?? DateTime.now())} a ${dateFormat.format(_date(r['end_date']) ?? DateTime.now())}\n$names\nStatus: ${r['status']} · R\$ ${r['total_amount']}'),
                 isThreeLine: true, trailing: const Icon(Icons.edit_outlined),
                 onTap: () => editRental(data, r),
               ));
