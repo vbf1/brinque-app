@@ -109,6 +109,80 @@ export function createCompanyDataRepository(
       return data ?? [];
     },
 
+
+    async saveProduct(input: {
+      id?: string;
+      name: string;
+      inventoryMode: 'quantity' | 'individual';
+      quantity: number;
+      dailyPrice: number;
+    }) {
+      const name = input.name.trim();
+      if (!name || !Number.isInteger(input.quantity) || input.quantity < 1 || input.dailyPrice < 0) {
+        throw new Error('Confira o nome, a quantidade e o preço diário.');
+      }
+      if (!input.id) {
+        const { data: created, error } = await client.from('products').insert({
+          company_id: companyId, name, inventory_mode: input.inventoryMode,
+          total_quantity: input.quantity, daily_price: input.dailyPrice,
+        }).select().single();
+        if (error) throw error;
+        if (input.inventoryMode === 'individual') {
+          const { error: unitsError } = await client.from('product_units').insert(
+            Array.from({ length: input.quantity }, (_, index) => ({
+              company_id: companyId, product_id: created.id,
+              asset_code: String(index + 1).padStart(2, '0'), status: 'available',
+            })),
+          );
+          if (unitsError) {
+            await client.from('products').delete().eq('id', created.id).eq('company_id', companyId);
+            throw unitsError;
+          }
+        }
+        return created;
+      }
+
+      const { data: existing, error: existingError } = await client.from('products')
+        .select('id, inventory_mode').eq('id', input.id).eq('company_id', companyId).single();
+      if (existingError) throw existingError;
+      if (existing.inventory_mode === 'individual') {
+        const { data: units, error: unitsError } = await client.from('product_units')
+          .select('id, asset_code, status').eq('product_id', input.id).eq('company_id', companyId);
+        if (unitsError) throw unitsError;
+        const current = units ?? [];
+        if (input.quantity < current.length) {
+          const removable = current.filter(unit => unit.status === 'available');
+          const excess = current.length - input.quantity;
+          if (removable.length < excess) throw new Error('Não é possível reduzir: existem unidades reservadas, em manutenção ou indisponíveis.');
+          const { data: references, error: referencesError } = await client.from('rental_item_units')
+            .select('product_unit_id').in('product_unit_id', removable.map(unit => unit.id));
+          if (referencesError) throw referencesError;
+          const used = new Set((references ?? []).map(row => row.product_unit_id));
+          const safe = removable.filter(unit => !used.has(unit.id));
+          if (safe.length < excess) throw new Error('Não é possível excluir unidades que possuem histórico de locação.');
+          const { error: deleteError } = await client.from('product_units').delete()
+            .eq('company_id', companyId).in('id', safe.slice(0, excess).map(unit => unit.id));
+          if (deleteError) throw deleteError;
+        } else if (input.quantity > current.length) {
+          const maxCode = current.reduce((max, unit) => Math.max(max, Number.parseInt(unit.asset_code ?? '', 10) || 0), 0);
+          const { error: addError } = await client.from('product_units').insert(
+            Array.from({ length: input.quantity - current.length }, (_, index) => ({
+              company_id: companyId, product_id: input.id,
+              asset_code: String(maxCode + index + 1).padStart(2, '0'), status: 'available',
+            })),
+          );
+          if (addError) throw addError;
+        }
+      } else if (existing.inventory_mode !== input.inventoryMode) {
+        throw new Error('O tipo de controle do estoque não pode ser alterado após o cadastro.');
+      }
+      const { data, error } = await client.from('products').update({
+        name, total_quantity: input.quantity, daily_price: input.dailyPrice,
+      }).eq('id', input.id).eq('company_id', companyId).select().single();
+      if (error) throw error;
+      return data;
+    },
+
     async saveCustomer(input: {
       id?: string;
       name: string;
