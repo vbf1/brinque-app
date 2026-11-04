@@ -63,7 +63,7 @@ class _ProductsPageState extends State<ProductsPage> {
                 onChanged: product == null ? (v) => setDialogState(() => mode = v ?? mode) : null,
               ),
               TextFormField(controller: quantity, decoration: const InputDecoration(labelText: 'Quantidade total'), keyboardType: TextInputType.number, validator: (v) => (int.tryParse(v ?? '') ?? 0) < 1 ? 'Informe ao menos 1 unidade.' : null),
-              TextFormField(controller: price, decoration: const InputDecoration(labelText: 'Preço da diária (R$)'), keyboardType: const TextInputType.numberWithOptions(decimal: true), validator: (v) => (double.tryParse((v ?? '').replaceAll(',', '.')) ?? -1) < 0 ? 'Preço inválido.' : null),
+              TextFormField(controller: price, decoration: const InputDecoration(labelText: 'Preço da diária (R\$)'), keyboardType: const TextInputType.numberWithOptions(decimal: true), validator: (v) => (double.tryParse((v ?? '').replaceAll(',', '.')) ?? -1) < 0 ? 'Preço inválido.' : null),
               if (product != null) const Padding(
                 padding: EdgeInsets.only(top: 10),
                 child: Text('O tipo de controle não pode ser alterado após o cadastro.', style: TextStyle(fontSize: 12)),
@@ -126,7 +126,7 @@ class _ProductsPageState extends State<ProductsPage> {
               return Card(child: ListTile(
                 leading: const CircleAvatar(child: Icon(Icons.toys_outlined)),
                 title: Text(p['name'] as String? ?? 'Brinquedo'),
-                subtitle: Text('${p['available']} disponível(is) de ${p['total_quantity']} · R$ ${p['daily_price']}/dia · ${individual ? 'Unidades individuais' : 'Por quantidade'}'),
+                subtitle: Text('${p['available']} disponível(is) de ${p['total_quantity']} · R\$ ${p['daily_price']}/dia · ${individual ? 'Unidades individuais' : 'Por quantidade'}'),
                 trailing: IconButton(tooltip: 'Editar brinquedo', onPressed: () => _edit(p), icon: const Icon(Icons.edit_outlined)),
                 onTap: () => _edit(p),
               ));
