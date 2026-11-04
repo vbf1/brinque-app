@@ -210,3 +210,6 @@ button:focus-visible{outline:3px solid #3478e566;outline-offset:2px}
 .marketing-editor input[type=file]{padding:8px;background:var(--bg);font-size:12px}
 @media(max-width:900px){.marketing-editor-layout{grid-template-columns:minmax(0,1fr)}.marketing-preview-panel{position:static;grid-row:1}}
 @media(max-width:640px){.marketing-preview-panel{padding:12px}.marketing-preview-image{aspect-ratio:1/1}.preview-facebook .marketing-preview-image{aspect-ratio:1.91/1}}
+
+.marketing-image-open{display:inline-flex;align-items:center;padding:8px 10px;border:1px solid var(--line);border-radius:9px;color:var(--blue);font-size:12px;text-decoration:none}
+.marketing-image-open:hover{text-decoration:underline}
