@@ -23,6 +23,7 @@ export function MarketingPage({ companyId, userId }: { companyId: string; userId
  const [description,setDescription]=useState('');
  const [keywords,setKeywords]=useState('');
  const [imageUrl,setImageUrl]=useState('');
+ const [imageLoadError,setImageLoadError]=useState(false);
  const [imagePrompt,setImagePrompt]=useState('');
  const [platforms,setPlatforms]=useState<string[]>(['facebook_marketplace']);
  const [filter,setFilter]=useState('all');
@@ -44,7 +45,7 @@ export function MarketingPage({ companyId, userId }: { companyId: string; userId
  },[companyId]);
  useEffect(()=>{void load();},[load]);
 
- function clearForm(){setEditing(null);setProductId('');setTitle('');setDescription('');setKeywords('');setImageUrl('');setImagePrompt('');setPlatforms(['facebook_marketplace']);}
+ function clearForm(){setEditing(null);setProductId('');setTitle('');setDescription('');setKeywords('');setImageUrl('');setImageLoadError(false);setImagePrompt('');setPlatforms(['facebook_marketplace']);}
  function generate(id:string){
   const p=products.find(v=>v.id===id);if(!p)return;
   const area=settings.service_regions.length?settings.service_regions.join(', '):'Contagem e região';
@@ -57,7 +58,7 @@ export function MarketingPage({ companyId, userId }: { companyId: string; userId
   setKeywords([p.name,'aluguel de brinquedos','locação de brinquedos',...settings.service_regions].join(', '));
   setImagePrompt('Fotografia publicitária realista e original de '+p.name+' para locação em festa infantil. Brinquedo em destaque, ambiente alegre, sem textos, marcas ou marcas d’água.');
  }
- function edit(ad:Ad){setEditing(ad);setProductId(ad.product_id??'');setTitle(ad.title);setDescription(ad.description);setKeywords(ad.keywords.join(', '));setImageUrl(ad.image_url??'');setImagePrompt(ad.image_prompt??'');setPlatforms(ad.platforms??['facebook_marketplace']);setTab('ads');}
+ function edit(ad:Ad){setEditing(ad);setProductId(ad.product_id??'');setTitle(ad.title);setDescription(ad.description);setKeywords(ad.keywords.join(', '));setImageUrl(ad.image_url??'');setImageLoadError(false);setImagePrompt(ad.image_prompt??'');setPlatforms(ad.platforms??['facebook_marketplace']);setTab('ads');}
  async function copyAd(ad:Ad){
   const content=[ad.title,ad.description,ad.keywords.length?'Palavras-chave: '+ad.keywords.join(', '):'', 'Canais sugeridos: '+ad.platforms.map(v=>channels.find(ch=>ch.id===v)?.label??v).join(', ')].filter(Boolean).join('\n\n');
   try{
@@ -94,9 +95,14 @@ export function MarketingPage({ companyId, userId }: { companyId: string; userId
   e.preventDefault();
   if(title.trim().length<5||description.trim().length<10){setMessage('Preencha um título e uma descrição completos.');return;}
   if(!platforms.length){setMessage('Selecione pelo menos um canal.');return;}
+  const normalizedImageUrl=imageUrl.trim();
+  if(normalizedImageUrl){
+   try{const parsedUrl=new URL(normalizedImageUrl);if(!['http:','https:'].includes(parsedUrl.protocol))throw new Error();}
+   catch{setMessage('Informe um link de imagem válido começando com http:// ou https://.');return;}
+  }
   setSaving(true);
   try{
-   const payload={company_id:companyId,product_id:productId||null,title:title.trim(),description:description.trim(),keywords:keywords.split(',').map(v=>v.trim()).filter(Boolean),image_url:imageUrl.trim()||null,image_prompt:imagePrompt.trim(),platforms,status:send?'pending_approval':'draft',created_by:userId};
+   const payload={company_id:companyId,product_id:productId||null,title:title.trim(),description:description.trim(),keywords:keywords.split(',').map(v=>v.trim()).filter(Boolean),image_url:normalizedImageUrl||null,image_prompt:imagePrompt.trim(),platforms,status:send?'pending_approval':'draft',created_by:userId};
    const result=editing?await supabase.from('marketing_ads').update({product_id:payload.product_id,title:payload.title,description:payload.description,keywords:payload.keywords,image_url:payload.image_url,image_prompt:payload.image_prompt,platforms:payload.platforms,status:payload.status,approved_by:null,approved_at:null,approval_note:null,published_at:null}).eq('id',editing.id).eq('company_id',companyId):await supabase.from('marketing_ads').insert(payload);
    if(result.error)throw result.error;
    clearForm();await load();setMessage(send?'Anúncio enviado para revisão.':'Rascunho salvo.');
@@ -142,7 +148,7 @@ export function MarketingPage({ companyId, userId }: { companyId: string; userId
     <label>Título *<input required minLength={5} maxLength={180} value={title} onChange={e=>setTitle(e.target.value)} placeholder="Título do anúncio"/></label>
     <label>Descrição *<textarea required minLength={10} maxLength={5000} rows={6} value={description} onChange={e=>setDescription(e.target.value)}/></label>
     <label>Palavras-chave (separadas por vírgula)<input value={keywords} onChange={e=>setKeywords(e.target.value)}/></label>
-    <label>Link da imagem (opcional)<input type="url" value={imageUrl} onChange={e=>setImageUrl(e.target.value)} placeholder="https://..."/></label>
+    <label>Link da imagem (opcional)<input type="url" value={imageUrl} onChange={e=>{setImageUrl(e.target.value);setImageLoadError(false);}} placeholder="https://..."/></label>
     <label>Orientação para produzir a imagem<textarea rows={3} value={imagePrompt} onChange={e=>setImagePrompt(e.target.value)} placeholder="Descreva a imagem que deverá acompanhar o anúncio."/></label>
     <fieldset className="marketing-channel-field"><legend>Canais desejados</legend>{channels.map(c=><label className="marketing-check" key={c.id}><input type="checkbox" checked={platforms.includes(c.id)} onChange={e=>setPlatforms(e.target.checked?[...platforms,c.id]:platforms.filter(v=>v!==c.id))}/>{c.label}</label>)}</fieldset>
     <div className="form-actions"><button type="button" className="secondary-button" onClick={clearForm}>Limpar</button><button type="submit" disabled={saving}>{saving?'Salvando...':'Salvar rascunho'}</button><button type="button" disabled={saving} onClick={()=>void saveAd({preventDefault:()=>{}} as FormEvent,true)}>{saving?'Aguarde...':'Enviar para aprovação'}</button></div>
@@ -150,11 +156,12 @@ export function MarketingPage({ companyId, userId }: { companyId: string; userId
      <div className="marketing-preview-heading"><div><span>VISUALIZAÇÃO</span><h4>Prévia do anúncio</h4></div><small>Prévia aproximada · confira no canal antes de publicar</small></div>
      <article className="marketing-preview-card">
       <div className="marketing-preview-brand"><span className="marketing-preview-avatar">{(settings.business_name.trim()||'K').slice(0,1).toUpperCase()}</span><div><strong>{settings.business_name.trim()||'Nome da empresa'}</strong><small>{platforms.map(v=>channels.find(c=>c.id===v)?.label??v).join(' · ')||'Nenhum canal selecionado'}</small></div></div>
-      {imageUrl.trim()?<img className="marketing-preview-image" src={imageUrl.trim()} alt={selected?.name? 'Imagem de '+selected.name:'Imagem do anúncio'}/>:<div className="marketing-preview-image marketing-preview-no-image"><span>Imagem do anúncio</span><small>Adicione um link de imagem para visualizar aqui</small></div>}
+      {imageUrl.trim()&&!imageLoadError?<img className="marketing-preview-image" src={imageUrl.trim()} alt={selected?.name? 'Imagem de '+selected.name:'Imagem do anúncio'} onError={()=>setImageLoadError(true)}/>:<div className="marketing-preview-image marketing-preview-no-image"><span>{imageLoadError?'Não foi possível carregar a imagem':'Imagem do anúncio'}</span><small>{imageLoadError?'Confira o link ou escolha outra imagem.':'Adicione um link de imagem para visualizar aqui'}</small></div>}
       <div className="marketing-preview-copy">
        <strong>{title.trim()||'Título do anúncio'}</strong>
        <p>{description.trim()||'A descrição do anúncio aparecerá aqui enquanto você preenche o formulário.'}</p>
        {keywords.trim()&&<small>#{keywords.split(',').map(v=>v.trim()).filter(Boolean).join(' #')}</small>}
+       {(settings.default_call_to_action.trim()||settings.whatsapp.trim())&&<div className="marketing-preview-cta"><strong>{settings.default_call_to_action.trim()||'Entre em contato'}</strong>{settings.whatsapp.trim()&&<span>WhatsApp: {settings.whatsapp.trim()}</span>}</div>}
       </div>
      </article>
      <div className="marketing-preview-count"><span>Título: {title.length}/180 caracteres</span><span>Descrição: {description.length}/5000 caracteres</span></div>
