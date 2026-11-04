@@ -74,7 +74,7 @@ class _RentalsPageState extends State<RentalsPage> {
             key: formKey,
             child: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
               DropdownButtonFormField<String>(
-                value: customerId.value,
+                initialValue: customerId.value,
                 decoration: const InputDecoration(labelText: 'Cliente *'),
                 items: data.customers.map((c) => DropdownMenuItem<String>(value: c['id'] as String, child: Text(c['name'] as String? ?? 'Cliente', overflow: TextOverflow.ellipsis))).toList(),
                 onChanged: (v) => setDialogState(() => customerId.value = v),
@@ -87,7 +87,7 @@ class _RentalsPageState extends State<RentalsPage> {
                 Expanded(child: _dateField(context, 'Término', end, setDialogState)),
               ]),
               DropdownButtonFormField<String>(
-                value: status.value,
+                initialValue: status.value,
                 decoration: const InputDecoration(labelText: 'Status'),
                 items: [
                   DropdownMenuItem(value: 'pending', child: Text('Pendente')),
@@ -99,7 +99,7 @@ class _RentalsPageState extends State<RentalsPage> {
                 onChanged: (v) => setDialogState(() => status.value = v ?? status.value),
               ),
               DropdownButtonFormField<String>(
-                value: delivery.value,
+                initialValue: delivery.value,
                 decoration: const InputDecoration(labelText: 'Entrega'),
                 items: const [
                   DropdownMenuItem(value: 'customer_pickup', child: Text('Retirada pelo cliente')),
@@ -122,7 +122,7 @@ class _RentalsPageState extends State<RentalsPage> {
                   child: Padding(padding: const EdgeInsets.all(10), child: Column(children: [
                     Row(children: [
                       Expanded(child: DropdownButtonFormField<String>(
-                        value: item.productId,
+                        initialValue: item.productId,
                         decoration: InputDecoration(labelText: 'Brinquedo ${index + 1}'),
                         items: data.products.map((p) => DropdownMenuItem<String>(value: p['id'] as String, child: Text(p['name'] as String? ?? 'Brinquedo', overflow: TextOverflow.ellipsis))).toList(),
                         onChanged: (v) => setDialogState(() {
