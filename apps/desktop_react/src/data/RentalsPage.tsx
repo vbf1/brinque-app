@@ -19,6 +19,7 @@ export function RentalsPage({ companyId }: { companyId: string }) {
   const [rentals, setRentals] = useState<Row[]>([]);
   const [customers, setCustomers] = useState<Row[]>([]);
   const [products, setProducts] = useState<Row[]>([]);
+  const [employees, setEmployees] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState('');
@@ -30,14 +31,16 @@ export function RentalsPage({ companyId }: { companyId: string }) {
   const [status, setStatus] = useState('pending');
   const [deliveryMethod, setDeliveryMethod] = useState('customer_pickup');
   const [deliveryAddress, setDeliveryAddress] = useState('');
+  const [totalAmount, setTotalAmount] = useState('');
+  const [responsibleIds, setResponsibleIds] = useState<string[]>([]);
   const [items, setItems] = useState<DraftItem[]>([{ productId: '', quantity: 1, price: '0' }]);
   const [message, setMessage] = useState('');
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [r, c, p] = await Promise.all([repo.fetchRentals(), repo.fetchCustomers(), repo.fetchProducts()]);
-      setRentals(r as Row[]); setCustomers(c as Row[]); setProducts(p as Row[]); setMessage('');
+      const [r, c, p, e] = await Promise.all([repo.fetchRentals(), repo.fetchCustomers(), repo.fetchProducts(), repo.fetchCompanyMembers()]);
+      setRentals(r as Row[]); setCustomers(c as Row[]); setProducts(p as Row[]); setEmployees(e as Row[]); setMessage('');
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Não foi possível carregar as locações.');
     } finally { setLoading(false); }
@@ -45,7 +48,6 @@ export function RentalsPage({ companyId }: { companyId: string }) {
   useEffect(() => { void load(); }, [load]);
 
   const days = Math.max(0, Math.round((new Date(`${endDate}T12:00:00`).getTime() - new Date(`${startDate}T12:00:00`).getTime()) / 86400000) + 1);
-  const total = items.reduce((sum, item) => sum + Math.max(0, item.quantity) * Math.max(0, Number(item.price.replace(',', '.'))) * days, 0);
 
   function openForm(rental?: Row) {
     setEditing(rental ?? null);
@@ -55,6 +57,12 @@ export function RentalsPage({ companyId }: { companyId: string }) {
     setStatus(rental?.status ?? 'pending');
     setDeliveryMethod(rental?.delivery_method ?? 'customer_pickup');
     setDeliveryAddress(rental?.delivery_address ?? '');
+    setTotalAmount(rental ? String(rental.total_amount ?? 0) : '');
+    const assigned = (rental?.rental_responsibles ?? []).map((row: Row) => row.user_id).filter(Boolean) as string[];
+    setResponsibleIds(assigned);
+    if (!rental) void supabase.auth.getUser().then(({ data }) => {
+      if (data.user && employees.some(employee => employee.user_id === data.user?.id)) setResponsibleIds([data.user.id]);
+    });
     const oldItems = (rental?.rental_items ?? []).map((item: Row) => ({
       productId: item.product_id, quantity: Number(item.quantity),
       price: String(item.unit_price ?? 0),
@@ -71,6 +79,9 @@ export function RentalsPage({ companyId }: { companyId: string }) {
     if (deliveryMethod === 'delivery' && !deliveryAddress.trim()) {
       setMessage('Informe o endereço de entrega.'); return;
     }
+    if (!Number.isFinite(Number(totalAmount.replace(',', '.'))) || Number(totalAmount.replace(',', '.')) < 0) {
+      setMessage('Informe um valor total válido.'); return;
+    }
     if (!items.length || items.some(item => !item.productId || !Number.isInteger(item.quantity) || item.quantity < 1 || !Number.isFinite(Number(item.price.replace(',', '.'))) || Number(item.price.replace(',', '.')) < 0)) {
       setMessage('Confira os brinquedos, quantidades e preços.'); return;
     }
@@ -82,10 +93,10 @@ export function RentalsPage({ companyId }: { companyId: string }) {
       const payload = {
         customerId, startDate, endDate, status: status as 'pending' | 'confirmed' | 'ongoing' | 'completed' | 'cancelled',
         deliveryMethod: deliveryMethod as 'delivery' | 'customer_pickup',
-        totalAmount: total,
+        totalAmount: Number(totalAmount.replace(',', '.')),
         items: items.map(item => ({ product_id: item.productId, quantity: item.quantity, unit_price: Number(item.price.replace(',', '.')) })),
         deliveryAddress: deliveryMethod === 'delivery' ? deliveryAddress.trim() : null,
-        responsibleUserIds: (editing?.rental_responsibles ?? []).map((r: Row) => r.user_id).filter(Boolean),
+        responsibleUserIds: responsibleIds,
       };
       if (editing) await repo.updateRentalWithItems({ rentalId: editing.id, ...payload });
       else await repo.createRentalWithItems({ ...payload, status: status as 'pending' | 'confirmed' | 'ongoing', responsibleUserIds: [] });
