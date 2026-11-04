@@ -66,6 +66,7 @@ class _RentalsPageState extends State<RentalsPage> {
     final client = Supabase.instance.client;
     Map<String, dynamic>? globalReminder;
     Map<String, dynamic>? rentalReminder;
+    var reminderSettingsLoaded = false;
     try {
       globalReminder = await client.from('company_event_reminder_settings')
           .select('enabled, days_before, notifications_per_day')
@@ -76,6 +77,7 @@ class _RentalsPageState extends State<RentalsPage> {
             .eq('company_id', widget.companyId)
             .eq('rental_id', rental['id']).maybeSingle();
       }
+      reminderSettingsLoaded = true;
     } catch (error) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Não foi possível carregar os lembretes: $error')),
@@ -210,6 +212,7 @@ class _RentalsPageState extends State<RentalsPage> {
               Text('Lembretes deste evento', style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: 6),
               DropdownButtonFormField<String>(
+                key: ValueKey(reminderMode.value),
                 initialValue: reminderMode.value,
                 decoration: const InputDecoration(labelText: 'Como deseja receber os avisos?'),
                 items: const [
@@ -288,7 +291,7 @@ class _RentalsPageState extends State<RentalsPage> {
             items: items, deliveryAddress: address.text, responsibleUserIds: responsibleIds,
           );
         }
-        try {
+        if (reminderSettingsLoaded) try {
           if (reminderMode.value == 'global') {
             await Supabase.instance.client.from('rental_event_reminder_settings')
                 .delete().eq('company_id', widget.companyId).eq('rental_id', rentalId);
