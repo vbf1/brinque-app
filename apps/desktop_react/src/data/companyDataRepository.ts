@@ -20,6 +20,25 @@ export function createCompanyDataRepository(
       return data ?? [];
     },
 
+
+    async fetchCompanyMembers() {
+      const { data: members, error } = await client
+        .from('company_members')
+        .select('user_id, role')
+        .eq('company_id', companyId)
+        .order('created_at');
+      if (error) throw error;
+      const rows = members ?? [];
+      if (!rows.length) return [];
+      const { data: profiles, error: profileError } = await client
+        .from('profiles')
+        .select('id, full_name')
+        .in('id', rows.map(row => row.user_id));
+      if (profileError) throw profileError;
+      const names = new Map((profiles ?? []).map(profile => [profile.id, profile.full_name || 'Funcionário']));
+      return rows.map(row => ({ ...row, name: names.get(row.user_id) ?? 'Funcionário' }));
+    },
+
     async fetchProducts() {
       const { data, error } = await client
         .from('products')
