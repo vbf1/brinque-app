@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../customers/customers_page.dart';
 import '../products/products_page.dart';
 import '../rentals/rentals_page.dart';
+import '../finance/finance_page.dart';
 
 class CompanyHomePage extends StatefulWidget {
   const CompanyHomePage({super.key});
@@ -99,6 +100,21 @@ class _CompanyHomePageState extends State<CompanyHomePage> {
                     label: const Text('Brinquedos e estoque'),
                   ),
                 ),
+                if (data['role'] == 'owner' || data['role'] == 'admin') ...[
+                  const SizedBox(height: 10),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: () => Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) => FinancePage(companyId: data['id'] as String),
+                        ),
+                      ),
+                      icon: const Icon(Icons.account_balance_wallet_outlined),
+                      label: const Text('Financeiro'),
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 10),
                 SizedBox(
                   width: double.infinity,
