@@ -22,6 +22,30 @@ class CompanyDataRepository {
     return List<Map<String, dynamic>>.from(rows);
   }
 
+
+  Future<List<Map<String, dynamic>>> fetchCompanyMembers() async {
+    final members = await _client
+        .from('company_members')
+        .select('user_id, role')
+        .eq('company_id', companyId)
+        .order('created_at');
+    final rows = List<Map<String, dynamic>>.from(members);
+    if (rows.isEmpty) return [];
+    final ids = rows.map((row) => row['user_id'] as String).toList();
+    final profiles = await _client
+        .from('profiles')
+        .select('id, full_name')
+        .inFilter('id', ids);
+    final names = {
+      for (final profile in profiles)
+        profile['id'] as String: profile['full_name'] as String? ?? 'Funcionário',
+    };
+    return rows.map((row) => {
+      ...row,
+      'name': names[row['user_id']] ?? 'Funcionário',
+    }).toList();
+  }
+
   Future<List<Map<String, dynamic>>> fetchProducts() async {
     final rows = await _client
         .from('products')
