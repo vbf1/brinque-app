@@ -22,6 +22,7 @@ export function RentalsPage({ companyId }: { companyId: string }) {
   const [employees, setEmployees] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [canManageRentals, setCanManageRentals] = useState(false);
   const [search, setSearch] = useState('');
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Row | null>(null);
@@ -40,7 +41,11 @@ export function RentalsPage({ companyId }: { companyId: string }) {
     setLoading(true);
     try {
       const [r, c, p, e] = await Promise.all([repo.fetchRentals(), repo.fetchCustomers(), repo.fetchProducts(), repo.fetchCompanyMembers()]);
-      setRentals(r as Row[]); setCustomers(c as Row[]); setProducts(p as Row[]); setEmployees(e as Row[]); setMessage('');
+      setRentals(r as Row[]); setCustomers(c as Row[]); setProducts(p as Row[]); setEmployees(e as Row[]);
+      const { data: auth } = await supabase.auth.getUser();
+      const currentMember = (e as Row[]).find(employee => employee.user_id === auth.user?.id);
+      setCanManageRentals(['owner', 'admin'].includes(currentMember?.role));
+      setMessage('');
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Não foi possível carregar as locações.');
     } finally { setLoading(false); }
@@ -112,6 +117,7 @@ export function RentalsPage({ companyId }: { companyId: string }) {
     <header className="module-header"><div><p className="eyebrow">OPERAÇÃO</p><h2>Locações</h2><p className="module-description">Crie e edite locações com vários brinquedos no mesmo pedido.</p></div><button type="button" onClick={() => openForm()}>Nova locação</button></header>
     <div className="module-toolbar"><input aria-label="Buscar locações" placeholder="Buscar por cliente" value={search} onChange={e => setSearch(e.target.value)} /><button type="button" className="secondary-button" onClick={() => void load()}>Atualizar</button></div>
     {message && <p className="module-feedback" role="status">{message}</p>}
+    {!canManageRentals && <p className="module-description">Nesta versão, a edição de locações fica restrita ao proprietário e aos administradores para preservar todos os funcionários responsáveis vinculados.</p>}
     {formOpen && <form className="customer-form rental-form" onSubmit={save}>
       <h3>{editing ? 'Editar locação' : 'Nova locação'}</h3>
       <label>Cliente *<select required value={customerId} onChange={e => setCustomerId(e.target.value)}><option value="">Selecione o cliente</option>{customers.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select></label>
@@ -137,7 +143,7 @@ export function RentalsPage({ companyId }: { companyId: string }) {
       <div className="form-actions"><button type="button" className="secondary-button" onClick={() => setFormOpen(false)}>Cancelar</button><button type="submit" disabled={saving}>{saving ? 'Salvando...' : 'Salvar locação'}</button></div>
     </form>}
     {loading ? <p className="module-empty">Carregando locações...</p> : visible.length === 0 ? <p className="module-empty">Nenhuma locação encontrada.</p> : <div className="customer-list">{visible.map(rental => <article className="customer-row rental-row" key={rental.id}>
-      <div className="customer-avatar">📅</div><div className="customer-info"><strong>{rental.customers?.name ?? 'Cliente'}</strong><span>{dateLabel(rental.start_date)} a {dateLabel(rental.end_date)} · {(rental.rental_items ?? []).map((item: Row) => item.products?.name ?? 'Brinquedo').join(', ')} · {money(Number(rental.total_amount ?? 0))} · {rental.status}</span></div><button type="button" className="secondary-button" onClick={() => openForm(rental)}>Editar</button>
+      <div className="customer-avatar">📅</div><div className="customer-info"><strong>{rental.customers?.name ?? 'Cliente'}</strong><span>{dateLabel(rental.start_date)} a {dateLabel(rental.end_date)} · {(rental.rental_items ?? []).map((item: Row) => item.products?.name ?? 'Brinquedo').join(', ')} · {money(Number(rental.total_amount ?? 0))} · {rental.status}</span></div><button type="button" className="secondary-button" disabled={!canManageRentals} title={!canManageRentals ? 'Edição restrita ao proprietário e administradores' : 'Editar locação'} onClick={() => openForm(rental)}>Editar</button>
     </article>)}</div>}
   </section>;
 }
