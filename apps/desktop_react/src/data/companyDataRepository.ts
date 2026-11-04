@@ -41,6 +41,61 @@ export function createCompanyDataRepository(
       return data ?? [];
     },
 
+    async createRentalWithItems(input: {
+      customerId: string;
+      startDate: string;
+      endDate: string;
+      status: 'pending' | 'confirmed' | 'ongoing';
+      deliveryMethod: 'delivery' | 'customer_pickup';
+      totalAmount: number;
+      items: Array<{ product_id: string; quantity: number; unit_price: number }>;
+      deliveryAddress?: string | null;
+      responsibleUserIds?: string[];
+    }) {
+      const { data, error } = await client.rpc('create_rental_with_items', {
+        p_company_id: companyId,
+        p_customer_id: input.customerId,
+        p_start_date: input.startDate,
+        p_end_date: input.endDate,
+        p_status: input.status,
+        p_delivery_method: input.deliveryMethod,
+        p_total_amount: input.totalAmount,
+        p_items: input.items,
+        p_delivery_address: input.deliveryAddress ?? null,
+        p_responsible_user_ids: input.responsibleUserIds ?? [],
+      });
+      if (error) throw error;
+      return data as string;
+    },
+
+    async updateRentalWithItems(input: {
+      rentalId: string;
+      customerId: string;
+      startDate: string;
+      endDate: string;
+      status: 'pending' | 'confirmed' | 'ongoing' | 'completed' | 'cancelled';
+      deliveryMethod: 'delivery' | 'customer_pickup';
+      totalAmount: number;
+      items: Array<{ product_id: string; quantity: number; unit_price: number }>;
+      deliveryAddress?: string | null;
+      responsibleUserIds?: string[];
+    }) {
+      const { error } = await client.rpc('update_rental_with_items', {
+        p_company_id: companyId,
+        p_rental_id: input.rentalId,
+        p_customer_id: input.customerId,
+        p_start_date: input.startDate,
+        p_end_date: input.endDate,
+        p_status: input.status,
+        p_delivery_method: input.deliveryMethod,
+        p_total_amount: input.totalAmount,
+        p_items: input.items,
+        p_delivery_address: input.deliveryAddress ?? null,
+        p_responsible_user_ids: input.responsibleUserIds ?? [],
+      });
+      if (error) throw error;
+    },
+
     async fetchRentals() {
       const { data, error } = await client
         .from('rentals')
