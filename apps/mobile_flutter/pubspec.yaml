@@ -3,11 +3,12 @@ description: Aplicativo mobile Flutter do KidsLoc App — Sonho Kids Brinquedos.
 publish_to: none
 version: 0.1.0+1
 environment:
-  sdk: '>=3.5.0 <4.0.0'
+  sdk: '>=3.9.0 <4.0.0'
 dependencies:
   flutter:
     sdk: flutter
   cupertino_icons: 1.0.8
+  supabase_flutter: 2.18.3
 dev_dependencies:
   flutter_test:
     sdk: flutter
