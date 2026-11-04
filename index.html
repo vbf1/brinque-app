@@ -306,6 +306,30 @@ header{padding-top:calc(12px + var(--kids-safe-area-top))}
 #config select,.reminder-settings-box select{display:block;box-sizing:border-box;width:100%;max-width:100%;min-width:0;margin-inline:0}
 #config .formgrid,.reminder-settings-box .formgrid{grid-template-columns:repeat(2,minmax(0,1fr))}
 @media(max-width:520px){#config .formgrid,.reminder-settings-box .formgrid{grid-template-columns:minmax(0,1fr);gap:2px}}
+
+/* Padrão global de conteúdo e campos: tudo permanece dentro da área segura do aparelho. */
+html,body{width:100%;max-width:100%;overflow-x:clip}
+header{padding-left:calc(12px + var(--kids-safe-area-left));padding-right:calc(12px + var(--kids-safe-area-right))}
+main{width:100%;max-width:900px;min-width:0;margin-inline:auto;padding-left:calc(12px + var(--kids-safe-area-left));padding-right:calc(12px + var(--kids-safe-area-right))}
+main section,.panel,#formBody,.reminder-settings-box,.formgrid,.formgrid>div{min-width:0;max-width:100%}
+.panel{width:100%}
+:where(input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=color]):not([type=hidden]):not([type=button]):not([type=submit]):not([type=reset]),select,textarea){
+ display:block;box-sizing:border-box;width:100%;max-width:100%;min-width:0;margin:0 0 12px;padding:11px 12px;min-height:44px;border:1px solid var(--line);border-radius:11px;background:var(--bg);color:var(--ink);font:inherit;line-height:1.4
+}
+:where(input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=color]):not([type=hidden]):not([type=button]):not([type=submit]):not([type=reset]),select,textarea):focus{outline:2px solid #3478e533;outline-offset:0;border-color:var(--blue)}
+textarea{min-height:100px;resize:vertical}
+input[type=file]{padding:9px;overflow:hidden}
+input[type=checkbox],input[type=radio]{width:18px;min-width:18px;max-width:18px;height:18px;min-height:18px;padding:0;margin:0;accent-color:var(--blue);vertical-align:middle}
+.formgrid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.formgrid>div{width:100%}
+#config{padding-inline:0}
+#config .panel,#config .formgrid,#config .formgrid>div,.reminder-settings-box,.reminder-settings-box .formgrid,.reminder-settings-box .formgrid>div{min-width:0;max-width:100%;width:100%}
+#config select,.reminder-settings-box select{width:100%;max-width:100%;min-width:0}
+@media(max-width:520px){
+ main{padding-left:calc(12px + var(--kids-safe-area-left));padding-right:calc(12px + var(--kids-safe-area-right))}
+ .formgrid{grid-template-columns:minmax(0,1fr);gap:2px}
+}
+
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0"></script>
 <script>if(!window.supabase){document.write('<script src="https://unpkg.com/@supabase/supabase-js@2.118.0/dist/umd/supabase.js"><\\/script>')}</script>
