@@ -92,11 +92,6 @@ export function ContractsPage({ companyId, companyName }: { companyId: string; c
     finally { setUploading(''); }
   }
 
-  async function openOriginal(contract: Contract) {
-    const { data, error } = await supabase.storage.from('rental-contracts').createSignedUrl(contract.original_pdf_path ?? '', 300);
-    if (error) setMessage(error.message); else if (data?.signedUrl) window.open(data.signedUrl, '_blank');
-  }
-
   return <section className="module-shell">
     <header className="module-header"><div><p className="eyebrow">DOCUMENTOS</p><h2>Contratos de locação</h2><p className="module-description">Gere contratos e acompanhe as assinaturas externas ou pelo KidsLoc.</p></div><button type="button" onClick={() => void load()}>Atualizar</button></header>
     <div className="marketing-editor">
