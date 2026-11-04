@@ -7,6 +7,7 @@ import '../rentals/rentals_page.dart';
 import '../finance/finance_page.dart';
 import '../occurrences/occurrences_page.dart';
 import '../team_chat/team_chat_page.dart';
+import '../../core/native_push_service.dart';
 
 class CompanyHomePage extends StatefulWidget {
   const CompanyHomePage({super.key});
@@ -16,6 +17,9 @@ class CompanyHomePage extends StatefulWidget {
 
 class _CompanyHomePageState extends State<CompanyHomePage> {
   late final Future<Map<String, dynamic>> _companyFuture = _loadCompany();
+  final _pushService = NativePushService();
+  bool _pushBusy = false;
+  String _pushStatus = 'Ative os avisos para receber lembretes neste aparelho.';
 
   Future<Map<String, dynamic>> _loadCompany() async {
     final client = Supabase.instance.client;
@@ -33,7 +37,29 @@ class _CompanyHomePageState extends State<CompanyHomePage> {
     return {'id': company['id'], 'name': company['name'], 'role': member['role'], 'email': user.email ?? ''};
   }
 
+  Future<void> _enableNotifications(Map<String, dynamic> data) async {
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) return;
+    setState(() { _pushBusy = true; _pushStatus = 'Solicitando permissão do Android...'; });
+    try {
+      final enabled = await _pushService.requestAndRegister(
+        companyId: data['id'] as String,
+        userId: user.id,
+      );
+      if (!mounted) return;
+      setState(() => _pushStatus = enabled
+          ? 'Notificações ativadas neste aparelho.'
+          : 'Permissão não concedida. Você pode ativá-la nas configurações do Android.');
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _pushStatus = 'Não foi possível ativar: $error');
+    } finally {
+      if (mounted) setState(() => _pushBusy = false);
+    }
+  }
+
   Future<void> _logout() async {
+    await _pushService.unregisterCurrentDevice();
     await Supabase.instance.client.auth.signOut();
   }
 
@@ -74,6 +100,29 @@ class _CompanyHomePageState extends State<CompanyHomePage> {
                 const SizedBox(height: 8),
                 Text(data['name'] as String, style: Theme.of(context).textTheme.titleLarge),
                 Text('Perfil: ${data['role']}'),
+                const SizedBox(height: 18),
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Row(children: [
+                        Icon(Icons.notifications_active_outlined, color: Theme.of(context).colorScheme.primary),
+                        const SizedBox(width: 8),
+                        Expanded(child: Text('Notificações e lembretes', style: Theme.of(context).textTheme.titleMedium)),
+                      ]),
+                      const SizedBox(height: 8),
+                      Text(_pushStatus, style: Theme.of(context).textTheme.bodySmall),
+                      const SizedBox(height: 10),
+                      SizedBox(width: double.infinity, child: FilledButton.tonalIcon(
+                        onPressed: _pushBusy ? null : () => _enableNotifications(data),
+                        icon: _pushBusy
+                            ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                            : const Icon(Icons.notifications_outlined),
+                        label: Text(_pushBusy ? 'Ativando...' : 'Ativar notificações neste aparelho'),
+                      )),
+                    ]),
+                  ),
+                ),
                 const SizedBox(height: 20),
                 const Text('Acesse os primeiros módulos da migração.', textAlign: TextAlign.center),
                 const SizedBox(height: 20),
