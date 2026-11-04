@@ -71,10 +71,22 @@ export function createCompanyDataRepository(
         address: input.address?.trim() || null,
         notes: input.notes?.trim() || null,
       };
-      const query = input.id
-        ? client.from('customers').update(values).eq('id', input.id).eq('company_id', companyId)
-        : client.from('customers').insert({ company_id: companyId, ...values });
-      const { data, error } = await query.select().single();
+      if (input.id) {
+        const { data, error } = await client
+          .from('customers')
+          .update(values)
+          .eq('id', input.id)
+          .eq('company_id', companyId)
+          .select()
+          .single();
+        if (error) throw error;
+        return data;
+      }
+      const { data, error } = await client
+        .from('customers')
+        .insert({ company_id: companyId, ...values })
+        .select()
+        .single();
       if (error) throw error;
       return data;
     },
