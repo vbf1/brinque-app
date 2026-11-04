@@ -12,6 +12,7 @@ class _TeamChatPageState extends State<TeamChatPage> {
   final _client = Supabase.instance.client;
   final _composer = TextEditingController();
   List<Map<String, dynamic>> _members = [], _conversations = [], _messages = [];
+  final Map<String, String> _conversationPeers = {};
   String? _viewerId, _recipientId, _error;
   Map<String, dynamic>? _active;
   dynamic _channel;
@@ -48,8 +49,13 @@ class _TeamChatPageState extends State<TeamChatPage> {
       final conversationIds = conversations.map((row) => row['id'] as String).toList();
       if (conversationIds.isNotEmpty) {
         final memberships = await _client.from('team_conversation_members').select('conversation_id, user_id').inFilter('conversation_id', conversationIds);
-        final visibleIds = List<Map<String, dynamic>>.from(memberships).where((row) => row['user_id'] == _viewerId)
+        final membershipRows = List<Map<String, dynamic>>.from(memberships);
+        final visibleIds = membershipRows.where((row) => row['user_id'] == _viewerId)
             .map((row) => row['conversation_id'] as String).toSet();
+        _conversationPeers
+          ..clear()
+          ..addEntries(membershipRows.where((row) => row['user_id'] != _viewerId)
+            .map((row) => MapEntry(row['conversation_id'] as String, row['user_id'] as String)));
         _conversations = conversations.where((row) => visibleIds.contains(row['id'])).toList();
       } else { _conversations = []; }
       if (groupId != null && !_conversations.any((row) => row['id'] == groupId)) {
@@ -64,8 +70,11 @@ class _TeamChatPageState extends State<TeamChatPage> {
     for (final member in _members) { if (member['user_id'] == id) return member['name'] as String? ?? 'Funcionário'; }
     return 'Membro da equipe';
   }
-  String _conversationName(Map<String, dynamic> item) =>
-      item['conversation_type'] == 'team' ? 'Grupo da equipe' : item['title'] as String? ?? 'Conversa privada';
+  String _conversationName(Map<String, dynamic> item) {
+    if (item['conversation_type'] == 'team') return 'Grupo da equipe';
+    final peerId = _conversationPeers[item['id']];
+    return peerId == null ? 'Conversa privada' : _memberName(peerId);
+  }
 
   Future<void> _open(Map<String, dynamic> conversation) async {
     if (_channel != null) { await _client.removeChannel(_channel); _channel = null; }
