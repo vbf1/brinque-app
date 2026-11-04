@@ -9,11 +9,14 @@ type Product = {
   total_quantity: number;
   daily_price: number;
   available: number;
+  units?: Array<{ id: string; asset_code: string | null; status: string }>;
 };
 
 export function ProductsPage({ companyId }: { companyId: string }) {
   const repository = useMemo(() => createCompanyDataRepository(supabase, companyId), [companyId]);
   const [products, setProducts] = useState<Product[]>([]);
+  const [rentals, setRentals] = useState<any[]>([]);
+  const [updatingUnit, setUpdatingUnit] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState('');
@@ -28,10 +31,11 @@ export function ProductsPage({ companyId }: { companyId: string }) {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [rows, units] = await Promise.all([repository.fetchProducts(), repository.fetchProductUnits()]);
+      const [rows, units, rentalRows] = await Promise.all([repository.fetchProducts(), repository.fetchProductUnits(), repository.fetchRentals()]);
+      setRentals(rentalRows);
       setProducts(rows.map(row => {
         const productUnits = units.filter(unit => unit.product_id === row.id);
-        return { ...row, available: row.inventory_mode === 'individual'
+        return { ...row, units: productUnits, available: row.inventory_mode === 'individual'
           ? productUnits.filter(unit => unit.status === 'available').length
           : row.total_quantity } as Product;
       }));
