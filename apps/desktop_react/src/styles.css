@@ -72,3 +72,6 @@ button.secondary-button { background: #edf4ef; color: #246b43; }
 .rental-responsible-option input { width: auto !important; min-height: auto !important; }
 .rental-responsible-option span { display: grid; gap: 2px; }
 .rental-responsible-option small { color: #718078; font-size: 12px; }
+
+.rental-row-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+@media (max-width: 600px) { .rental-row { align-items: flex-start; flex-wrap: wrap; } .rental-row-actions { width: 100%; padding-left: 48px; } }
