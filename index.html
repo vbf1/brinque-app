@@ -299,6 +299,13 @@ header{padding-top:calc(12px + var(--kids-safe-area-top))}
 .team-chat-avatar{width:43px;height:43px;flex:0 0 43px;display:grid;place-items:center;border-radius:50%;background:var(--bg);font-weight:800;color:var(--blue)}
 .team-chat-list-copy{min-width:0;flex:1;display:grid;gap:3px}.team-chat-list-copy b,.team-chat-list-copy small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.team-chat-list-copy small{color:var(--muted);font-size:12px}
 .reminder-settings-box{border:1px solid var(--line);border-radius:13px;padding:13px;margin:14px 0;background:var(--bg)}.reminder-settings-box>strong{display:block;margin-bottom:6px}.reminder-settings-box .muted{margin:6px 0 10px}.reminder-settings-box .formgrid{margin-top:8px}
+/* Mantém os campos de lembrete dentro da área útil do app, inclusive em telas com Safe Area. */
+#config{min-width:0;max-width:100%;padding-inline:var(--kids-safe-area-left,0px) var(--kids-safe-area-right,0px)}
+#config .panel,#config .formgrid,#config .formgrid>div,.reminder-settings-box,.reminder-settings-box .formgrid,.reminder-settings-box .formgrid>div{min-width:0;max-width:100%;width:100%}
+#config .panel,.reminder-settings-box{overflow-x:clip}
+#config select,.reminder-settings-box select{display:block;box-sizing:border-box;width:100%;max-width:100%;min-width:0;margin-inline:0}
+#config .formgrid,.reminder-settings-box .formgrid{grid-template-columns:repeat(2,minmax(0,1fr))}
+@media(max-width:520px){#config .formgrid,.reminder-settings-box .formgrid{grid-template-columns:minmax(0,1fr);gap:2px}}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0"></script>
 <script>if(!window.supabase){document.write('<script src="https://unpkg.com/@supabase/supabase-js@2.118.0/dist/umd/supabase.js"><\\/script>')}</script>
