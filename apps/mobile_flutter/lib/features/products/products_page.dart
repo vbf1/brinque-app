@@ -20,13 +20,21 @@ class _ProductsPageState extends State<ProductsPage> {
   String _search = '';
 
   Future<List<Map<String, dynamic>>> _load() async {
-    final products = await _repository.fetchProducts();
-    final units = await _repository.fetchProductUnits();
+    final results = await Future.wait([
+      _repository.fetchProducts(),
+      _repository.fetchProductUnits(),
+      _repository.fetchRentals(),
+    ]);
+    final products = results[0] as List<Map<String, dynamic>>;
+    final units = results[1] as List<Map<String, dynamic>>;
+    final rentals = results[2] as List<Map<String, dynamic>>;
     return products.map((product) {
       final productUnits = units.where((unit) => unit['product_id'] == product['id']).toList();
       final individual = product['inventory_mode'] == 'individual';
       return {
         ...product,
+        '_units': productUnits,
+        '_rentals': rentals,
         'available': individual
             ? productUnits.where((unit) => unit['status'] == 'available').length
             : product['total_quantity'],
@@ -38,6 +46,19 @@ class _ProductsPageState extends State<ProductsPage> {
     setState(() => _future = _load());
   }
 
+  Future<void> _setUnitStatus(Map<String, dynamic> unit) async {
+    final id = unit['id'] as String;
+    final next = unit['status'] == 'maintenance' ? 'available' : 'maintenance';
+    try {
+      await _repository.setProductUnitStatus(id, next);
+      await _reload();
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(next == 'maintenance' ? 'Unidade enviada para manutenção.' : 'Unidade liberada para locação.'),
+      ));
+    } catch (error) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Não foi possível atualizar a unidade: $error')));
+    }
+  }
   Future<void> _edit([Map<String, dynamic>? product]) async {
     final name = TextEditingController(text: product?['name'] as String? ?? '');
     final quantity = TextEditingController(text: (product?['total_quantity'] ?? 1).toString());
@@ -123,13 +144,37 @@ class _ProductsPageState extends State<ProductsPage> {
             itemBuilder: (context, index) {
               final p = rows[index];
               final individual = p['inventory_mode'] == 'individual';
-              return Card(child: ListTile(
-                leading: const CircleAvatar(child: Icon(Icons.toys_outlined)),
-                title: Text(p['name'] as String? ?? 'Brinquedo'),
-                subtitle: Text('${p['available']} disponível(is) de ${p['total_quantity']} · R\$ ${p['daily_price']}/dia · ${individual ? 'Unidades individuais' : 'Por quantidade'}'),
-                trailing: IconButton(tooltip: 'Editar brinquedo', onPressed: () => _edit(p), icon: const Icon(Icons.edit_outlined)),
-                onTap: () => _edit(p),
-              ));
+              final units = List<Map<String, dynamic>>.from(p['_units'] as List? ?? []);
+              final rentals = List<Map<String, dynamic>>.from(p['_rentals'] as List? ?? []);
+              return Card(child: Column(children: [
+                ListTile(
+                  leading: const CircleAvatar(child: Icon(Icons.toys_outlined)),
+                  title: Text(p['name'] as String? ?? 'Brinquedo'),
+                  subtitle: Text('${p['available']} disponível(is) de ${p['total_quantity']} · R\$ ${p['daily_price']}/dia · ${individual ? 'Unidades individuais' : 'Por quantidade'}'),
+                  trailing: IconButton(tooltip: 'Editar brinquedo', onPressed: () => _edit(p), icon: const Icon(Icons.edit_outlined)),
+                  onTap: () => _edit(p),
+                ),
+                if (individual && units.isNotEmpty) ExpansionTile(
+                  title: const Text('Unidades e histórico de locações'),
+                  children: units.map((unit) {
+                    final history = rentals.where((r) => (r['rental_items'] as List? ?? []).any((item) =>
+                      (item['rental_item_units'] as List? ?? []).any((allocation) => allocation['product_unit_id'] == unit['id'])))
+                      .toList()..sort((a, b) => (b['start_date'] ?? '').toString().compareTo((a['start_date'] ?? '').toString()));
+                    final recent = history.take(3).map((r) => '${(r['customers'] as Map?)?['name'] ?? 'Cliente'} · ${r['start_date']} · ${r['status']}').join(' | ');
+                    final status = unit['status'] as String? ?? 'available';
+                    final label = status == 'maintenance' ? 'Em manutenção' : status == 'inactive' ? 'Inativa' : 'Disponível';
+                    return ListTile(
+                      title: Text('Unidade ${unit['asset_code'] ?? '—'}'),
+                      subtitle: Text('$label\nHistórico: ${recent.isEmpty ? 'Sem locações registradas' : recent}'),
+                      isThreeLine: true,
+                      trailing: status == 'inactive' ? null : TextButton(
+                        onPressed: () => _setUnitStatus(unit),
+                        child: Text(status == 'maintenance' ? 'Liberar' : 'Manutenção'),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ]));
             },
           ));
         },
