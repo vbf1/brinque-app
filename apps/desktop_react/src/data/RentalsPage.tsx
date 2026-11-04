@@ -107,7 +107,7 @@ export function RentalsPage({ companyId }: { companyId: string }) {
       <div className="form-grid">
         <label>Data de início *<input type="date" required value={startDate} onChange={e => setStartDate(e.target.value)} /></label>
         <label>Data de término *<input type="date" min={startDate} required value={endDate} onChange={e => setEndDate(e.target.value)} /></label>
-        <label>Status<select value={status} onChange={e => setStatus(e.target.value)}><option value="pending">Pendente</option><option value="confirmed">Confirmada</option><option value="ongoing">Em andamento</option><option value="completed">Concluída</option><option value="cancelled">Cancelada</option></select></label>
+        <label>Status<select value={status} onChange={e => setStatus(e.target.value)}><option value="pending">Pendente</option><option value="confirmed">Confirmada</option><option value="ongoing">Em andamento</option>{editing && <><option value="completed">Concluída</option><option value="cancelled">Cancelada</option></>}</select></label>
         <label>Entrega<select value={deliveryMethod} onChange={e => setDeliveryMethod(e.target.value)}><option value="customer_pickup">Retirada pelo cliente</option><option value="delivery">Entregar no endereço</option></select></label>
       </div>
       {deliveryMethod === 'delivery' && <label>Endereço de entrega *<input required value={deliveryAddress} onChange={e => setDeliveryAddress(e.target.value)} /></label>}
