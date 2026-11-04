@@ -1,4 +1,7 @@
 -- Restrict contract and private PDF access to users who can manage the linked rental.
+create index if not exists rental_contracts_created_by_idx
+  on public.rental_contracts(created_by);
+
 -- Owners/admins retain company-wide access through can_manage_rental().
 drop policy if exists rental_contracts_select_company_members on public.rental_contracts;
 create policy rental_contracts_select_assigned_rentals on public.rental_contracts
