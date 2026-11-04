@@ -69,14 +69,7 @@ export function PublicContractPage({ token }: { token: string }) {
     {snapshot && !signed && <><h2>{snapshot.companyName}</h2><p><b>Cliente:</b> {snapshot.customerName} · <b>Período:</b> {snapshot.startDate} a {snapshot.endDate}</p>
       <h3>Itens e valores</h3><ul>{(snapshot.items ?? []).map((i:any,n:number)=><li key={n}>{i.quantity} × {i.name} — R$ {Number(i.subtotal ?? 0).toFixed(2)}</li>)}</ul>
       <p><b>Total: R$ {Number(snapshot.totalAmount ?? 0).toFixed(2)}</b></p>
-      <h3>Condições do contrato</h3><ol>
-        <li>Utilize os brinquedos conforme as orientações fornecidas pela locadora e mantenha-os em boas condições.</li>
-        <li>O contratante deverá supervisionar a utilização e impedir uso inadequado ou por pessoas não autorizadas.</li>
-        <li>Danos, perdas ou avarias decorrentes de mau uso deverão ser comunicados e poderão gerar ressarcimento.</li>
-        <li>Respeite o período contratado e as condições de devolução combinadas.</li>
-        <li>Valores e condições de pagamento são os apresentados no resumo da locação.</li>
-      </ol>
-      <h3>Assinatura eletrônica</h3><label>Nome completo<input value={name} onChange={e=>setName(e.target.value)} style={field}/></label>
+      <h3>Condições do contrato</h3><ol>{(snapshot.clauses ?? []).map((clause:string,index:number)=><li key={index}>{clause}</li>)}</ol>\n      <p><b>Endereço de entrega:</b> {snapshot.deliveryAddress || '—'}</p><p><b>Caução/garantia:</b> R$ {Number(snapshot.depositAmount ?? 0).toFixed(2)}</p>{snapshot.rentalNotes && <p><b>Observações:</b> {snapshot.rentalNotes}</p>}\n      <h3>Assinatura eletrônica</h3><label>Nome completo<input value={name} onChange={e=>setName(e.target.value)} style={field}/></label>
       <label>CPF (opcional)<input value={document} onChange={e=>setDocument(e.target.value)} style={field}/></label>
       <label>Telefone (opcional)<input value={phone} onChange={e=>setPhone(e.target.value)} style={field}/></label>
       <p>Assine no campo abaixo:</p><canvas ref={canvasRef} width={640} height={180} style={{width:'100%',height:180,border:'1px solid #aab5af',borderRadius:8,touchAction:'none',background:'#fff'}} onPointerDown={start} onPointerMove={move} onPointerUp={stop} onPointerCancel={stop}/>
