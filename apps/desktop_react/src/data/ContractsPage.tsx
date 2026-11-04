@@ -41,7 +41,7 @@ export function ContractsPage({ companyId, companyName }: { companyId: string; c
 
   async function createContract() {
     const rental = rentals.find(r => r.id === selectedRental);
-    if (!rental) { setMessage('Selecione uma locação.'); return; }     const phoneDigits = String(rental.customers?.phone ?? '').replace(/\\D/g, '');     if (phoneDigits.length < 10 || phoneDigits.length > 13) { setMessage('Cadastre um telefone válido com DDD para preparar o WhatsApp.'); return; }
+    if (!rental) { setMessage('Selecione uma locação.'); return; } const phoneDigits = Array.from(String(rental.customers?.phone ?? '')).filter((digit) => digit >= '0' && digit <= '9').join(''); if (phoneDigits.length < 10 || phoneDigits.length > 13) { setMessage('Cadastre um telefone válido com DDD para preparar o WhatsApp.'); return; }
     setBusy(true); setMessage('');
     try {
       const rawToken = Array.from(crypto.getRandomValues(new Uint8Array(32)), b => b.toString(16).padStart(2, '0')).join('');
@@ -66,10 +66,10 @@ export function ContractsPage({ companyId, companyName }: { companyId: string; c
       if (method === 'in_app') {
         const link = window.location.origin + window.location.pathname + '?contract=' + rawToken;
         const text = encodeURIComponent('Olá! Seu contrato de locação está disponível para leitura e assinatura pelo KidsLoc: ' + link);
-        window.open('https://wa.me/' + String(snapshot.customerPhone).replace(/\\D/g, '') + '?text=' + text, '_blank');
+        window.open('https://wa.me/' + phoneDigits + '?text=' + text, '_blank');
       } else {
         const text = encodeURIComponent('Olá! Estou enviando seu contrato de locação em PDF. Por favor, assine pelo Gov.br ou outro serviço de assinatura eletrônica e devolva o PDF assinado por aqui.');
-        window.open('https://wa.me/' + String(snapshot.customerPhone).replace(/\\D/g, '') + '?text=' + text, '_blank');
+        window.open('https://wa.me/' + phoneDigits + '?text=' + text, '_blank');
       }
       setSelectedRental(''); await load();
       setMessage(method === 'external' ? 'Contrato criado. Salve o PDF gerado e anexe-o à conversa do WhatsApp.' : 'Contrato criado e link de assinatura preparado no WhatsApp.');
