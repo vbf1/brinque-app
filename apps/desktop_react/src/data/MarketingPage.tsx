@@ -85,6 +85,49 @@ export function MarketingPage({ companyId, userId }: { companyId: string; userId
    setMessage(e instanceof Error?e.message:'Não foi possível copiar o anúncio. Selecione o texto e copie manualmente.');
   }
  }
+
+ function exportAd(ad:Ad){
+  const channelNames=ad.platforms.map(v=>channels.find(ch=>ch.id===v)?.label??v);
+  const content=[
+   'MATERIAL DE DIVULGAÇÃO',
+   '=====================',
+   '',
+   'TÍTULO',
+   ad.title,
+   '',
+   'DESCRIÇÃO',
+   ad.description,
+   '',
+   'PALAVRAS-CHAVE',
+   ad.keywords.join(', ')||'Não informadas',
+   '',
+   'CANAIS SELECIONADOS',
+   channelNames.join(', ')||'Não informados',
+   '',
+   'LINK DA IMAGEM',
+   ad.image_url||'Não informado',
+   '',
+   'ORIENTAÇÃO PARA A IMAGEM',
+   ad.image_prompt||'Não informada',
+   '',
+   'STATUS NO KIDSLOC',
+   labels[ad.status]??ad.status,
+   '',
+   'Observação: este arquivo reúne o material preparado no aplicativo. A publicação deve ser feita manualmente na plataforma escolhida.'
+  ].join('\\n');
+  const safeName=ad.title.normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').replace(/[^a-z0-9]+/gi,'-').replace(/^-|-$/g,'').toLowerCase()||'anuncio';
+  const file=new Blob(['\\uFEFF',content],{type:'text/plain;charset=utf-8'});
+  const url=URL.createObjectURL(file);
+  const link=document.createElement('a');
+  link.href=url;
+  link.download=safeName+'.txt';
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+  setMessage('Material do anúncio preparado para download.');
+ }
+
  async function saveSettings(e:FormEvent){
   e.preventDefault();setSaving(true);
   try{
@@ -150,7 +193,7 @@ export function MarketingPage({ companyId, userId }: { companyId: string; userId
    {loading?<p className="module-empty">Carregando anúncios...</p>:visible.length===0?<p className="module-empty">{ads.length===0?'Nenhum anúncio cadastrado. Crie o primeiro usando um brinquedo do estoque.':'Nenhum anúncio corresponde aos filtros atuais. Tente outro termo ou limpe os filtros.'}</p>:<><p className="marketing-results-count">Exibindo {visible.length} de {ads.length} anúncios</p><div className="marketing-ad-list">{visible.map(ad=><article className="marketing-ad-card" key={ad.id}>
     {ad.image_url?<img src={ad.image_url} alt="Imagem do anúncio"/>:<div className="marketing-image-placeholder">Imagem ainda não adicionada</div>}
     <div className="marketing-ad-content"><div className="marketing-ad-top"><span className={'marketing-status status-'+ad.status}>{labels[ad.status]??ad.status}</span><small>{new Date(ad.created_at).toLocaleDateString('pt-BR')}</small></div><h3>{ad.title}</h3><p>{ad.description}</p><div className="marketing-tags">{ad.platforms.map(v=><span key={v}>{channels.find(c=>c.id===v)?.label??v}</span>)}</div><small>Palavras-chave: {ad.keywords.join(', ')||'Não informadas'}</small>
-    <div className="marketing-actions"><button type="button" className="secondary-button" onClick={()=>void copyAd(ad)}>Copiar anúncio</button><button type="button" className="secondary-button" onClick={()=>edit(ad)}>Editar</button><button type="button" className="secondary-button" onClick={()=>duplicateAd(ad)}>Duplicar</button>{ad.status==='draft'||ad.status==='rejected'?<button type="button" onClick={()=>void status(ad,'pending_approval')}>Enviar para revisão</button>:null}{ad.status==='pending_approval'?<><button type="button" onClick={()=>void status(ad,'approved')}>Aprovar</button><button type="button" className="secondary-button" onClick={()=>void status(ad,'rejected')}>Solicitar ajustes</button></>:null}{ad.status==='approved'?<span className="marketing-not-published">Aprovado · publicação não conectada</span>:null}<button type="button" className="danger-button" onClick={()=>void remove(ad)}>Excluir</button></div>
+    <div className="marketing-actions"><button type="button" className="secondary-button" onClick={()=>void copyAd(ad)}>Copiar anúncio</button><button type="button" className="secondary-button" onClick={()=>exportAd(ad)}>Baixar material</button><button type="button" className="secondary-button" onClick={()=>edit(ad)}>Editar</button><button type="button" className="secondary-button" onClick={()=>duplicateAd(ad)}>Duplicar</button>{ad.status==='draft'||ad.status==='rejected'?<button type="button" onClick={()=>void status(ad,'pending_approval')}>Enviar para revisão</button>:null}{ad.status==='pending_approval'?<><button type="button" onClick={()=>void status(ad,'approved')}>Aprovar</button><button type="button" className="secondary-button" onClick={()=>void status(ad,'rejected')}>Solicitar ajustes</button></>:null}{ad.status==='approved'?<span className="marketing-not-published">Aprovado · publicação não conectada</span>:null}<button type="button" className="danger-button" onClick={()=>void remove(ad)}>Excluir</button></div>
     </div></article>)}</div></>}
    <form className="customer-form marketing-editor" onSubmit={e=>void saveAd(e,false)}>
     <h3>{editing?'Editar anúncio':'Preparar anúncio'}</h3><p className="module-description">Selecione um brinquedo para preencher uma primeira versão. Você pode revisar todos os campos antes de salvar.</p>
