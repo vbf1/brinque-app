@@ -107,6 +107,27 @@ class CompanyDataRepository {
 
   /// Creates a rental and all selected toys in one database transaction.
   /// Stock validation and individual-unit allocation remain server-side.
+  Future<void> setProductUnitStatus(String unitId, String status) async {
+    final unit = await _client.from('product_units').select('id, product_id, status')
+        .eq('id', unitId).eq('company_id', companyId).single();
+    if (status == 'maintenance') {
+      await _client.from('maintenance_records').insert({
+        'company_id': companyId, 'product_id': unit['product_id'],
+        'product_unit_id': unit['id'],
+        'description': 'Unidade enviada para manutenção pelo controle de estoque.',
+        'status': 'open',
+      });
+    } else if (unit['status'] == 'maintenance') {
+      await _client.from('maintenance_records').update({
+        'status': 'completed',
+        'completed_at': DateTime.now().toIso8601String().substring(0, 10),
+      }).eq('product_unit_id', unitId).eq('company_id', companyId).eq('status', 'open');
+    }
+    final updated = await _client.from('product_units').update({'status': status})
+        .eq('id', unitId).eq('company_id', companyId).select('id').maybeSingle();
+    if (updated == null) throw StateError('Unidade não encontrada ou sem permissão para atualizar.');
+  }
+
   Future<String> createRentalWithItems({
     required String customerId,
     required String startDate,
