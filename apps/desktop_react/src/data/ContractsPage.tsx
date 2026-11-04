@@ -3,8 +3,6 @@ import { supabase } from '../lib/supabase';
 
 type Rental = Record<string, any>;
 type Contract = Record<string, any>;
-const money = (value: unknown) => Number(value ?? 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-const date = (value: string) => value ? new Date(value + 'T12:00:00').toLocaleDateString('pt-BR') : '—';
 const clauses = [
   'O contratante declara que recebeu as informações sobre os brinquedos alugados e compromete-se a utilizá-los conforme as orientações fornecidas pela locadora.',
   'O contratante deverá zelar pela conservação dos equipamentos durante todo o período da locação e impedir o uso inadequado ou por pessoas não autorizadas.',
@@ -14,10 +12,35 @@ const clauses = [
   'O contratante declara ser responsável por supervisionar a utilização dos brinquedos e por seguir as instruções de segurança entregues pela locadora.',
   'Alterações e cancelamentos deverão ser comunicados à locadora e dependerão de confirmação entre as partes.'
 ];
+const money = (value: unknown) => Number(value ?? 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+const date = (value: string) => value ? new Date(value + 'T12:00:00').toLocaleDateString('pt-BR') : '—';
+const escapeHtml = (value: unknown) => String(value ?? '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char] ?? char));
+const statusLabels: Record<string,string> = { draft:'Rascunho', sent:'Enviado', viewed:'Visualizado', signed:'Assinado', cancelled:'Cancelado', expired:'Expirado' };
+
 function printable(snapshot: Record<string, any>, number?: number) {
-  const items = (snapshot.items ?? []).map((i: any) => '<tr><td>' + i.name + '</td><td>' + i.quantity + '</td><td>' + money(i.dailyPrice) + '</td><td>' + money(i.subtotal) + '</td></tr>').join('');
-  return `<!doctype html><html lang="pt-BR"><meta charset="utf-8"><title>Contrato ${number ?? ''}</title><style>body{font:14px Arial;color:#222;max-width:800px;margin:36px auto;line-height:1.5}h1{text-align:center;font-size:20px}h2{font-size:15px;margin-top:24px}table{width:100%;border-collapse:collapse}td,th{border:1px solid #bbb;padding:8px;text-align:left}.sign{margin-top:55px;display:flex;gap:70px}.sign div{border-top:1px solid #444;flex:1;text-align:center;padding-top:8px}@media print{body{margin:18mm}}</style><h1>CONTRATO DE LOCAÇÃO DE BRINQUEDOS</h1><p><b>Locadora:</b> ${snapshot.companyName}</p><p><b>Cliente:</b> ${snapshot.customerName}<br><b>Telefone:</b> ${snapshot.customerPhone || '—'}<br><b>Endereço:</b> ${snapshot.customerAddress || '—'}</p><p><b>Locação:</b> ${number ?? ''} &nbsp; <b>Período:</b> ${date(snapshot.startDate)} a ${date(snapshot.endDate)}</p><h2>ITENS LOCADOS</h2><table><thead><tr><th>Brinquedo</th><th>Qtd.</th><th>Diária</th><th>Subtotal</th></tr></thead><tbody>${items}</tbody></table><p><b>Valor total: ${money(snapshot.totalAmount)}</b></p><p><b>Caução/garantia:</b> ${money(snapshot.depositAmount)}</p><p><b>Endereço de entrega:</b> ${snapshot.deliveryAddress || '—'}</p><h2>CONDIÇÕES</h2><ol>${clauses.map(c => '<li>' + c + '</li>').join('')}</ol><h2>ASSINATURAS</h2><p>As partes declaram que leram e concordam com as condições acima. ${snapshot.rentalNotes ? 'Observações da locação: ' + snapshot.rentalNotes : ''}</p><div class="sign"><div>LOCADORA</div><div>CONTRATANTE</div></div></html>`;
+  const items = (Array.isArray(snapshot.items) ? snapshot.items : []).map((item: any) =>
+    '<tr><td>' + escapeHtml(item.name) + '</td><td>' + escapeHtml(item.quantity) + '</td><td>' + money(item.dailyPrice) + '</td><td>' + money(item.subtotal) + '</td></tr>'
+  ).join('');
+  const terms = Array.isArray(snapshot.clauses) ? snapshot.clauses : clauses;
+  return '<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Contrato ' + escapeHtml(number ?? '') + '</title><style>body{font:14px Arial;color:#222;max-width:800px;margin:36px auto;line-height:1.5}h1{text-align:center;font-size:20px}h2{font-size:15px;margin-top:24px}table{width:100%;border-collapse:collapse}td,th{border:1px solid #bbb;padding:8px;text-align:left}.sign{margin-top:55px;display:flex;gap:70px}.sign div{border-top:1px solid #444;flex:1;text-align:center;padding-top:8px}@media print{body{margin:18mm}}</style></head><body>' +
+    '<h1>CONTRATO DE LOCAÇÃO DE BRINQUEDOS</h1><p><b>Locadora:</b> ' + escapeHtml(snapshot.companyName) + '</p>' +
+    '<p><b>Cliente:</b> ' + escapeHtml(snapshot.customerName) + '<br><b>Telefone:</b> ' + escapeHtml(snapshot.customerPhone || '—') + '<br><b>Endereço:</b> ' + escapeHtml(snapshot.customerAddress || '—') + '</p>' +
+    '<p><b>Locação:</b> ' + escapeHtml(number ?? '') + ' &nbsp; <b>Período:</b> ' + escapeHtml(date(snapshot.startDate)) + ' a ' + escapeHtml(date(snapshot.endDate)) + '</p>' +
+    '<h2>ITENS LOCADOS</h2><table><thead><tr><th>Brinquedo</th><th>Qtd.</th><th>Diária</th><th>Subtotal</th></tr></thead><tbody>' + items + '</tbody></table>' +
+    '<p><b>Valor total: ' + money(snapshot.totalAmount) + '</b></p><p><b>Caução/garantia:</b> ' + money(snapshot.depositAmount) + '</p><p><b>Endereço de entrega:</b> ' + escapeHtml(snapshot.deliveryAddress || '—') + '</p>' +
+    '<h2>CONDIÇÕES</h2><ol>' + terms.map((clause: unknown) => '<li>' + escapeHtml(clause) + '</li>').join('') + '</ol>' +
+    '<h2>ASSINATURAS</h2><p>As partes declaram que leram e concordam com as condições acima. ' + escapeHtml(snapshot.rentalNotes ? 'Observações da locação: ' + snapshot.rentalNotes : '') + '</p>' +
+    '<div class="sign"><div>LOCADORA</div><div>CONTRATANTE</div></div></body></html>';
 }
+
+function makeToken() {
+  return Array.from(crypto.getRandomValues(new Uint8Array(32)), byte => byte.toString(16).padStart(2, '0')).join('');
+}
+async function hashToken(token: string) {
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(token));
+  return Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('');
+}
+
 export function ContractsPage({ companyId, companyName }: { companyId: string; companyName: string }) {
   const [rentals, setRentals] = useState<Rental[]>([]);
   const [contracts, setContracts] = useState<Contract[]>([]);
@@ -27,6 +50,8 @@ export function ContractsPage({ companyId, companyName }: { companyId: string; c
   const [method, setMethod] = useState<'external' | 'in_app'>('external');
   const [message, setMessage] = useState('');
   const [uploading, setUploading] = useState('');
+  const [generatedTokens, setGeneratedTokens] = useState<Record<string,string>>({});
+
   const load = useCallback(async () => {
     setLoading(true);
     const [r, c] = await Promise.all([
@@ -40,40 +65,101 @@ export function ContractsPage({ companyId, companyName }: { companyId: string; c
   useEffect(() => { void load(); }, [load]);
 
   async function createContract() {
-    const rental = rentals.find(r => r.id === selectedRental);
-    if (!rental) { setMessage('Selecione uma locação.'); return; } const phoneDigits = Array.from(String(rental.customers?.phone ?? '')).filter((digit) => digit >= '0' && digit <= '9').join(''); if (phoneDigits.length < 10 || phoneDigits.length > 13) { setMessage('Cadastre um telefone válido com DDD para preparar o WhatsApp.'); return; }
+    const rental = rentals.find(item => item.id === selectedRental);
+    if (!rental) { setMessage('Selecione uma locação.'); return; }
+    const phoneDigits = Array.from(String(rental.customers?.phone ?? '')).filter(digit => digit >= '0' && digit <= '9').join('');
+    if (phoneDigits.length < 10 || phoneDigits.length > 13) { setMessage('Cadastre um telefone válido com DDD para preparar o WhatsApp.'); return; }
     setBusy(true); setMessage('');
     try {
-      const rawToken = Array.from(crypto.getRandomValues(new Uint8Array(32)), b => b.toString(16).padStart(2, '0')).join('');
-      const hash = Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(rawToken))), b => b.toString(16).padStart(2, '0')).join('');
+      const rawToken = method === 'in_app' ? makeToken() : '';
+      const tokenHash = rawToken ? await hashToken(rawToken) : null;
       const snapshot = {
         companyName, customerName: rental.customers?.name ?? 'Cliente', customerPhone: rental.customers?.phone ?? '',
         customerAddress: rental.customers?.address ?? rental.delivery_address ?? '',
         startDate: rental.start_date, endDate: rental.end_date, totalAmount: rental.total_amount,
         rentalNumber: rental.rental_number,
-        items: (rental.rental_items ?? []).map((i: any) => ({ name: i.products?.name ?? 'Brinquedo', quantity: i.quantity, dailyPrice: i.unit_price, subtotal: i.subtotal ?? Number(i.unit_price) * Number(i.quantity) })),         clauses, depositAmount: rental.deposit_amount ?? 0, deliveryAddress: rental.delivery_address ?? '', rentalNotes: rental.notes ?? ''
+        items: (rental.rental_items ?? []).map((item: any) => ({ name: item.products?.name ?? 'Brinquedo', quantity: item.quantity, dailyPrice: item.unit_price, subtotal: item.subtotal ?? Number(item.unit_price) * Number(item.quantity) })),
+        clauses, depositAmount: rental.deposit_amount ?? 0, deliveryAddress: rental.delivery_address ?? '', rentalNotes: rental.notes ?? ''
       };
       const { data, error } = await supabase.from('rental_contracts').insert({
-        company_id: companyId, rental_id: rental.id, signature_method: method, status: 'sent', sent_at: new Date().toISOString(),
-        contract_snapshot: snapshot, token_hash: method === 'in_app' ? hash : null,
-        token_expires_at: method === 'in_app' ? new Date(Date.now() + 7 * 86400000).toISOString() : null,
+        company_id: companyId, rental_id: rental.id, signature_method: method, status: 'draft',
+        contract_snapshot: snapshot, token_hash: tokenHash,
+        token_expires_at: rawToken ? new Date(Date.now() + 7 * 86400000).toISOString() : null,
         created_by: (await supabase.auth.getUser()).data.user?.id
       }).select('*').single();
       if (error) throw error;
-      const html = printable(snapshot, data.contract_number);
-      const win = window.open('', '_blank');
-      if (win) { win.document.write(html); win.document.close(); win.focus(); setTimeout(() => win.print(), 300); }
-      if (method === 'in_app') {
-        const link = window.location.origin + window.location.pathname + '?contract=' + rawToken;
-        const text = encodeURIComponent('Olá! Seu contrato de locação está disponível para leitura e assinatura pelo KidsLoc: ' + link);
-        window.open('https://wa.me/' + phoneDigits + '?text=' + text, '_blank');
-      } else {
-        const text = encodeURIComponent('Olá! Estou enviando seu contrato de locação em PDF. Por favor, assine pelo Gov.br ou outro serviço de assinatura eletrônica e devolva o PDF assinado por aqui.');
-        window.open('https://wa.me/' + phoneDigits + '?text=' + text, '_blank');
-      }
-      setSelectedRental(''); await load();
-      setMessage(method === 'external' ? 'Contrato criado. Salve o PDF gerado e anexe-o à conversa do WhatsApp.' : 'Contrato criado e link de assinatura preparado no WhatsApp.');
+      if (rawToken) setGeneratedTokens(current => ({ ...current, [data.id]: rawToken }));
+      setSelectedRental('');
+      await load();
+      setMessage('Contrato criado como rascunho. Gere ou confira o PDF, envie pelo WhatsApp e depois marque como enviado.');
     } catch (error) { setMessage(error instanceof Error ? error.message : 'Falha ao criar contrato.'); }
+    finally { setBusy(false); }
+  }
+
+  function printContract(contract: Contract) {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) { setMessage('O navegador bloqueou a janela de impressão. Permita pop-ups e tente novamente.'); return; }
+    printWindow.document.open();
+    printWindow.document.write(printable(contract.contract_snapshot ?? {}, contract.contract_number));
+    printWindow.document.close();
+    printWindow.focus();
+    window.setTimeout(() => printWindow.print(), 250);
+  }
+
+  function openWhatsApp(contract: Contract) {
+    const snapshot = contract.contract_snapshot ?? {};
+    const digits = Array.from(String(snapshot.customerPhone ?? '')).filter(digit => digit >= '0' && digit <= '9').join('');
+    if (digits.length < 10 || digits.length > 13) { setMessage('O telefone salvo no contrato não é válido.'); return; }
+    let messageText = 'Olá! Estou enviando o contrato de locação em PDF. Por favor, assine pelo Gov.br ou outro serviço de assinatura eletrônica e devolva o PDF assinado por aqui.';
+    if (contract.signature_method === 'in_app') {
+      const token = generatedTokens[contract.id];
+      if (!token) { setMessage('Gere um novo link de assinatura antes de abrir o WhatsApp.'); return; }
+      const link = window.location.origin + window.location.pathname + '?contract=' + encodeURIComponent(token);
+      messageText = 'Olá! Seu contrato de locação está disponível para leitura e assinatura pelo KidsLoc: ' + link;
+    }
+    window.open('https://wa.me/' + digits + '?text=' + encodeURIComponent(messageText), '_blank', 'noopener,noreferrer');
+    setMessage(contract.signature_method === 'external' ? 'WhatsApp aberto. Anexe o PDF salvo e envie ao cliente.' : 'WhatsApp aberto com o link de assinatura.');
+  }
+
+  async function regenerateLink(contract: Contract) {
+    setBusy(true); setMessage('');
+    try {
+      const rawToken = makeToken();
+      const tokenHash = await hashToken(rawToken);
+      const { data, error } = await supabase.from('rental_contracts').update({
+        token_hash: tokenHash, token_expires_at: new Date(Date.now() + 7 * 86400000).toISOString(),
+        status: 'draft', sent_at: null, viewed_at: null
+      }).eq('id', contract.id).eq('company_id', companyId).neq('status', 'signed').select('id').maybeSingle();
+      if (error) throw error;
+      if (!data) throw new Error('Este contrato não pode receber um novo link.');
+      setGeneratedTokens(current => ({ ...current, [contract.id]: rawToken }));
+      await load();
+      setMessage('Novo link gerado. Envie pelo WhatsApp e marque o contrato como enviado.');
+    } catch (error) { setMessage(error instanceof Error ? error.message : 'Não foi possível gerar o link.'); }
+    finally { setBusy(false); }
+  }
+
+  async function markSent(contract: Contract) {
+    setBusy(true);
+    try {
+      const { data, error } = await supabase.from('rental_contracts').update({ status: 'sent', sent_at: new Date().toISOString() })
+        .eq('id', contract.id).eq('company_id', companyId).eq('status', 'draft').select('id').maybeSingle();
+      if (error) throw error;
+      if (!data) throw new Error('O contrato não está mais como rascunho.');
+      await load(); setMessage('Contrato marcado como enviado.');
+    } catch (error) { setMessage(error instanceof Error ? error.message : 'Não foi possível atualizar o status.'); }
+    finally { setBusy(false); }
+  }
+
+  async function cancelContract(contract: Contract) {
+    if (!window.confirm('Cancelar este contrato? O link de assinatura deixará de funcionar.')) return;
+    setBusy(true);
+    try {
+      const { error } = await supabase.from('rental_contracts').update({ status: 'cancelled', token_hash: null, token_expires_at: null })
+        .eq('id', contract.id).eq('company_id', companyId).neq('status', 'signed');
+      if (error) throw error;
+      await load(); setMessage('Contrato cancelado.');
+    } catch (error) { setMessage(error instanceof Error ? error.message : 'Não foi possível cancelar o contrato.'); }
     finally { setBusy(false); }
   }
 
@@ -81,29 +167,53 @@ export function ContractsPage({ companyId, companyName }: { companyId: string; c
     if (!file) return;
     if (file.type !== 'application/pdf' || file.size > 10 * 1024 * 1024) { setMessage('Selecione um PDF de até 10 MB.'); return; }
     setUploading(contract.id);
+    const path = companyId + '/' + contract.id + '/contrato-assinado.pdf';
     try {
-      const path = companyId + '/' + contract.id + '/contrato-assinado.pdf';
       const { error: uploadError } = await supabase.storage.from('rental-contracts').upload(path, file, { upsert: true, contentType: 'application/pdf' });
       if (uploadError) throw uploadError;
-      const { error } = await supabase.from('rental_contracts').update({ status: 'signed', signed_at: new Date().toISOString(), signed_pdf_path: path }).eq('id', contract.id).eq('company_id', companyId);
-      if (error) throw error;
+      const { data, error } = await supabase.from('rental_contracts').update({ status: 'signed', signed_at: new Date().toISOString(), signed_pdf_path: path })
+        .eq('id', contract.id).eq('company_id', companyId).in('status', ['sent','viewed']).select('id').maybeSingle();
+      if (error || !data) {
+        await supabase.storage.from('rental-contracts').remove([path]);
+        throw error ?? new Error('O contrato precisa estar enviado para receber a assinatura.');
+      }
       await load(); setMessage('PDF assinado anexado e contrato atualizado.');
     } catch (error) { setMessage(error instanceof Error ? error.message : 'Não foi possível anexar o PDF.'); }
     finally { setUploading(''); }
+  }
+
+  async function openSigned(contract: Contract) {
+    const win = window.open('', '_blank');
+    if (!win) { setMessage('Permita pop-ups para abrir o documento assinado.'); return; }
+    const { data, error } = await supabase.storage.from('rental-contracts').createSignedUrl(contract.signed_pdf_path, 300);
+    if (error || !data?.signedUrl) { win.close(); setMessage(error?.message ?? 'Documento não encontrado.'); }
+    else win.location.href = data.signedUrl;
   }
 
   return <section className="module-shell">
     <header className="module-header"><div><p className="eyebrow">DOCUMENTOS</p><h2>Contratos de locação</h2><p className="module-description">Gere contratos e acompanhe as assinaturas externas ou pelo KidsLoc.</p></div><button type="button" onClick={() => void load()}>Atualizar</button></header>
     <div className="marketing-editor">
       <h3>Novo contrato</h3>
-      <label>Locação<select value={selectedRental} onChange={e => setSelectedRental(e.target.value)}><option value="">Selecione uma locação</option>{rentals.map(r => <option key={r.id} value={r.id}>#{r.rental_number} · {r.customers?.name ?? 'Cliente'} · {date(r.start_date)}</option>)}</select></label>
-      <label>Modalidade de assinatura<select value={method} onChange={e => setMethod(e.target.value as 'external' | 'in_app')}><option value="external">Gov.br ou outro serviço externo</option><option value="in_app">Assinar diretamente pelo KidsLoc</option></select></label>
-      <button type="button" disabled={busy || !selectedRental} onClick={() => void createContract()}>{busy ? 'Gerando...' : 'Gerar contrato e preparar WhatsApp'}</button>
+      <label>Locação<select value={selectedRental} onChange={event => setSelectedRental(event.target.value)}><option value="">Selecione uma locação</option>{rentals.map(rental => <option key={rental.id} value={rental.id}>#{rental.rental_number} · {rental.customers?.name ?? 'Cliente'} · {date(rental.start_date)}</option>)}</select></label>
+      <label>Modalidade de assinatura<select value={method} onChange={event => setMethod(event.target.value as 'external' | 'in_app')}><option value="external">Gov.br ou outro serviço externo</option><option value="in_app">Assinar diretamente pelo KidsLoc</option></select></label>
+      <button type="button" disabled={busy || !selectedRental} onClick={() => void createContract()}>{busy ? 'Gerando...' : 'Criar contrato'}</button>
     </div>
     {message && <p className="marketing-manual-note" role="status">{message}</p>}
-    {loading ? <p>Carregando...</p> : <div className="module-list">{contracts.map(c => <article className="marketing-ad-card" key={c.id}>
-      <div><strong>Contrato #{c.contract_number}</strong><p>{c.contract_snapshot?.customerName} · Locação {c.rental_id}</p><small>{c.signature_method === 'in_app' ? 'Assinatura pelo KidsLoc' : 'Assinatura externa'} · {c.status} · {new Date(c.created_at).toLocaleString('pt-BR')}</small></div>
-      <div className="marketing-actions"><button type="button" onClick={() => { const w = window.open('', '_blank'); if (w) { w.document.write(printable(c.contract_snapshot, c.contract_number)); w.document.close(); w.print(); } }}>Imprimir PDF</button>{c.signature_method === 'external' && c.status !== 'signed' && <label className="marketing-upload-button">Anexar PDF assinado<input type="file" accept="application/pdf" disabled={uploading === c.id} onChange={e => void receiveSigned(c, e.target.files?.[0])} /></label>}{c.signed_pdf_path && <button type="button" onClick={() => void (async () => { const { data, error } = await supabase.storage.from('rental-contracts').createSignedUrl(c.signed_pdf_path, 300); if (error) setMessage(error.message); else if (data?.signedUrl) window.open(data.signedUrl, '_blank'); })()}>Abrir assinado</button>}</div>
-    </article>)}</div>}
+    {loading ? <p>Carregando...</p> : <div className="module-list">{contracts.map(contract => {
+      const snapshot = contract.contract_snapshot ?? {};
+      const terminal = ['signed','cancelled','expired'].includes(contract.status);
+      return <article className="marketing-ad-card" key={contract.id}>
+        <div><strong>Contrato #{contract.contract_number}</strong><p>{snapshot.customerName ?? 'Cliente'} · Locação #{snapshot.rentalNumber ?? '—'}</p><small>{contract.signature_method === 'in_app' ? 'Assinatura pelo KidsLoc' : 'Assinatura externa'} · {statusLabels[contract.status] ?? contract.status} · {new Date(contract.created_at).toLocaleString('pt-BR')}</small></div>
+        <div className="marketing-actions">
+          <button type="button" onClick={() => printContract(contract)}>Imprimir / salvar PDF</button>
+          {contract.signature_method === 'in_app' && !terminal && <button type="button" className="secondary-button" disabled={busy} onClick={() => void regenerateLink(contract)}>Gerar novo link</button>}
+          {!terminal && <button type="button" className="secondary-button" onClick={() => openWhatsApp(contract)}>Abrir WhatsApp</button>}
+          {contract.status === 'draft' && <button type="button" disabled={busy} onClick={() => void markSent(contract)}>Marcar como enviado</button>}
+          {contract.signature_method === 'external' && ['sent','viewed'].includes(contract.status) && <label className="marketing-upload-button">Anexar PDF assinado<input type="file" accept="application/pdf" disabled={uploading === contract.id} onChange={event => void receiveSigned(contract, event.target.files?.[0])} /></label>}
+          {contract.signed_pdf_path && <button type="button" onClick={() => void openSigned(contract)}>Abrir PDF assinado</button>}
+          {!terminal && <button type="button" className="danger-button" disabled={busy} onClick={() => void cancelContract(contract)}>Cancelar</button>}
+        </div>
+      </article>;
+    })}</div>}
   </section>;
 }
