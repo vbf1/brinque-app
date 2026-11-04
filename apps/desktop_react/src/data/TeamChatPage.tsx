@@ -10,6 +10,7 @@ export function TeamChatPage({ companyId }: { companyId: string }) {
   const [members, setMembers] = useState<Member[]>([]);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [conversationPeers, setConversationPeers] = useState<Map<string, string>>(new Map());
+  const [previews, setPreviews] = useState<Map<string, string>>(new Map());
   const [messages, setMessages] = useState<Message[]>([]);
   const [active, setActive] = useState<Conversation | null>(null);
   const [recipient, setRecipient] = useState('');
@@ -33,6 +34,16 @@ export function TeamChatPage({ companyId }: { companyId: string }) {
     const visible = (rows ?? []).filter(row => mine.has(row.id)) as Conversation[];
     setConversations(visible);
     setConversationPeers(new Map((memberships ?? []).filter(row => row.user_id !== uid).map(row => [row.conversation_id, row.user_id])));
+    const { data: recentMessages, error: recentError } = await supabase.from('team_messages')
+      .select('conversation_id, sender_id, body, created_at').in('conversation_id', ids)
+      .order('created_at', { ascending: false }).limit(1000);
+    if (recentError) throw recentError;
+    const recent = new Map<string, string>();
+    for (const item of recentMessages ?? []) {
+      if (!recent.has(item.conversation_id)) recent.set(item.conversation_id,
+        (item.sender_id === uid ? 'Você: ' : '') + item.body);
+    }
+    setPreviews(recent);
   }, [companyId]);
 
   const load = useCallback(async () => {
@@ -143,7 +154,7 @@ export function TeamChatPage({ companyId }: { companyId: string }) {
         </div>
         <h3>Conversas</h3>
         {conversations.map(conversation => <button type="button" key={conversation.id} className={'team-chat-list-item' + (active?.id === conversation.id ? ' active' : '')} onClick={() => setActive(conversation)}>
-          <strong>{conversationName(conversation)}</strong><small>{conversation.conversation_type === 'team' ? 'Mensagens para toda a equipe' : 'Conversa privada'}</small>
+          <strong>{conversationName(conversation)}</strong><small>{previews.get(conversation.id) || (conversation.conversation_type === 'team' ? 'Mensagens para toda a equipe' : 'Comece a conversa')}</small>
         </button>)}
         {!conversations.length && <p className="module-empty">Nenhuma conversa encontrada.</p>}
       </aside>
