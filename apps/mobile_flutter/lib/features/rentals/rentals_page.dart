@@ -266,14 +266,18 @@ class _RentalsPageState extends State<RentalsPage> {
             separatorBuilder: (_, i) => const SizedBox(height: 8),
             itemBuilder: (context, index) {
               final r = rows[index];
+              final currentUserId = Supabase.instance.client.auth.currentUser?.id;
+              final currentMember = data.employees.where((e) => e['user_id'] == currentUserId);
+              final canEdit = currentMember.isNotEmpty && ['owner', 'admin'].contains(currentMember.first['role']);
               final items = (r['rental_items'] as List? ?? []).whereType<Map>().toList();
               final names = items.map((i) => i['products']?['name'] ?? 'Brinquedo').join(', ');
               return Card(child: ListTile(
                 leading: const CircleAvatar(child: Icon(Icons.event_note_outlined)),
                 title: Text(r['customers']?['name'] as String? ?? 'Cliente'),
                 subtitle: Text('${dateFormat.format(_date(r['start_date']) ?? DateTime.now())} a ${dateFormat.format(_date(r['end_date']) ?? DateTime.now())}\n$names\nStatus: ${r['status']} · R\$ ${r['total_amount']}'),
-                isThreeLine: true, trailing: const Icon(Icons.edit_outlined),
-                onTap: () => editRental(data, r),
+                isThreeLine: true,
+                trailing: Icon(canEdit ? Icons.edit_outlined : Icons.lock_outline),
+                onTap: canEdit ? () => editRental(data, r) : null,
               ));
             },
           ))),
