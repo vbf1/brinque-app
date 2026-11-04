@@ -313,10 +313,10 @@ header{padding-left:calc(12px + var(--kids-safe-area-left));padding-right:calc(1
 main{width:100%;max-width:900px;min-width:0;margin-inline:auto;padding-left:calc(12px + var(--kids-safe-area-left));padding-right:calc(12px + var(--kids-safe-area-right))}
 main section,.panel,#formBody,.reminder-settings-box,.formgrid,.formgrid>div{min-width:0;max-width:100%}
 .panel{width:100%}
-:where(input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=color]):not([type=hidden]):not([type=button]):not([type=submit]):not([type=reset]),select,textarea){
+input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=color]):not([type=hidden]):not([type=button]):not([type=submit]):not([type=reset]),select,textarea{
  display:block;box-sizing:border-box;width:100%;max-width:100%;min-width:0;margin:0 0 12px;padding:11px 12px;min-height:44px;border:1px solid var(--line);border-radius:11px;background:var(--bg);color:var(--ink);font:inherit;line-height:1.4
 }
-:where(input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=color]):not([type=hidden]):not([type=button]):not([type=submit]):not([type=reset]),select,textarea):focus{outline:2px solid #3478e533;outline-offset:0;border-color:var(--blue)}
+input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=color]):not([type=hidden]):not([type=button]):not([type=submit]):not([type=reset]):focus,select:focus,textarea:focus{outline:2px solid #3478e533;outline-offset:0;border-color:var(--blue)}
 textarea{min-height:100px;resize:vertical}
 input[type=file]{padding:9px;overflow:hidden}
 input[type=checkbox],input[type=radio]{width:18px;min-width:18px;max-width:18px;height:18px;min-height:18px;padding:0;margin:0;accent-color:var(--blue);vertical-align:middle}
