@@ -5,6 +5,7 @@ import '../customers/customers_page.dart';
 import '../products/products_page.dart';
 import '../rentals/rentals_page.dart';
 import '../finance/finance_page.dart';
+import '../occurrences/occurrences_page.dart';
 
 class CompanyHomePage extends StatefulWidget {
   const CompanyHomePage({super.key});
@@ -126,6 +127,22 @@ class _CompanyHomePageState extends State<CompanyHomePage> {
                     ),
                     icon: const Icon(Icons.event_note_outlined),
                     label: const Text('Gerenciar locações'),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => OccurrencesPage(
+                          companyId: data['id'] as String,
+                          role: data['role'] as String,
+                        ),
+                      ),
+                    ),
+                    icon: const Icon(Icons.report_problem_outlined),
+                    label: const Text('Ocorrências'),
                   ),
                 ),
               ])),
