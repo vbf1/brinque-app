@@ -1,21 +1,18 @@
 # KidsLoc App — Mobile Flutter
 
-Base inicial da futura aplicação Android em Flutter.
+Aplicação Android em Flutter conectada ao mesmo projeto Supabase da versão atual.
 
-## Estado desta etapa
-- Estrutura Flutter isolada da versão web/Capacitor atual.
-- Tema Material 3 inicial.
-- Teste de widget básico.
-- Nenhuma conexão com produção foi inicializada nesta etapa.
+## Autenticação nesta etapa
+- Login por e-mail e senha com as contas existentes.
+- Sessão persistida pelo SDK oficial do Supabase Flutter.
+- Renovação automática e observação dos eventos de autenticação.
+- Verificação do vínculo em `company_members` e leitura de `companies`.
+- Solicitação de recuperação e atualização de senha quando a sessão de recuperação é recebida.
+- Logout local, sem encerrar as sessões de outros dispositivos.
 
-## Próximas etapas
-1. Configurar Supabase Auth usando o projeto existente.
-2. Validar login, recuperação de senha, persistência e logout.
-3. Migrar os módulos por domínio, preservando tabelas, RLS e Edge Functions.
-4. Integrar FCM nativo com o projeto Firebase e o pacote Android existentes.
-5. Executar testes comparativos antes de liberar qualquer versão.
+SDK fixado em `supabase_flutter 2.18.3` (Dart 3.9+). A URL e a chave publishable são as mesmas da aplicação atual. A chave publishable é pública; nunca incluir chave service_role/secret.
 
-## Executar localmente
+## Executar
 ```sh
 flutter pub get
 flutter analyze
@@ -23,4 +20,9 @@ flutter test
 flutter run
 ```
 
-Não colocar chaves secretas no aplicativo. A URL e a chave pública do Supabase serão fornecidas por configuração segura de build quando a integração for implementada.
+Para sobrescrever a configuração:
+```sh
+flutter run --dart-define=SUPABASE_URL=https://SEU-PROJETO.supabase.co --dart-define=SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
+```
+
+O link de recuperação ainda direciona para a URL pública atual, que já possui o fluxo configurado. Deep links Android próprios serão configurados junto à migração do pacote Android/FCM.
