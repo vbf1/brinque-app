@@ -1,6 +1,9 @@
 name: Validate migration foundations
 
 on:
+  push:
+    branches:
+      - 'migration/**'
   pull_request:
     paths:
       - 'apps/mobile_flutter/**'
