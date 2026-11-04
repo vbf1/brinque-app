@@ -119,7 +119,7 @@ export function MarketingPage({ companyId, userId }: { companyId: string; userId
     <label>Link da imagem (opcional)<input type="url" value={imageUrl} onChange={e=>setImageUrl(e.target.value)} placeholder="https://..."/></label>
     <label>Orientação para produzir a imagem<textarea rows={3} value={imagePrompt} onChange={e=>setImagePrompt(e.target.value)} placeholder="Descreva a imagem que deverá acompanhar o anúncio."/></label>
     <fieldset className="marketing-channel-field"><legend>Canais desejados</legend>{channels.map(c=><label className="marketing-check" key={c.id}><input type="checkbox" checked={platforms.includes(c.id)} onChange={e=>setPlatforms(e.target.checked?[...platforms,c.id]:platforms.filter(v=>v!==c.id))}/>{c.label}</label>)}</fieldset>
-    <div className="form-actions"><button type="button" className="secondary-button" onClick={clearForm}>Limpar</button><button type="submit" disabled={saving}>{saving?'Salvando...':'Salvar rascunho'}</button><button type="button" disabled={saving} onClick={e=>void saveAd({preventDefault:()=>{}} as FormEvent,true)}>{saving?'Aguarde...':'Enviar para aprovação'}</button></div>
+    <div className="form-actions"><button type="button" className="secondary-button" onClick={clearForm}>Limpar</button><button type="submit" disabled={saving}>{saving?'Salvando...':'Salvar rascunho'}</button><button type="button" disabled={saving} onClick={()=>void saveAd({preventDefault:()=>{}} as FormEvent,true)}>{saving?'Aguarde...':'Enviar para aprovação'}</button></div>
    </form>
   </>}
  </section>;
