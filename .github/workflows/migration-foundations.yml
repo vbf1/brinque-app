@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - 'migration/**'
+      - 'deploy/**'
   workflow_dispatch:
 
 concurrency:
