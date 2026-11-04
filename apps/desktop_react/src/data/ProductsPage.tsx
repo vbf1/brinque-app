@@ -107,6 +107,21 @@ export function ProductsPage({ companyId }: { companyId: string }) {
         <div className="customer-avatar">🎈</div>
         <div className="customer-info"><strong>{product.name}</strong><span>{product.available} disponível(is) de {product.total_quantity} · R$ {Number(product.daily_price).toFixed(2)} / dia · {product.inventory_mode === 'individual' ? 'Unidades individuais' : 'Por quantidade'}</span></div>
         <button type="button" className="secondary-button" onClick={() => openForm(product)}>Editar</button>
+        {product.inventory_mode === 'individual' && product.units?.length ? <div className="record-card-units">{product.units.map(unit => {
+          const history = rentals.filter(r => (r.rental_items ?? []).some((item: any) => (item.rental_item_units ?? []).some((allocation: any) => allocation.product_unit_id === unit.id))).sort((a, b) => String(b.start_date).localeCompare(String(a.start_date))).slice(0, 3);
+          const today = new Date().toISOString().slice(0, 10);
+          const reserved = rentals.some(r => ['pending','confirmed','ongoing'].includes(r.status) && r.start_date <= today && (r.end_date || r.start_date) >= today && (r.rental_items ?? []).some((item: any) => (item.rental_item_units ?? []).some((allocation: any) => allocation.product_unit_id === unit.id)));
+          return <div className="record-unit-row" key={unit.id}>
+            <span><strong>Unidade {unit.asset_code || '—'}</strong><small>{unit.status === 'maintenance' ? 'Em manutenção' : unit.status === 'inactive' ? 'Inativa' : reserved ? 'Reservada hoje' : 'Disponível'}</small></span>
+            <button type="button" className="secondary-button" disabled={updatingUnit === unit.id || (unit.status !== 'maintenance' && unit.status !== 'available')} onClick={async () => {
+              setUpdatingUnit(unit.id);
+              try { await repository.setProductUnitStatus(unit.id, unit.status === 'maintenance' ? 'available' : 'maintenance'); await load(); }
+              catch (error) { setMessage(error instanceof Error ? error.message : 'Não foi possível atualizar a unidade.'); }
+              finally { setUpdatingUnit(null); }
+            }}>{updatingUnit === unit.id ? 'Salvando…' : unit.status === 'maintenance' ? 'Liberar' : 'Manutenção'}</button>
+            <small className="record-unit-history">Histórico: {history.length ? history.map((r: any) => [r.customers?.name || 'Cliente', r.start_date, r.status].join(' · ')).join(' | ') : 'Sem locações registradas'}</small>
+          </div>;
+        })}</div> : null}
       </article>)}</div>
     )}
   </section>;
