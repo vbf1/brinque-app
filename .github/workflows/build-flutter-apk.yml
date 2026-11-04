@@ -1,0 +1,58 @@
+name: Build Flutter Android APK
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'apps/mobile_flutter/**'
+      - '.github/workflows/build-flutter-apk.yml'
+      - '.github/scripts/configure-preview-android.py'
+      - 'google-services.json'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-android:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Generate Android host project
+        run: |
+          flutter create --platforms=android --org br.com.sonhokids --project-name kidsloc /tmp/kidsloc-android
+          cp -R apps/mobile_flutter/lib /tmp/kidsloc-android/
+          cp apps/mobile_flutter/pubspec.yaml /tmp/kidsloc-android/pubspec.yaml
+          cp apps/mobile_flutter/pubspec.lock /tmp/kidsloc-android/pubspec.lock
+          cp google-services.json /tmp/kidsloc-android/android/app/google-services.json
+          python3 .github/scripts/configure-preview-android.py /tmp/kidsloc-android/android
+      - name: Resolve dependencies
+        working-directory: /tmp/kidsloc-android
+        run: flutter pub get
+      - name: Analyze Flutter
+        working-directory: /tmp/kidsloc-android
+        run: flutter analyze
+      - name: Test Flutter
+        working-directory: /tmp/kidsloc-android
+        run: flutter test
+      - name: Build installable APK
+        working-directory: /tmp/kidsloc-android
+        run: flutter build apk --release --build-number=${GITHUB_RUN_NUMBER}
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: kidsloc-flutter-android-${{ github.run_number }}
+          path: /tmp/kidsloc-android/build/app/outputs/flutter-apk/app-release.apk
+          if-no-files-found: error
+          retention-days: 30
