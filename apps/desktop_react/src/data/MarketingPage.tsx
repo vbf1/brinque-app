@@ -48,9 +48,12 @@ export function MarketingPage({ companyId, userId }: { companyId: string; userId
  function generate(id:string){
   const p=products.find(v=>v.id===id);if(!p)return;
   const area=settings.service_regions.length?settings.service_regions.join(', '):'Contagem e região';
+  const mainRegion=settings.service_regions[0]||'Contagem';
+  const businessName=settings.business_name.trim();
+  const productDetails=p.description?.trim()? 'Detalhes do brinquedo: '+p.description.trim() : '';
   setProductId(id);
-  setTitle('Aluguel de '+p.name+' para festas em '+(settings.service_regions[0]||'Contagem'));
-  setDescription([settings.default_description,'Leve mais diversão para sua festa com '+p.name+'.','Atendemos '+area+'.',settings.default_call_to_action+(settings.whatsapp?': '+settings.whatsapp:'')+'.'].filter(Boolean).join('\n\n'));
+  setTitle(['Aluguel de '+p.name+' em '+mainRegion,businessName].filter(Boolean).join(' | ').slice(0,180));
+  setDescription([settings.default_description,businessName?businessName+' — locação de brinquedos para festas.':'',productDetails,'Leve mais diversão para sua festa com '+p.name+'.','Atendemos '+area+'.',settings.default_call_to_action+(settings.whatsapp?': '+settings.whatsapp:'')+'.'].filter(Boolean).join('\n\n'));
   setKeywords([p.name,'aluguel de brinquedos','locação de brinquedos',...settings.service_regions].join(', '));
   setImagePrompt('Fotografia publicitária realista e original de '+p.name+' para locação em festa infantil. Brinquedo em destaque, ambiente alegre, sem textos, marcas ou marcas d’água.');
  }
