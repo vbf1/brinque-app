@@ -7,9 +7,10 @@ import { RentalsPage } from './data/RentalsPage';
 import { FinancePage } from './data/FinancePage';
 import { OccurrencesPage } from './data/OccurrencesPage';
 import { TeamChatPage } from './data/TeamChatPage';
+import { MarketingPage } from './data/MarketingPage';
 
 type CompanyContext = { id: string; name: string; role: string };
-type Page = 'inicio' | 'locacoes' | 'clientes' | 'estoque' | 'financeiro' | 'ocorrencias' | 'mensagens';
+type Page = 'inicio' | 'locacoes' | 'clientes' | 'estoque' | 'financeiro' | 'ocorrencias' | 'mensagens' | 'marketing';
 const PASSWORD_RESET_REDIRECT = 'https://vbf1.github.io/kidsloc-app/';
 
 function friendlyError(error: unknown): string {
@@ -29,6 +30,7 @@ const navigation: Array<{ id: Page; label: string; icon: string; admin?: boolean
   { id: 'financeiro', label: 'Financeiro', icon: '＄', admin: true },
   { id: 'mensagens', label: 'Mensagens', icon: '▰' },
   { id: 'ocorrencias', label: 'Ocorrências', icon: '⚠' },
+  { id: 'marketing', label: 'Marketing e anúncios', icon: '✧', admin: true },
 ];
 
 export default function App() {
@@ -267,6 +269,7 @@ export default function App() {
               {isAdmin && <button className="legacy-dashboard-card" onClick={() => setPage('financeiro')}><span className="legacy-card-icon">＄</span><strong>Financeiro</strong><small>Entradas e saídas</small></button>}
               <button className="legacy-dashboard-card" onClick={() => setPage('mensagens')}><span className="legacy-card-icon">▰</span><strong>Mensagens da equipe</strong><small>Converse com os funcionários</small></button>
               <button className="legacy-dashboard-card" onClick={() => setPage('ocorrencias')}><span className="legacy-card-icon">⚠</span><strong>Ocorrências</strong><small>Registre e acompanhe relatos</small></button>
+              {isAdmin && <button className="legacy-dashboard-card" onClick={() => setPage('marketing')}><span className="legacy-card-icon">✧</span><strong>Marketing e anúncios</strong><small>Crie, revise e organize divulgações</small></button>}
             </div>
             <section className="legacy-panel legacy-welcome-panel"><div><strong>Sessão ativa</strong><span>Conectado à empresa {company.name}</span></div><span className="legacy-status"><i /> {company.role === 'owner' ? 'Proprietário' : company.role === 'admin' ? 'Administrador' : 'Funcionário'}</span></section>
           </section>
@@ -278,6 +281,7 @@ export default function App() {
         {page === 'financeiro' && isAdmin && <FinancePage companyId={company.id} />}
         {page === 'ocorrencias' && <OccurrencesPage companyId={company.id} role={company.role} />}
         {page === 'mensagens' && <TeamChatPage companyId={company.id} />}
+        {page === 'marketing' && isAdmin && <MarketingPage companyId={company.id} userId={session.user.id} />}
       </main>
       <footer className="legacy-footer">KIDSLOC APP <span>·</span> {company.name}</footer>
     </div>
