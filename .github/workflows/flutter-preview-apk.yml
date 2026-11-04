@@ -1,0 +1,50 @@
+name: Build isolated Flutter preview APK
+
+on:
+  workflow_run:
+    workflows:
+      - Validate migration foundations
+    types:
+      - completed
+      - completed
+    branches:
+      - 'migration/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  preview-apk:
+    if: github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'pull_request')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout validated migration commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.ref }}
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - name: Generate isolated Android host project
+        run: |
+          flutter create --platforms=android --org br.com.sonhokids --project-name kidslocpreview /tmp/kidsloc-preview
+          cp -R apps/mobile_flutter/lib /tmp/kidsloc-preview/
+          cp apps/mobile_flutter/pubspec.yaml /tmp/kidsloc-preview/pubspec.yaml
+          if [ -f apps/mobile_flutter/pubspec.lock ]; then
+            cp apps/mobile_flutter/pubspec.lock /tmp/kidsloc-preview/pubspec.lock
+          fi
+      - name: Resolve dependencies
+        working-directory: /tmp/kidsloc-preview
+        run: flutter pub get
+      - name: Build preview APK
+        working-directory: /tmp/kidsloc-preview
+        run: flutter build apk --debug --build-number=${GITHUB_RUN_NUMBER}
+      - name: Upload preview APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: kidsloc-flutter-preview-${{ github.run_number }}
+          path: /tmp/kidsloc-preview/build/app/outputs/flutter-apk/app-debug.apk
+          if-no-files-found: error
+          retention-days: 14
