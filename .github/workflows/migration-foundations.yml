@@ -4,12 +4,6 @@ on:
   push:
     branches:
       - 'migration/**'
-  pull_request:
-    paths:
-      - 'apps/mobile_flutter/**'
-      - 'apps/desktop_react/**'
-      - 'docs/MIGRACAO-ARQUITETURA.md'
-      - '.github/workflows/migration-foundations.yml'
   workflow_dispatch:
 
 concurrency:
