@@ -54,7 +54,7 @@ export function ContractsPage({ companyId, companyName }: { companyId: string; c
         items: (rental.rental_items ?? []).map((i: any) => ({ name: i.products?.name ?? 'Brinquedo', quantity: i.quantity, dailyPrice: i.unit_price, subtotal: i.subtotal ?? Number(i.unit_price) * Number(i.quantity) })),\n        clauses, depositAmount: rental.deposit_amount ?? 0, deliveryAddress: rental.delivery_address ?? '', rentalNotes: rental.notes ?? ''
       };
       const { data, error } = await supabase.from('rental_contracts').insert({
-        company_id: companyId, rental_id: rental.id, signature_method: method, status: 'draft',
+        company_id: companyId, rental_id: rental.id, signature_method: method, status: 'sent', sent_at: new Date().toISOString(),
         contract_snapshot: snapshot, token_hash: method === 'in_app' ? hash : null,
         token_expires_at: method === 'in_app' ? new Date(Date.now() + 7 * 86400000).toISOString() : null,
         created_by: (await supabase.auth.getUser()).data.user?.id
