@@ -24,7 +24,8 @@ export function PublicContractPage({ token }: { token: string }) {
         if (error || !data?.contract) setMessage(data?.error ?? 'Não foi possível abrir este contrato. Verifique se o link ainda está válido.');
         else if (data.signature_method !== 'in_app') setMessage('Este contrato foi enviado para assinatura externa. Assine o PDF e devolva à empresa.');
         else setSnapshot(data.contract);
-      }).finally(() => { if (active) setLoading(false); });
+      }).catch(error => { if (active) setMessage(error instanceof Error ? error.message : 'Não foi possível carregar o contrato.'); })
+      .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
   }, [token]);
 
@@ -51,16 +52,24 @@ export function PublicContractPage({ token }: { token: string }) {
     return '<svg xmlns="http://www.w3.org/2000/svg" width="640" height="180" viewBox="0 0 640 180"><path d="' + d + '" fill="none" stroke="#172b25" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   }
   async function sign() {
-    if (name.trim().length < 3 || !consent || points.current.length < 3) { setMessage('Informe seu nome, desenhe sua assinatura e confirme a concordância.'); return; }
+    if (name.trim().length < 3 || !consent || points.current.length < 3) {
+      setMessage('Informe seu nome, desenhe sua assinatura e confirme a concordância.');
+      return;
+    }
     setSaving(true); setMessage('');
     const consentText = 'Declaro que li integralmente o contrato e concordo com suas condições.';
-    const {data,error} = await supabase.functions.invoke('rental-contract-public', {body:{
-      action:'sign', token, signer_name:name.trim(), signer_document:document.trim(), signer_phone:phone.trim(),
-      signature_svg:svg(), consent_text:consentText
-    }});
-    if (error || !data?.success) setMessage(data?.error ?? 'Não foi possível registrar a assinatura.');
-    else setSigned(true);
-    setSaving(false);
+    try {
+      const {data,error} = await supabase.functions.invoke('rental-contract-public', {body:{
+        action:'sign', token, signer_name:name.trim(), signer_document:document.trim(), signer_phone:phone.trim(),
+        signature_svg:svg(), consent_text:consentText
+      }});
+      if (error || !data?.success) throw new Error(data?.error ?? error?.message ?? 'Não foi possível registrar a assinatura.');
+      setSigned(true);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Não foi possível registrar a assinatura.');
+    } finally {
+      setSaving(false);
+    }
   }
 
   return <main style={{maxWidth:760,margin:'24px auto',padding:20,color:'#172b25',fontFamily:'Arial,sans-serif'}}>
@@ -69,7 +78,7 @@ export function PublicContractPage({ token }: { token: string }) {
     {snapshot && !signed && <><h2>{snapshot.companyName}</h2><p><b>Cliente:</b> {snapshot.customerName} · <b>Período:</b> {snapshot.startDate} a {snapshot.endDate}</p>
       <h3>Itens e valores</h3><ul>{(snapshot.items ?? []).map((i:any,n:number)=><li key={n}>{i.quantity} × {i.name} — R$ {Number(i.subtotal ?? 0).toFixed(2)}</li>)}</ul>
       <p><b>Total: R$ {Number(snapshot.totalAmount ?? 0).toFixed(2)}</b></p>
-      <h3>Condições do contrato</h3><ol>{(snapshot.clauses ?? []).map((clause:string,index:number)=><li key={index}>{clause}</li>)}</ol>\n      <p><b>Endereço de entrega:</b> {snapshot.deliveryAddress || '—'}</p><p><b>Caução/garantia:</b> R$ {Number(snapshot.depositAmount ?? 0).toFixed(2)}</p>{snapshot.rentalNotes && <p><b>Observações:</b> {snapshot.rentalNotes}</p>}\n      <h3>Assinatura eletrônica</h3><label>Nome completo<input value={name} onChange={e=>setName(e.target.value)} style={field}/></label>
+      <h3>Condições do contrato</h3><ol>{(snapshot.clauses ?? []).map((clause:string,index:number)=><li key={index}>{clause}</li>)}</ol>\n      <p><b>Endereço de entrega:</b> {snapshot.deliveryAddress || '—'}</p><p><b>Caução/garantia:</b> R$ {Number(snapshot.depositAmount ?? 0).toFixed(2)}</p>{snapshot.rentalNotes && <p><b>Observações:</b> {snapshot.rentalNotes}</p>}\n      <h3>Assinatura eletrônica</h3><p>Esta é uma assinatura eletrônica simplificada registrada pelo KidsLoc, com traçado, identificação informada, data e aceite. Para uma assinatura com validação externa mais robusta, utilize Gov.br ou outro serviço de assinatura digital.</p><label>Nome completo<input value={name} onChange={e=>setName(e.target.value)} style={field}/></label>
       <label>CPF (opcional)<input value={document} onChange={e=>setDocument(e.target.value)} style={field}/></label>
       <label>Telefone (opcional)<input value={phone} onChange={e=>setPhone(e.target.value)} style={field}/></label>
       <p>Assine no campo abaixo:</p><canvas ref={canvasRef} width={640} height={180} style={{width:'100%',height:180,border:'1px solid #aab5af',borderRadius:8,touchAction:'none',background:'#fff'}} onPointerDown={start} onPointerMove={move} onPointerUp={stop} onPointerCancel={stop}/>
