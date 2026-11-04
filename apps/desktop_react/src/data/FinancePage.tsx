@@ -39,7 +39,7 @@ export function FinancePage({ companyId }: { companyId: string }) {
     event.preventDefault(); setBusy(true); setMessage('');
     try {
       await repository.saveTransaction({ id: editing?.id, description, type, amount: Number(amount.replace(',', '.')) });
-      openForm(); await reload();
+      setFormOpen(false); setEditing(null); setDescription(''); setAmount(''); await reload();
     } catch (error) { setMessage(error instanceof Error ? error.message : 'Não foi possível salvar.'); }
     finally { setBusy(false); }
   }
