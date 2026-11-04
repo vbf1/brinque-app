@@ -120,6 +120,100 @@ class CompanyDataRepository {
     return List<Map<String, dynamic>>.from(rows);
   }
 
+
+  Future<Map<String, dynamic>> saveProduct({
+    String? productId,
+    required String name,
+    required String inventoryMode,
+    required int quantity,
+    required num dailyPrice,
+  }) async {
+    final normalizedName = name.trim();
+    if (normalizedName.isEmpty || quantity < 1 || dailyPrice < 0) {
+      throw ArgumentError('Confira o nome, a quantidade e o preço diário.');
+    }
+    if (productId == null) {
+      final created = await _client.from('products').insert({
+        'company_id': companyId,
+        'name': normalizedName,
+        'inventory_mode': inventoryMode,
+        'total_quantity': quantity,
+        'daily_price': dailyPrice,
+      }).select().single();
+      if (inventoryMode == 'individual') {
+        try {
+          await _client.from('product_units').insert(List.generate(
+            quantity,
+            (index) => {
+              'company_id': companyId,
+              'product_id': created['id'],
+              'asset_code': (index + 1).toString().padLeft(2, '0'),
+              'status': 'available',
+            },
+          ));
+        } catch (_) {
+          await _client.from('products').delete()
+              .eq('id', created['id']).eq('company_id', companyId);
+          rethrow;
+        }
+      }
+      return Map<String, dynamic>.from(created);
+    }
+
+    final existing = await _client.from('products').select(
+      'id, inventory_mode, total_quantity',
+    ).eq('id', productId).eq('company_id', companyId).single();
+    if (existing['inventory_mode'] == 'individual') {
+      final units = await _client.from('product_units').select(
+        'id, asset_code, status',
+      ).eq('product_id', productId).eq('company_id', companyId);
+      final current = List<Map<String, dynamic>>.from(units);
+      if (quantity < current.length) {
+        final removable = current.where((unit) =>
+          unit['status'] == 'available').toList();
+        final excess = current.length - quantity;
+        if (removable.length < excess) {
+          throw StateError('Não é possível reduzir: existem unidades reservadas, em manutenção ou indisponíveis.');
+        }
+        final rentalUnits = await _client.from('rental_item_units')
+          .select('product_unit_id')
+          .inFilter('product_unit_id', removable.map((u) => u['id']).toList());
+        final usedIds = List<Map<String, dynamic>>.from(rentalUnits)
+          .map((row) => row['product_unit_id']).toSet();
+        final safe = removable.where((u) => !usedIds.contains(u['id'])).toList();
+        if (safe.length < excess) {
+          throw StateError('Não é possível excluir unidades que possuem histórico de locação.');
+        }
+        final ids = safe.take(excess).map((u) => u['id']).toList();
+        await _client.from('product_units').delete()
+          .eq('company_id', companyId).inFilter('id', ids);
+      } else if (quantity > current.length) {
+        final maxCode = current.fold<int>(0, (max, unit) {
+          final parsed = int.tryParse(unit['asset_code']?.toString() ?? '') ?? 0;
+          return parsed > max ? parsed : max;
+        });
+        await _client.from('product_units').insert(List.generate(
+          quantity - current.length,
+          (index) => {
+            'company_id': companyId,
+            'product_id': productId,
+            'asset_code': (maxCode + index + 1).toString().padLeft(2, '0'),
+            'status': 'available',
+          },
+        ));
+      }
+    } else if (existing['inventory_mode'] != inventoryMode) {
+      throw StateError('O tipo de controle do estoque não pode ser alterado após o cadastro.');
+    }
+
+    final updated = await _client.from('products').update({
+      'name': normalizedName,
+      'total_quantity': quantity,
+      'daily_price': dailyPrice,
+    }).eq('id', productId).eq('company_id', companyId).select().single();
+    return Map<String, dynamic>.from(updated);
+  }
+
   Future<Map<String, dynamic>> saveCustomer({
     String? customerId,
     required String name,
