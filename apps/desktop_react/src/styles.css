@@ -99,6 +99,7 @@ button.secondary-button { background: #edf4ef; color: #246b43; }
 
 
 /* Individual toy-unit inventory and maintenance controls */
+.customer-row .record-card-units { flex: 1 0 100%; }
 .record-card-units {
   display: grid;
   gap: 8px;
