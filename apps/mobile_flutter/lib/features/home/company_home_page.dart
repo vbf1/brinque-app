@@ -13,7 +13,9 @@ class _CompanyHomePageState extends State<CompanyHomePage> {
   Future<Map<String, dynamic>> _loadCompany() async {
     final client = Supabase.instance.client;
     final user = client.auth.currentUser;
-    if (user == null) throw Exception('Sua sessão expirou. Entre novamente.');
+    if (user == null) {
+      throw Exception('Sua sessão expirou. Entre novamente.');
+    }
     final member = await client.from('company_members').select('company_id, role')
       .eq('user_id', user.id).limit(1).maybeSingle();
     if (member == null) throw Exception('Esta conta ainda não está vinculada a uma empresa. Peça ao proprietário para conferir seu acesso.');
