@@ -5,7 +5,8 @@ import 'package:kidsloc_mobile/features/auth/login_page.dart';
 void main() {
   testWidgets('mostra o formulário de login do KidsLoc', (tester) async {
     await tester.pumpWidget(const MaterialApp(home: LoginPage()));
-    expect(find.byWidgetPredicate((widget) => widget is Image && widget.image is AssetImage && (widget.image as AssetImage).assetName == 'assets/kidsloc-brand.webp'), findsOneWidget);
+    expect(find.byIcon(Icons.groups_rounded), findsOneWidget);
+    expect(find.byIcon(Icons.assignment_turned_in_rounded), findsOneWidget);
     expect(find.text('Entrar'), findsOneWidget);
     expect(find.text('Esqueci minha senha'), findsOneWidget);
   });
