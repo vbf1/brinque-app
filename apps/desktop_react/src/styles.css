@@ -208,7 +208,7 @@ button:focus-visible{outline:3px solid #3478e566;outline-offset:2px}
 .marketing-preview-cta strong{font-size:12px;color:var(--ink)}
 .marketing-preview-cta span{font-size:11px;color:var(--muted)}
 
-.marketing-toolbar-filters{display:grid;grid-template-columns:minmax(180px,2fr) minmax(140px,1fr) minmax(150px,1fr) auto auto;gap:8px;align-items:center}
+.marketing-toolbar-filters{display:grid;grid-template-columns:minmax(160px,2fr) minmax(120px,1fr) minmax(130px,1fr) repeat(3,auto);gap:8px;align-items:center}
 .marketing-toolbar-filters input,.marketing-toolbar-filters select{min-width:0;width:100%;min-height:40px;padding:8px 10px;border:1px solid var(--line);border-radius:9px;background:var(--surface);color:var(--ink);font:inherit;font-size:13px}
 .marketing-results-count{margin:0 0 8px;color:var(--muted);font-size:12px}
 @media(max-width:760px){.marketing-toolbar-filters{grid-template-columns:1fr 1fr}.marketing-toolbar-filters input{grid-column:1/-1}.marketing-toolbar-filters button{grid-column:1/-1}}
