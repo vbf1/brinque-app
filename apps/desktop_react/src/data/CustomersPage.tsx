@@ -31,6 +31,7 @@ export function CustomersPage({ companyId }: { companyId: string }) {
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState('');
   const [editing, setEditing] = useState<Customer | null>(null);
+  const [formOpen, setFormOpen] = useState(false);
   const [form, setForm] = useState<CustomerForm>(emptyForm);
   const [message, setMessage] = useState('');
 
@@ -58,6 +59,7 @@ export function CustomersPage({ companyId }: { companyId: string }) {
   );
 
   function openForm(customer?: Customer) {
+    setFormOpen(true);
     setEditing(customer ?? null);
     setForm(customer ? {
       name: customer.name,
@@ -79,6 +81,7 @@ export function CustomersPage({ companyId }: { companyId: string }) {
     try {
       await repository.saveCustomer({ ...form, id: editing?.id });
       setEditing(null);
+      setFormOpen(false);
       setForm(emptyForm);
       await loadCustomers();
       setMessage('Cliente salvo com sucesso.');
@@ -112,7 +115,7 @@ export function CustomersPage({ companyId }: { companyId: string }) {
 
       {message && <p className="module-feedback" role="status">{message}</p>}
 
-      {editing !== null || form !== emptyForm ? (
+      {formOpen ? (
         <form className="customer-form" onSubmit={saveCustomer}>
           <h3>{editing ? 'Editar cliente' : 'Novo cliente'}</h3>
           <label>Nome *<input required value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} /></label>
@@ -123,7 +126,7 @@ export function CustomersPage({ companyId }: { companyId: string }) {
           <label>Endereço<input value={form.address ?? ''} onChange={e => setForm({ ...form, address: e.target.value })} /></label>
           <label>Observações<textarea rows={2} value={form.notes ?? ''} onChange={e => setForm({ ...form, notes: e.target.value })} /></label>
           <div className="form-actions">
-            <button type="button" className="secondary-button" onClick={() => { setEditing(null); setForm(emptyForm); }}>Cancelar</button>
+            <button type="button" className="secondary-button" onClick={() => { setEditing(null); setFormOpen(false); setForm(emptyForm); }}>Cancelar</button>
             <button type="submit" disabled={saving}>{saving ? 'Salvando...' : 'Salvar cliente'}</button>
           </div>
         </form>
