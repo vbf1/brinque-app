@@ -88,6 +88,59 @@ class _CompanyHomePageState extends State<CompanyHomePage> {
     }
   }
 
+  Future<void> _testNotifications(Map<String, dynamic> data) async {
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) return;
+    setState(() {
+      _pushBusy = true;
+      _pushStatus = 'Preparando o envio da notificação de teste...';
+    });
+    try {
+      var enabled = await _pushService.registerIfAuthorized(
+        companyId: data['id'] as String,
+        userId: user.id,
+      );
+      if (!enabled) {
+        enabled = await _pushService.requestAndRegister(
+          companyId: data['id'] as String,
+          userId: user.id,
+        );
+      }
+      if (!enabled) {
+        throw Exception('Ative a permissão de notificações do KidsLoc nas configurações do Android e tente novamente.');
+      }
+
+      if (mounted) {
+        setState(() => _pushStatus = 'Enviando uma notificação real para este aparelho...');
+      }
+      final result = await _pushService.sendTestNotification(
+        companyId: data['id'] as String,
+      );
+      final sent = (result['fcmSent'] as num?)?.toInt() ??
+          (result['sent'] as num?)?.toInt() ?? 0;
+      final total = (result['total'] as num?)?.toInt() ?? 0;
+      if (!mounted) return;
+      if (sent > 0) {
+        setState(() => _pushStatus =
+            'Notificação enviada ($sent de $total dispositivo(s)). Confira a central de notificações do Android.');
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Notificação de teste enviada para este aparelho.')),
+        );
+      } else if (result['fcmConfigured'] == false) {
+        throw Exception('O Firebase ainda não está configurado no servidor para enviar notificações push.');
+      } else if (total == 0) {
+        throw Exception('Nenhum aparelho está registrado para receber notificações. Tente ativar as notificações novamente.');
+      } else {
+        throw Exception('O servidor não conseguiu entregar a notificação. Verifique a conexão e tente novamente.');
+      }
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _pushStatus = 'Falha no teste: ${error.toString().replaceFirst('Exception: ', '')}');
+    } finally {
+      if (mounted) setState(() => _pushBusy = false);
+    }
+  }
+
   Future<void> _logout() async {
     await _pushService.unregisterCurrentDevice();
     await Supabase.instance.client.auth.signOut();
@@ -150,6 +203,17 @@ class _CompanyHomePageState extends State<CompanyHomePage> {
                             : const Icon(Icons.notifications_outlined),
                         label: Text(_pushBusy ? 'Ativando...' : 'Ativar notificações neste aparelho'),
                       )),
+                      if (data['role'] == 'owner' || data['role'] == 'admin') ...[
+                        const SizedBox(height: 8),
+                        SizedBox(
+                          width: double.infinity,
+                          child: OutlinedButton.icon(
+                            onPressed: _pushBusy ? null : () => _testNotifications(data),
+                            icon: const Icon(Icons.send_outlined),
+                            label: const Text('Testar notificações'),
+                          ),
+                        ),
+                      ],
                     ]),
                   ),
                 ),
