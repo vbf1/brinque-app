@@ -35,7 +35,9 @@ class _CompanyHomePageState extends State<CompanyHomePage> {
       body: FutureBuilder<Map<String, dynamic>>(
         future: _companyFuture,
         builder: (context, snapshot) {
-          if (snapshot.connectionState != ConnectionState.done) return const Center(child: CircularProgressIndicator());
+          if (snapshot.connectionState != ConnectionState.done) {
+            return const Center(child: CircularProgressIndicator());
+          }
           if (snapshot.hasError) return Center(child: Padding(
             padding: const EdgeInsets.all(24),
             child: Column(mainAxisSize: MainAxisSize.min, children: [
@@ -58,7 +60,7 @@ class _CompanyHomePageState extends State<CompanyHomePage> {
                 Text(data['email'] as String),
                 const SizedBox(height: 8),
                 Text(data['name'] as String, style: Theme.of(context).textTheme.titleLarge),
-                Text('Perfil: ' + (data['role'] as String)),
+                Text('Perfil: ${data['role']}'),
                 const SizedBox(height: 20),
                 const Text('Esta é a primeira etapa da migração. Os módulos operacionais serão incorporados gradualmente.', textAlign: TextAlign.center),
               ])),
