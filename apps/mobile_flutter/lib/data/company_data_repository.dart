@@ -146,6 +146,19 @@ class CompanyDataRepository {
   }
 
 
+
+  Future<void> deleteRental(String rentalId) async {
+    final result = await _client.from('rentals')
+        .delete()
+        .eq('id', rentalId)
+        .eq('company_id', companyId)
+        .select('id')
+        .maybeSingle();
+    if (result == null) {
+      throw StateError('A locação não foi encontrada ou você não tem permissão para excluí-la.');
+    }
+  }
+
   Future<Map<String, dynamic>> saveProduct({
     String? productId,
     required String name,
