@@ -6,6 +6,7 @@ import { ProductsPage } from './data/ProductsPage';
 import { RentalsPage } from './data/RentalsPage';
 import { FinancePage } from './data/FinancePage';
 import { OccurrencesPage } from './data/OccurrencesPage';
+import { TeamChatPage } from './data/TeamChatPage';
 
 type CompanyContext = { id: string; name: string; role: string };
 const PASSWORD_RESET_REDIRECT = 'https://vbf1.github.io/kidsloc-app/';
@@ -38,6 +39,7 @@ export default function App() {
   const [showRentals, setShowRentals] = useState(false);
   const [showFinance, setShowFinance] = useState(false);
   const [showOccurrences, setShowOccurrences] = useState(false);
+  const [showTeamChat, setShowTeamChat] = useState(false);
   const feedback = useCallback((value: string, error = false) => {
     setMessage(value);
     setIsError(error);
@@ -89,6 +91,7 @@ export default function App() {
         setShowRentals(false);
         setShowFinance(false);
         setShowOccurrences(false);
+        setShowTeamChat(false);
         setRecovery(false);
         setForgot(false);
         setPassword('');
@@ -220,6 +223,19 @@ export default function App() {
     <button onClick={logout} disabled={busy}>Sair</button>
   </section></main>;
 
+  if (showTeamChat) return (
+    <main className="module-page">
+      <header className="app-topbar">
+        <strong>KidsLoc App · {company?.name ?? ''}</strong>
+        <div className="topbar-actions">
+          <button type="button" className="secondary-button" onClick={() => setShowTeamChat(false)}>Início</button>
+          <button type="button" onClick={logout} disabled={busy}>Sair</button>
+        </div>
+      </header>
+      {company && <TeamChatPage companyId={company.id} />}
+    </main>
+  );
+
   if (showOccurrences) return (
     <main className="module-page">
       <header className="app-topbar">
@@ -294,6 +310,7 @@ export default function App() {
     <button type="button" className="secondary-button" onClick={() => setShowProducts(true)}>Brinquedos e estoque</button>
     <button type="button" onClick={() => setShowRentals(true)}>Gerenciar locações</button>
     <button type="button" className="secondary-button" onClick={() => setShowOccurrences(true)}>Ocorrências</button>
+    <button type="button" onClick={() => setShowTeamChat(true)}>Mensagens da equipe</button>
     {(company.role === 'owner' || company.role === 'admin') && <button type="button" className="secondary-button" onClick={() => setShowFinance(true)}>Financeiro</button>}
     <p className="note">Os módulos estão sendo migrados gradualmente. Os dados permanecem no banco atual.</p>
     <button onClick={logout} disabled={busy}>{busy ? 'Saindo...' : 'Sair da conta'}</button>
