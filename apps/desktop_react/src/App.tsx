@@ -214,10 +214,8 @@ export default function App() {
 
   if (!session) return (
     <main className="legacy-auth-screen"><section className="legacy-auth-card">
-      <div className="legacy-auth-brand">KIDSLOC APP</div><p className="legacy-muted">Acesse sua empresa Sonho Kids Brinquedos</p>
-      <div className="legacy-login-accent" />
-      <h1>{forgot ? 'Recuperar senha' : 'Bem-vindo de volta!'}</h1>
-      <p className="legacy-intro">{forgot ? 'Informe o e-mail da conta para receber o link de recuperação.' : 'Entre com a conta já cadastrada no sistema.'}</p>
+      <div className="legacy-auth-brand">KIDSLOC APP</div>
+      {forgot && <p className="legacy-muted">Recuperar acesso</p>}
       {forgot ? (
         <form onSubmit={requestReset} className="legacy-form">
           <label htmlFor="email">E-mail cadastrado</label>
@@ -233,7 +231,7 @@ export default function App() {
           <button className="legacy-secondary-button" type="button" onClick={() => { setForgot(true); feedback(''); }}>Esqueci minha senha</button>
         </form>
       )}
-      <p className={isError ? 'legacy-feedback error' : 'legacy-feedback'} role="status">{message || 'Entre com seu e-mail e senha atuais.'}</p>
+      {message && <p className={isError ? 'legacy-feedback error' : 'legacy-feedback'} role="status">{message}</p>}
     </section></main>
   );
 
