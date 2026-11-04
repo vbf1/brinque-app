@@ -74,7 +74,6 @@ export function CheckoutPage() {
             <div className="kc-pix-value"><span>Valor do Pix</span><b>{PRICE}</b></div>
           </div>
           <div className="kc-payment-steps"><b>Como finalizar</b><ol><li>Copie a chave Pix e faça o pagamento de R$ 10,00.</li><li>Guarde o comprovante da transferência.</li><li>Entre em contato com o responsável pelo KidsLoc e informe seu nome e e-mail para conferência e liberação.</li></ol></div>
-          <button className="kc-copy-bottom" type="button" onClick={copyPix}>{copied ? 'Chave Pix copiada!' : 'Copiar chave Pix para pagar'}</button>
           <small className="kc-manual-note">A confirmação é manual. O envio do Pix não libera o acesso automaticamente.</small>
         </div>
       </section>
