@@ -151,6 +151,23 @@ class NativePushService {
     });
   }
 
+  Future<Map<String, dynamic>> sendTestNotification({required String companyId}) async {
+    final response = await _client.functions.invoke(
+      'send-employee-push',
+      body: {'action': 'test', 'company_id': companyId},
+    );
+    if (response.status < 200 || response.status >= 300) {
+      final data = response.data;
+      final message = data is Map ? data['error']?.toString() : null;
+      throw Exception(message ?? 'O servidor não conseguiu enviar a notificação de teste (HTTP ${response.status}).');
+    }
+    final data = response.data;
+    if (data is! Map) {
+      throw Exception('O servidor retornou uma resposta inválida ao testar a notificação.');
+    }
+    return Map<String, dynamic>.from(data);
+  }
+
   Future<void> _saveToken(String fid) async {
     final companyId = _companyId;
     final userId = _userId;
