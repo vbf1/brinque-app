@@ -29,11 +29,25 @@ metadata = (
     '        <meta-data android:name="com.google.firebase.messaging.default_notification_channel_id" '
     'android:value="kidsloc_notifications" />'
 )
-if "default_notification_channel_id" not in manifest_text:
+fid_metadata = (
+    '        <meta-data android:name="firebase_messaging_installation_id_enabled" '
+    'android:value="true" />'
+)
+if "default_notification_channel_id" not in manifest_text or "firebase_messaging_installation_id_enabled" not in manifest_text:
     marker = "<application"
     position = manifest_text.find(">", manifest_text.find(marker)) + 1
-    manifest_text = manifest_text[:position] + "\n" + metadata + manifest_text[position:]
+    additions = ""
+    if "default_notification_channel_id" not in manifest_text:
+        additions += "\n" + metadata
+    if "firebase_messaging_installation_id_enabled" not in manifest_text:
+        additions += "\n" + fid_metadata
+    manifest_text = manifest_text[:position] + additions + manifest_text[position:]
 manifest.write_text(manifest_text)
+
+app_gradle = android_root / "app" / "build.gradle.kts"
+app_text = app_gradle.read_text()
+app_text = app_text.replace("minSdk = flutter.minSdkVersion", "minSdk = maxOf(flutter.minSdkVersion, 24)")
+app_gradle.write_text(app_text)
 
 activity = next((android_root / "app" / "src" / "main" / "kotlin").rglob("MainActivity.kt"))
 activity.write_text("""package br.com.sonhokids.kidsloc
