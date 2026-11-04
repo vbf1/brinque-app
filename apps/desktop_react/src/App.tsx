@@ -15,6 +15,16 @@ type CompanyContext = { id: string; name: string; role: string };
 type Page = 'inicio' | 'locacoes' | 'clientes' | 'estoque' | 'financeiro' | 'ocorrencias' | 'mensagens' | 'marketing' | 'contratos';
 const PASSWORD_RESET_REDIRECT = 'https://vbf1.github.io/kidsloc-app/';
 
+function withTimeout<T>(promise: Promise<T>, milliseconds: number, message: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timeout = window.setTimeout(() => reject(new Error(message)), milliseconds);
+    promise.then(
+      value => { window.clearTimeout(timeout); resolve(value); },
+      error => { window.clearTimeout(timeout); reject(error); },
+    );
+  });
+}
+
 function friendlyError(error: unknown): string {
   const raw = error instanceof Error ? error.message : String(error ?? '');
   const value = raw.toLowerCase();
@@ -179,7 +189,7 @@ export default function App() {
     if (!email.trim() || !password) return feedback('Informe seu e-mail e sua senha.', true);
     setBusy(true); feedback('Validando seu acesso...');
     try {
-      const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
+      const { error } = await withTimeout(supabase.auth.signInWithPassword({ email: email.trim(), password }), 20000, 'O servidor de autenticação demorou demais. Verifique sua conexão e tente novamente.');
       if (error) throw error;
       feedback('Acesso autenticado. Carregando os dados da empresa...');
     } catch (error) { feedback(friendlyError(error), true); }
@@ -191,7 +201,7 @@ export default function App() {
     if (!email.trim()) return feedback('Informe o e-mail cadastrado.', true);
     setBusy(true); feedback('Solicitando o link de recuperação...');
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo: PASSWORD_RESET_REDIRECT });
+      const { error } = await withTimeout(supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo: PASSWORD_RESET_REDIRECT }), 20000, 'O pedido de recuperação demorou demais. Verifique sua conexão e tente novamente.');
       if (error) throw error;
       feedback('Se o e-mail estiver cadastrado, você receberá um link para redefinir a senha. Confira também o spam.');
     } catch (error) { feedback(friendlyError(error), true); }
@@ -204,7 +214,7 @@ export default function App() {
     if (newPassword !== confirmPassword) return feedback('As senhas não são iguais. Confira e tente novamente.', true);
     setBusy(true); feedback('Atualizando sua senha...');
     try {
-      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      const { error } = await withTimeout(supabase.auth.updateUser({ password: newPassword }), 20000, 'A atualização da senha demorou demais. Verifique sua conexão e tente novamente.');
       if (error) throw error;
       await supabase.auth.signOut({ scope: 'local' });
       setRecovery(false); setNewPassword(''); setConfirmPassword('');
