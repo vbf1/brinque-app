@@ -178,3 +178,5 @@ button:focus-visible{outline:3px solid #3478e566;outline-offset:2px}
 .marketing-check{display:inline-flex!important;align-items:center;gap:7px;margin:5px 14px 5px 0!important;font-weight:500!important;color:var(--ink)!important}
 .marketing-check input{width:17px;min-height:17px;margin:0}.danger-button{background:#fff0f0;color:#b73535}
 @media(max-width:640px){.marketing-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.marketing-ad-card{grid-template-columns:1fr}.marketing-ad-card>img,.marketing-image-placeholder{height:190px}.marketing-actions button{flex:1 1 auto}.marketing-toolbar select{max-width:none;flex:1}.marketing-summary strong{font-size:21px}}
+
+.marketing-manual-note{margin:8px 0 14px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--muted);font-size:12px;line-height:1.5}
