@@ -25,9 +25,9 @@ class _ProductsPageState extends State<ProductsPage> {
       _repository.fetchProductUnits(),
       _repository.fetchRentals(),
     ]);
-    final products = results[0] as List<Map<String, dynamic>>;
-    final units = results[1] as List<Map<String, dynamic>>;
-    final rentals = results[2] as List<Map<String, dynamic>>;
+    final products = results[0];
+    final units = results[1];
+    final rentals = results[2];
     return products.map((product) {
       final productUnits = units.where((unit) => unit['product_id'] == product['id']).toList();
       final individual = product['inventory_mode'] == 'individual';
@@ -56,7 +56,9 @@ class _ProductsPageState extends State<ProductsPage> {
         content: Text(next == 'maintenance' ? 'Unidade enviada para manutenção.' : 'Unidade liberada para locação.'),
       ));
     } catch (error) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Não foi possível atualizar a unidade: $error')));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Não foi possível atualizar a unidade: $error')));
+      }
     }
   }
   Future<void> _edit([Map<String, dynamic>? product]) async {
