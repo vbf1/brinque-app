@@ -16,7 +16,7 @@ const clauses = [
 ];
 function printable(snapshot: Record<string, any>, number?: number) {
   const items = (snapshot.items ?? []).map((i: any) => '<tr><td>' + i.name + '</td><td>' + i.quantity + '</td><td>' + money(i.dailyPrice) + '</td><td>' + money(i.subtotal) + '</td></tr>').join('');
-  return `<!doctype html><html lang="pt-BR"><meta charset="utf-8"><title>Contrato ${number ?? ''}</title><style>body{font:14px Arial;color:#222;max-width:800px;margin:36px auto;line-height:1.5}h1{text-align:center;font-size:20px}h2{font-size:15px;margin-top:24px}table{width:100%;border-collapse:collapse}td,th{border:1px solid #bbb;padding:8px;text-align:left}.sign{margin-top:55px;display:flex;gap:70px}.sign div{border-top:1px solid #444;flex:1;text-align:center;padding-top:8px}@media print{body{margin:18mm}}</style><h1>CONTRATO DE LOCAÇÃO DE BRINQUEDOS</h1><p><b>Locadora:</b> ${snapshot.companyName}</p><p><b>Cliente:</b> ${snapshot.customerName}<br><b>Telefone:</b> ${snapshot.customerPhone || '—'}<br><b>Endereço:</b> ${snapshot.customerAddress || '—'}</p><p><b>Locação:</b> ${number ?? ''} &nbsp; <b>Período:</b> ${date(snapshot.startDate)} a ${date(snapshot.endDate)}</p><h2>ITENS LOCADOS</h2><table><thead><tr><th>Brinquedo</th><th>Qtd.</th><th>Diária</th><th>Subtotal</th></tr></thead><tbody>${items}</tbody></table><p><b>Valor total: ${money(snapshot.totalAmount)}</b></p><h2>CONDIÇÕES</h2><ol>${clauses.map(c => '<li>' + c + '</li>').join('')}</ol><h2>ASSINATURAS</h2><p>As partes declaram que leram e concordam com as condições acima.</p><div class="sign"><div>LOCADORA</div><div>CONTRATANTE</div></div></html>`;
+  return `<!doctype html><html lang="pt-BR"><meta charset="utf-8"><title>Contrato ${number ?? ''}</title><style>body{font:14px Arial;color:#222;max-width:800px;margin:36px auto;line-height:1.5}h1{text-align:center;font-size:20px}h2{font-size:15px;margin-top:24px}table{width:100%;border-collapse:collapse}td,th{border:1px solid #bbb;padding:8px;text-align:left}.sign{margin-top:55px;display:flex;gap:70px}.sign div{border-top:1px solid #444;flex:1;text-align:center;padding-top:8px}@media print{body{margin:18mm}}</style><h1>CONTRATO DE LOCAÇÃO DE BRINQUEDOS</h1><p><b>Locadora:</b> ${snapshot.companyName}</p><p><b>Cliente:</b> ${snapshot.customerName}<br><b>Telefone:</b> ${snapshot.customerPhone || '—'}<br><b>Endereço:</b> ${snapshot.customerAddress || '—'}</p><p><b>Locação:</b> ${number ?? ''} &nbsp; <b>Período:</b> ${date(snapshot.startDate)} a ${date(snapshot.endDate)}</p><h2>ITENS LOCADOS</h2><table><thead><tr><th>Brinquedo</th><th>Qtd.</th><th>Diária</th><th>Subtotal</th></tr></thead><tbody>${items}</tbody></table><p><b>Valor total: ${money(snapshot.totalAmount)}</b></p><p><b>Caução/garantia:</b> ${money(snapshot.depositAmount)}</p><p><b>Endereço de entrega:</b> ${snapshot.deliveryAddress || '—'}</p><h2>CONDIÇÕES</h2><ol>${clauses.map(c => '<li>' + c + '</li>').join('')}</ol><h2>ASSINATURAS</h2><p>As partes declaram que leram e concordam com as condições acima. ${snapshot.rentalNotes ? 'Observações da locação: ' + snapshot.rentalNotes : ''}</p><div class="sign"><div>LOCADORA</div><div>CONTRATANTE</div></div></html>`;
 }
 export function ContractsPage({ companyId, companyName }: { companyId: string; companyName: string }) {
   const [rentals, setRentals] = useState<Rental[]>([]);
@@ -41,7 +41,7 @@ export function ContractsPage({ companyId, companyName }: { companyId: string; c
 
   async function createContract() {
     const rental = rentals.find(r => r.id === selectedRental);
-    if (!rental) { setMessage('Selecione uma locação.'); return; }
+    if (!rental) { setMessage('Selecione uma locação.'); return; }\n    const phoneDigits = String(rental.customers?.phone ?? '').replace(/\\D/g, '');\n    if (phoneDigits.length < 10 || phoneDigits.length > 13) { setMessage('Cadastre um telefone válido com DDD para preparar o WhatsApp.'); return; }
     setBusy(true); setMessage('');
     try {
       const rawToken = Array.from(crypto.getRandomValues(new Uint8Array(32)), b => b.toString(16).padStart(2, '0')).join('');
@@ -51,7 +51,7 @@ export function ContractsPage({ companyId, companyName }: { companyId: string; c
         customerAddress: rental.customers?.address ?? rental.delivery_address ?? '',
         startDate: rental.start_date, endDate: rental.end_date, totalAmount: rental.total_amount,
         rentalNumber: rental.rental_number,
-        items: (rental.rental_items ?? []).map((i: any) => ({ name: i.products?.name ?? 'Brinquedo', quantity: i.quantity, dailyPrice: i.unit_price, subtotal: i.subtotal ?? Number(i.unit_price) * Number(i.quantity) }))
+        items: (rental.rental_items ?? []).map((i: any) => ({ name: i.products?.name ?? 'Brinquedo', quantity: i.quantity, dailyPrice: i.unit_price, subtotal: i.subtotal ?? Number(i.unit_price) * Number(i.quantity) })),\n        clauses, depositAmount: rental.deposit_amount ?? 0, deliveryAddress: rental.delivery_address ?? '', rentalNotes: rental.notes ?? ''
       };
       const { data, error } = await supabase.from('rental_contracts').insert({
         company_id: companyId, rental_id: rental.id, signature_method: method, status: 'draft',
