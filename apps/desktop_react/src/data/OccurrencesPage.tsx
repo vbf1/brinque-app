@@ -27,12 +27,15 @@ export function OccurrencesPage({ companyId, role }: { companyId: string; role: 
   const [categoryFilter, setCategoryFilter] = useState('');
   const [severityFilter, setSeverityFilter] = useState('');
   const [editing, setEditing] = useState<Occurrence | null>(null);
+  const [showForm, setShowForm] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState('');
   const [form, setForm] = useState(emptyForm);
   const [files, setFiles] = useState<File[]>([]);
-  const userId = supabase.auth.getUser ? undefined : undefined;
   const isAdmin = role === 'owner' || role === 'admin';
 
   async function load() {
+    const { data: auth } = await supabase.auth.getUser();
+    setCurrentUserId(auth.user?.id ?? '');
     setLoading(true); setError('');
     try {
       const [{ data, error: reportError }, { data: photoRows, error: photoError }] = await Promise.all([
@@ -67,6 +70,7 @@ export function OccurrencesPage({ companyId, role }: { companyId: string; role: 
 
   function open(item?: Occurrence) {
     setEditing(item ?? null);
+    setShowForm(true);
     setForm(item ? {
       title: item.title, category: item.category, severity: item.severity,
       occurred_at: dateInput(item.occurred_at), location: item.location,
@@ -75,9 +79,7 @@ export function OccurrencesPage({ companyId, role }: { companyId: string; role: 
     setFiles([]);
     setError('');
   }
-  function canManage(item: Occurrence) {
-    return item.created_by === supabase.auth.getSession().then ? false : (isAdmin || item.created_by === rows.find((row) => row.id === item.id)?.created_by);
-  }
+  function canManage(item: Occurrence) { return isAdmin || item.created_by === currentUserId; }
   async function save(event: FormEvent) {
     event.preventDefault();
     if (form.title.trim().length < 3 || !form.occurred_at || form.location.trim().length < 2 || form.description.trim().length < 5 || Number(form.loss_amount || 0) < 0) {
@@ -126,7 +128,7 @@ export function OccurrencesPage({ companyId, role }: { companyId: string; role: 
           throw metaError;
         }
       }
-      setEditing(null); setFiles([]); await load();
+      setEditing(null); setShowForm(false); setFiles([]); await load();
     } catch (e) { setError(e instanceof Error ? e.message : 'Não foi possível salvar a ocorrência.'); }
     finally { setBusy(false); }
   }
@@ -158,7 +160,7 @@ export function OccurrencesPage({ companyId, role }: { companyId: string; role: 
       }
       const { error: deleteError } = await supabase.from('occurrence_reports').delete().eq('id', item.id).eq('company_id', companyId);
       if (deleteError) throw deleteError;
-      setEditing(null); await load();
+      setEditing(null); setShowForm(false); await load();
     } catch (e) { setError(e instanceof Error ? e.message : 'Não foi possível excluir a ocorrência.'); }
     finally { setBusy(false); }
   }
@@ -167,18 +169,18 @@ export function OccurrencesPage({ companyId, role }: { companyId: string; role: 
     <div className="data-page-heading"><div><p className="eyebrow">REGISTROS OPERACIONAIS</p><h1>Ocorrências</h1><p>Relatos, gravidade, prejuízos e evidências em um só lugar.</p></div>
       <button type="button" onClick={() => open()}>＋ Novo relato</button></div>
     {error && <p className="feedback error" role="alert">{error}</p>}
-    {editing !== null || form.occurred_at ? (
+    {showForm ? (
       <form className="data-form" onSubmit={save}>
         <h2>{editing ? 'Detalhes da ocorrência' : 'Novo relato de ocorrência'}</h2>
-        <label>Título<input maxLength={140} value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} required /></label>
-        <label>Categoria<select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>{CATEGORIES.map((value) => <option key={value}>{value}</option>)}</select></label>
-        <label>Gravidade<select value={form.severity} onChange={(e) => setForm({ ...form, severity: e.target.value })}>{SEVERITIES.map((value) => <option key={value.value} value={value.value}>{value.label}</option>)}</select></label>
-        <label>Data e horário<input type="datetime-local" value={form.occurred_at} onChange={(e) => setForm({ ...form, occurred_at: e.target.value })} required /></label>
-        <label>Local<input maxLength={240} value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} required /></label>
-        <label>Descrição<textarea rows={5} maxLength={6000} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} required /></label>
-        <label>Prejuízo estimado (R$), opcional<input type="number" min="0" step="0.01" value={form.loss_amount} onChange={(e) => setForm({ ...form, loss_amount: e.target.value })} /></label>
-        <label>Fotos e evidências (JPG, PNG ou WEBP; até 8 MB por foto)<input type="file" accept="image/jpeg,image/png,image/webp" multiple onChange={(e) => setFiles(Array.from(e.target.files ?? []))} /></label>
-        {editing?.photos.map((photo) => <div className="data-row-actions" key={photo.id}><a href={photo.url} target="_blank" rel="noreferrer">Abrir foto</a><button type="button" className="danger-button" disabled={busy} onClick={() => void removePhoto(photo)}>Excluir foto</button></div>)}
+        <label>Título<input disabled={!!editing && !canManage(editing)} maxLength={140} value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} required /></label>
+        <label>Categoria<select disabled={!!editing && !canManage(editing)} value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>{CATEGORIES.map((value) => <option key={value}>{value}</option>)}</select></label>
+        <label>Gravidade<select disabled={!!editing && !canManage(editing)} value={form.severity} onChange={(e) => setForm({ ...form, severity: e.target.value })}>{SEVERITIES.map((value) => <option key={value.value} value={value.value}>{value.label}</option>)}</select></label>
+        <label>Data e horário<input disabled={!!editing && !canManage(editing)} type="datetime-local" value={form.occurred_at} onChange={(e) => setForm({ ...form, occurred_at: e.target.value })} required /></label>
+        <label>Local<input disabled={!!editing && !canManage(editing)} maxLength={240} value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} required /></label>
+        <label>Descrição<textarea disabled={!!editing && !canManage(editing)} rows={5} maxLength={6000} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} required /></label>
+        <label>Prejuízo estimado (R$), opcional<input disabled={!!editing && !canManage(editing)} type="number" min="0" step="0.01" value={form.loss_amount} onChange={(e) => setForm({ ...form, loss_amount: e.target.value })} /></label>
+        {(!editing || canManage(editing)) && <label>Fotos e evidências (JPG, PNG ou WEBP; até 8 MB por foto)<input type="file" accept="image/jpeg,image/png,image/webp" multiple onChange={(e) => setFiles(Array.from(e.target.files ?? []))} /></label>}
+        {editing?.photos.map((photo) => <div className="data-row-actions" key={photo.id}><a href={photo.url} target="_blank" rel="noreferrer">Abrir foto</a>{editing && canManage(editing) && <button type="button" className="danger-button" disabled={busy} onClick={() => void removePhoto(photo)}>Excluir foto</button>}</div>)}
         <div className="data-form-actions"><button disabled={busy} type="submit">{busy ? 'Salvando...' : 'Salvar ocorrência'}</button><button type="button" className="secondary-button" onClick={() => { setEditing(null); setForm(emptyForm); setFiles([]); }}>Cancelar</button>
           {editing && (isAdmin || editing.created_by === rows.find((row) => row.id === editing.id)?.created_by) && <button type="button" className="danger-button" disabled={busy} onClick={() => void remove(editing)}>Excluir ocorrência</button>}
         </div>
