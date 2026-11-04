@@ -2,6 +2,14 @@
 create index if not exists rental_contracts_created_by_idx
   on public.rental_contracts(created_by);
 
+-- Keep the immutable contract snapshot and signed PDF if the rental is deleted.
+-- Owners/admins can still access it through can_manage_rental(company_id, NULL).
+alter table public.rental_contracts alter column rental_id drop not null;
+alter table public.rental_contracts drop constraint if exists rental_contracts_rental_id_fkey;
+alter table public.rental_contracts
+  add constraint rental_contracts_rental_id_fkey
+  foreign key (rental_id) references public.rentals(id) on delete set null;
+
 -- Owners/admins retain company-wide access through can_manage_rental().
 drop policy if exists rental_contracts_select_company_members on public.rental_contracts;
 create policy rental_contracts_select_assigned_rentals on public.rental_contracts
