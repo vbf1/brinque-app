@@ -13,7 +13,7 @@ concurrency:
   cancel-in-progress: false
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   flutter:
@@ -26,6 +26,15 @@ jobs:
       - name: Resolve Flutter dependencies
         working-directory: apps/mobile_flutter
         run: flutter pub get
+      - name: Commit resolved Flutter lockfile
+        run: |
+          if ! git diff --quiet -- apps/mobile_flutter/pubspec.lock; then
+            git config user.name 'github-actions[bot]'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git add apps/mobile_flutter/pubspec.lock
+            git commit -m 'chore: refresh Flutter dependency lockfile'
+            git push
+          fi
       - name: Analyze Flutter
         working-directory: apps/mobile_flutter
         run: flutter analyze
@@ -59,10 +68,56 @@ jobs:
           channel: stable
       - name: Generate isolated Android host project
         run: |
-          flutter create --platforms=android --org br.com.sonhokids --project-name kidslocpreview /tmp/kidsloc-preview
+          flutter create --platforms=android --org br.com.sonhokids --project-name kidsloc /tmp/kidsloc-preview
           cp -R apps/mobile_flutter/lib /tmp/kidsloc-preview/
           cp apps/mobile_flutter/pubspec.yaml /tmp/kidsloc-preview/pubspec.yaml
           cp apps/mobile_flutter/pubspec.lock /tmp/kidsloc-preview/pubspec.lock
+          cp google-services.json /tmp/kidsloc-preview/android/app/google-services.json
+          python3 - <<'PY'
+          from pathlib import Path
+          root = Path('/tmp/kidsloc-preview/android')
+          settings = root / 'settings.gradle.kts'
+          content = settings.read_text()
+          content = content.replace('plugins {', 'plugins {\n    id("com.google.gms.google-services") version "4.4.4" apply false', 1)
+          settings.write_text(content)
+          app_gradle = root / 'app' / 'build.gradle.kts'
+          content = app_gradle.read_text()
+          content = content.replace('    id("dev.flutter.flutter-gradle-plugin")', '    id("dev.flutter.flutter-gradle-plugin")\n    id("com.google.gms.google-services")')
+          app_gradle.write_text(content)
+          manifest = root / 'app' / 'src' / 'main' / 'AndroidManifest.xml'
+          content = manifest.read_text()
+          content = content.replace('<manifest ', '<manifest ', 1)
+          if 'android.permission.POST_NOTIFICATIONS' not in content:
+              content = content.replace('<application', '    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />\n    <application', 1)
+          marker = '<application'
+          pos = content.find('>', content.find(marker)) + 1
+          metadata = '\n        <meta-data android:name="com.google.firebase.messaging.default_notification_channel_id" android:value="kidsloc_notifications" />'
+          content = content[:pos] + metadata + content[pos:]
+          manifest.write_text(content)
+          activity = next((root / 'app' / 'src' / 'main' / 'kotlin').rglob('MainActivity.kt'))
+          activity.write_text('''package br.com.sonhokids.kidsloc
+
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.os.Build
+import android.os.Bundle
+import io.flutter.embedding.android.FlutterActivity
+
+class MainActivity : FlutterActivity() {
+  override fun onCreate(savedInstanceState: Bundle?) {
+    super.onCreate(savedInstanceState)
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+      val channel = NotificationChannel(
+        "kidsloc_notifications",
+        "Avisos do KidsLoc",
+        NotificationManager.IMPORTANCE_HIGH
+      ).apply { description = "Lembretes e avisos importantes do KidsLoc App" }
+      getSystemService(NotificationManager::class.java).createNotificationChannel(channel)
+    }
+  }
+}
+''')
+          PY
       - name: Resolve dependencies
         working-directory: /tmp/kidsloc-preview
         run: flutter pub get
