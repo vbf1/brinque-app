@@ -342,6 +342,21 @@ class _RentalsPageState extends State<RentalsPage> {
 
 
   Future<void> _deleteRental(Map<String, dynamic> rental) async {
+    try {
+      final existingContract = await Supabase.instance.client.from('rental_contracts')
+          .select('id').eq('rental_id', rental['id']).limit(1).maybeSingle();
+      if (existingContract != null) {
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Esta locação já possui um contrato. A exclusão foi bloqueada para preservar o histórico e os documentos assinados.')),
+        );
+        return;
+      }
+    } catch (error) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Não foi possível verificar contratos vinculados: $error')),
+      );
+      return;
+    }
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
