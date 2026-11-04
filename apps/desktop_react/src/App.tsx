@@ -9,6 +9,7 @@ import { OccurrencesPage } from './data/OccurrencesPage';
 import { TeamChatPage } from './data/TeamChatPage';
 
 type CompanyContext = { id: string; name: string; role: string };
+type Page = 'inicio' | 'locacoes' | 'clientes' | 'estoque' | 'financeiro' | 'ocorrencias' | 'mensagens';
 const PASSWORD_RESET_REDIRECT = 'https://vbf1.github.io/kidsloc-app/';
 
 function friendlyError(error: unknown): string {
@@ -19,6 +20,16 @@ function friendlyError(error: unknown): string {
   if (value.includes('otp_expired') || value.includes('expired')) return 'O link expirou ou já foi utilizado. Solicite outro.';
   return raw || 'Não foi possível concluir a operação. Tente novamente.';
 }
+
+const navigation: Array<{ id: Page; label: string; icon: string; admin?: boolean }> = [
+  { id: 'inicio', label: 'Início', icon: '▦' },
+  { id: 'locacoes', label: 'Locações', icon: '▣' },
+  { id: 'clientes', label: 'Clientes', icon: '♙' },
+  { id: 'estoque', label: 'Estoque', icon: '▤' },
+  { id: 'financeiro', label: 'Financeiro', icon: '＄', admin: true },
+  { id: 'mensagens', label: 'Mensagens', icon: '▰' },
+  { id: 'ocorrencias', label: 'Ocorrências', icon: '⚠' },
+];
 
 export default function App() {
   const [session, setSession] = useState<Session | null>(null);
@@ -34,16 +45,20 @@ export default function App() {
   const [isError, setIsError] = useState(false);
   const [company, setCompany] = useState<CompanyContext | null>(null);
   const [companyLoading, setCompanyLoading] = useState(false);
-  const [showCustomers, setShowCustomers] = useState(false);
-  const [showProducts, setShowProducts] = useState(false);
-  const [showRentals, setShowRentals] = useState(false);
-  const [showFinance, setShowFinance] = useState(false);
-  const [showOccurrences, setShowOccurrences] = useState(false);
-  const [showTeamChat, setShowTeamChat] = useState(false);
+  const [page, setPage] = useState<Page>('inicio');
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+    try { return localStorage.getItem('brq_theme') === 'dark' ? 'dark' : 'light'; } catch { return 'light'; }
+  });
   const feedback = useCallback((value: string, error = false) => {
     setMessage(value);
     setIsError(error);
   }, []);
+
+  useEffect(() => {
+    document.body.dataset.theme = theme === 'dark' ? 'dark' : '';
+    try { localStorage.setItem('brq_theme', theme === 'dark' ? 'dark' : ''); } catch { /* storage is optional */ }
+  }, [theme]);
 
   useEffect(() => {
     let active = true;
@@ -86,12 +101,8 @@ export default function App() {
       if (event === 'PASSWORD_RECOVERY') setRecovery(true);
       if (event === 'SIGNED_OUT') {
         setCompany(null);
-        setShowCustomers(false);
-        setShowProducts(false);
-        setShowRentals(false);
-        setShowFinance(false);
-        setShowOccurrences(false);
-        setShowTeamChat(false);
+        setPage('inicio');
+        setMenuOpen(false);
         setRecovery(false);
         setForgot(false);
         setPassword('');
@@ -178,141 +189,97 @@ export default function App() {
     finally { setBusy(false); }
   }
 
-  if (loading) return <main className="page-shell"><section className="welcome-card"><p>Verificando sua sessão e preparando o aplicativo...</p></section></main>;
+  const isAdmin = company?.role === 'owner' || company?.role === 'admin';
+  const userLabel = session?.user.user_metadata?.full_name || session?.user.email?.split('@')[0] || 'Bem-vindo';
+  const pageTitle = navigation.find(item => item.id === page)?.label ?? 'Início';
+  const visibleNavigation = navigation.filter(item => !item.admin || isAdmin);
+
+  if (loading) return <main className="legacy-auth-screen"><section className="legacy-auth-card"><div className="legacy-auth-brand">KIDSLOC APP</div><p className="legacy-muted">Acesse sua empresa Sonho Kids Brinquedos</p><div className="legacy-loading">Verificando sua sessão e preparando o aplicativo...</div></section></main>;
 
   if (recovery && session) return (
-    <main className="page-shell"><section className="welcome-card auth-card">
-      <div className="brand-mark">SK</div><p className="eyebrow">SONHO KIDS BRINQUEDOS</p><h1>Definir nova senha</h1>
-      <form onSubmit={updatePassword} className="auth-form">
+    <main className="legacy-auth-screen"><section className="legacy-auth-card">
+      <div className="legacy-auth-brand">KIDSLOC APP</div><p className="legacy-muted">SONHO KIDS BRINQUEDOS</p><h1>Definir nova senha</h1>
+      <form onSubmit={updatePassword} className="legacy-form">
         <label htmlFor="new-password">Nova senha</label>
-        <input id="new-password" type="password" autoComplete="new-password" value={newPassword} onChange={e => setNewPassword(e.target.value)} required minLength={6} />
+        <input id="new-password" type="password" autoComplete="new-password" value={newPassword} onChange={e => setNewPassword(e.target.value)} required minLength={6} placeholder="Digite a nova senha" />
         <label htmlFor="confirm-password">Confirme a nova senha</label>
-        <input id="confirm-password" type="password" autoComplete="new-password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required minLength={6} />
-        <button disabled={busy} type="submit">{busy ? 'Salvando...' : 'Salvar nova senha'}</button>
+        <input id="confirm-password" type="password" autoComplete="new-password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required minLength={6} placeholder="Digite novamente" />
+        <button disabled={busy} type="submit" className="legacy-primary-button">{busy ? 'Salvando...' : 'Salvar nova senha'}</button>
       </form>
-      <p className={isError ? 'feedback error' : 'feedback'} role="status">{message}</p>
+      <p className={isError ? 'legacy-feedback error' : 'legacy-feedback'} role="status">{message}</p>
     </section></main>
   );
 
   if (!session) return (
-    <main className="page-shell"><section className="welcome-card auth-card">
-      <div className="brand-mark">SK</div><p className="eyebrow">SONHO KIDS BRINQUEDOS</p><h1>KidsLoc App</h1>
-      <p className="intro">Entre com a conta já cadastrada no sistema.</p>
+    <main className="legacy-auth-screen"><section className="legacy-auth-card">
+      <div className="legacy-auth-brand">KIDSLOC APP</div><p className="legacy-muted">Acesse sua empresa Sonho Kids Brinquedos</p>
+      <div className="legacy-login-accent" />
+      <h1>{forgot ? 'Recuperar senha' : 'Bem-vindo de volta!'}</h1>
+      <p className="legacy-intro">{forgot ? 'Informe o e-mail da conta para receber o link de recuperação.' : 'Entre com a conta já cadastrada no sistema.'}</p>
       {forgot ? (
-        <form onSubmit={requestReset} className="auth-form">
-          <h2>Recuperar senha</h2><label htmlFor="email">E-mail cadastrado</label>
-          <input id="email" type="email" autoComplete="email" value={email} onChange={e => setEmail(e.target.value)} required />
-          <button disabled={busy} type="submit">{busy ? 'Enviando...' : 'Enviar link de recuperação'}</button>
-          <button className="secondary-button" type="button" onClick={() => { setForgot(false); feedback(''); }}>Voltar ao login</button>
+        <form onSubmit={requestReset} className="legacy-form">
+          <label htmlFor="email">E-mail cadastrado</label>
+          <input id="email" type="email" autoComplete="email" value={email} onChange={e => setEmail(e.target.value)} required placeholder="seuemail@exemplo.com" />
+          <button disabled={busy} type="submit" className="legacy-primary-button">{busy ? 'Enviando...' : 'Enviar link de recuperação'}</button>
+          <button className="legacy-secondary-button" type="button" onClick={() => { setForgot(false); feedback(''); }}>Voltar ao login</button>
         </form>
       ) : (
-        <form onSubmit={login} className="auth-form">
-          <label htmlFor="email">E-mail</label><input id="email" type="email" autoComplete="username" value={email} onChange={e => setEmail(e.target.value)} required />
-          <label htmlFor="password">Senha</label><input id="password" type="password" autoComplete="current-password" value={password} onChange={e => setPassword(e.target.value)} required />
-          <button disabled={busy} type="submit">{busy ? 'Entrando...' : 'Entrar'}</button>
-          <button className="secondary-button" type="button" onClick={() => { setForgot(true); feedback(''); }}>Esqueci minha senha</button>
+        <form onSubmit={login} className="legacy-form">
+          <label htmlFor="email">E-mail</label><input id="email" type="email" autoComplete="username" value={email} onChange={e => setEmail(e.target.value)} required placeholder="seuemail@exemplo.com" />
+          <label htmlFor="password">Senha</label><input id="password" type="password" autoComplete="current-password" value={password} onChange={e => setPassword(e.target.value)} required placeholder="Sua senha" />
+          <button disabled={busy} type="submit" className="legacy-primary-button">{busy ? 'Entrando...' : 'Entrar'}</button>
+          <button className="legacy-secondary-button" type="button" onClick={() => { setForgot(true); feedback(''); }}>Esqueci minha senha</button>
         </form>
       )}
-      <p className={isError ? 'feedback error' : 'feedback'} role="status">{message || 'Use seu e-mail e senha atuais.'}</p>
+      <p className={isError ? 'legacy-feedback error' : 'legacy-feedback'} role="status">{message || 'Entre com seu e-mail e senha atuais.'}</p>
     </section></main>
   );
 
-  if (companyLoading) return <main className="page-shell"><section className="welcome-card"><p>Carregando os dados da empresa...</p></section></main>;
-  if (!company) return <main className="page-shell"><section className="welcome-card auth-card">
-    <h1>Acesso sem empresa vinculada</h1><p className="intro">{message || 'Esta conta não está vinculada a uma empresa.'}</p>
-    <button onClick={logout} disabled={busy}>Sair</button>
-  </section></main>;
+  if (companyLoading) return <main className="legacy-auth-screen"><section className="legacy-auth-card"><div className="legacy-auth-brand">KIDSLOC APP</div><div className="legacy-loading">Carregando os dados da empresa...</div></section></main>;
+  if (!company) return <main className="legacy-auth-screen"><section className="legacy-auth-card"><div className="legacy-auth-brand">KIDSLOC APP</div><h1>Acesso sem empresa vinculada</h1><p className="legacy-intro">{message || 'Esta conta não está vinculada a uma empresa.'}</p><button onClick={logout} disabled={busy} className="legacy-primary-button">Sair</button></section></main>;
 
-  if (showTeamChat) return (
-    <main className="module-page">
-      <header className="app-topbar">
-        <strong>KidsLoc App · {company?.name ?? ''}</strong>
-        <div className="topbar-actions">
-          <button type="button" className="secondary-button" onClick={() => setShowTeamChat(false)}>Início</button>
-          <button type="button" onClick={logout} disabled={busy}>Sair</button>
+  return (
+    <div className="legacy-app">
+      <header className="legacy-header">
+        <div className="legacy-headrow">
+          <div className="legacy-brand"><div className="legacy-logo">✦</div><div><strong>KIDSLOC APP</strong><span>GESTÃO DE LOCAÇÕES</span></div></div>
+          <div className="legacy-head-actions">
+            <button type="button" className="legacy-theme-button" aria-label={theme === 'dark' ? 'Ativar tema claro' : 'Ativar tema escuro'} title={theme === 'dark' ? 'Tema claro' : 'Tema escuro'} onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>{theme === 'dark' ? '☾' : '☀'}</button>
+            <button type="button" className="legacy-menu-trigger" aria-label="Abrir menu" aria-expanded={menuOpen} onClick={() => setMenuOpen(value => !value)}><span /><span /><span /></button>
+          </div>
         </div>
+        <div className="legacy-greeting">Olá, {userLabel} 👋<small>{company.name} · Gestão de locações sincronizada.</small></div>
       </header>
-      {company && <TeamChatPage companyId={company.id} />}
-    </main>
-  );
+      {menuOpen && <button className="legacy-menu-backdrop" aria-label="Fechar menu" onClick={() => setMenuOpen(false)} />}
+      <nav className={menuOpen ? 'legacy-menu-panel open' : 'legacy-menu-panel'} aria-label="Menus de navegação">
+        {visibleNavigation.map(item => <button type="button" key={item.id} className={page === item.id ? 'active' : ''} onClick={() => { setPage(item.id); setMenuOpen(false); }}><span>{item.icon}</span>{item.label}</button>)}
+        <button type="button" className="legacy-menu-logout" onClick={() => { setMenuOpen(false); void logout(); }}><span>↪</span>Sair</button>
+      </nav>
 
-  if (showOccurrences) return (
-    <main className="module-page">
-      <header className="app-topbar">
-        <strong>KidsLoc App · {company?.name ?? ''}</strong>
-        <div className="topbar-actions">
-          <button type="button" className="secondary-button" onClick={() => setShowOccurrences(false)}>Início</button>
-          <button type="button" onClick={logout} disabled={busy}>Sair</button>
-        </div>
-      </header>
-      {company && <OccurrencesPage companyId={company.id} role={company.role} />}
-    </main>
+      <main className="legacy-main">
+        {page === 'inicio' && (
+          <section>
+            <div className="legacy-section-title">Resumo do negócio <span>Seus dados</span></div>
+            <div className="legacy-dashboard-grid">
+              <button className="legacy-dashboard-card" onClick={() => setPage('locacoes')}><span className="legacy-card-icon">▣</span><strong>Locações</strong><small>Gerencie reservas e entregas</small></button>
+              <button className="legacy-dashboard-card" onClick={() => setPage('clientes')}><span className="legacy-card-icon">♙</span><strong>Clientes</strong><small>Consulte e cadastre clientes</small></button>
+              <button className="legacy-dashboard-card" onClick={() => setPage('estoque')}><span className="legacy-card-icon">▤</span><strong>Brinquedos e estoque</strong><small>Controle itens e unidades</small></button>
+              {isAdmin && <button className="legacy-dashboard-card" onClick={() => setPage('financeiro')}><span className="legacy-card-icon">＄</span><strong>Financeiro</strong><small>Entradas e saídas</small></button>}
+              <button className="legacy-dashboard-card" onClick={() => setPage('mensagens')}><span className="legacy-card-icon">▰</span><strong>Mensagens da equipe</strong><small>Converse com os funcionários</small></button>
+              <button className="legacy-dashboard-card" onClick={() => setPage('ocorrencias')}><span className="legacy-card-icon">⚠</span><strong>Ocorrências</strong><small>Registre e acompanhe relatos</small></button>
+            </div>
+            <section className="legacy-panel legacy-welcome-panel"><div><strong>Sessão ativa</strong><span>Conectado à empresa {company.name}</span></div><span className="legacy-status"><i /> {company.role === 'owner' ? 'Proprietário' : company.role === 'admin' ? 'Administrador' : 'Funcionário'}</span></section>
+          </section>
+        )}
+        {page !== 'inicio' && <div className="legacy-page-heading"><div><span>GESTÃO DE LOCAÇÕES</span><h1>{pageTitle}</h1></div><button type="button" className="legacy-back-button" onClick={() => setPage('inicio')}>‹ Início</button></div>}
+        {page === 'clientes' && <CustomersPage companyId={company.id} />}
+        {page === 'estoque' && <ProductsPage companyId={company.id} />}
+        {page === 'locacoes' && <RentalsPage companyId={company.id} />}
+        {page === 'financeiro' && isAdmin && <FinancePage companyId={company.id} />}
+        {page === 'ocorrencias' && <OccurrencesPage companyId={company.id} role={company.role} />}
+        {page === 'mensagens' && <TeamChatPage companyId={company.id} />}
+      </main>
+      <footer className="legacy-footer">KIDSLOC APP <span>·</span> {company.name}</footer>
+    </div>
   );
-
-  if (showFinance) return (
-    <main className="module-page">
-      <header className="app-topbar">
-        <strong>KidsLoc App · {company?.name ?? ''}</strong>
-        <div className="topbar-actions">
-          <button type="button" className="secondary-button" onClick={() => setShowFinance(false)}>Início</button>
-          <button type="button" onClick={logout} disabled={busy}>Sair</button>
-        </div>
-      </header>
-      {company && <FinancePage companyId={company.id} />}
-    </main>
-  );
-
-  if (showRentals) return (
-    <main className="module-page">
-      <header className="app-topbar">
-        <strong>KidsLoc App · {company?.name ?? ''}</strong>
-        <div className="topbar-actions">
-          <button type="button" className="secondary-button" onClick={() => setShowRentals(false)}>Início</button>
-          <button type="button" onClick={logout} disabled={busy}>Sair</button>
-        </div>
-      </header>
-      {company && <RentalsPage companyId={company.id} />}
-    </main>
-  );
-
-  if (showProducts) return (
-    <main className="module-page">
-      <header className="app-topbar">
-        <strong>KidsLoc App · {company?.name ?? ''}</strong>
-        <div className="topbar-actions">
-          <button type="button" className="secondary-button" onClick={() => setShowProducts(false)}>Início</button>
-          <button type="button" onClick={logout} disabled={busy}>Sair</button>
-        </div>
-      </header>
-      {company && <ProductsPage companyId={company.id} />}
-    </main>
-  );
-
-  if (showCustomers) return (
-    <main className="module-page">
-      <header className="app-topbar">
-        <strong>KidsLoc App · {company.name}</strong>
-        <div className="topbar-actions">
-          <button type="button" className="secondary-button" onClick={() => setShowCustomers(false)}>Início</button>
-          <button type="button" onClick={logout} disabled={busy}>Sair</button>
-        </div>
-      </header>
-      <CustomersPage companyId={company.id} />
-    </main>
-  );
-
-  return <main className="page-shell"><section className="welcome-card auth-card">
-    <div className="brand-mark">SK</div><p className="eyebrow">SONHO KIDS BRINQUEDOS</p>
-    <h1>Olá, {session.user.email?.split('@')[0] ?? 'usuário'}</h1>
-    <p className="intro">Você está autenticado e vinculado à empresa <strong>{company.name}</strong>.</p>
-    <div className="status"><span className="status-dot" /> Sessão ativa · Perfil: {company.role}</div>
-    <button type="button" onClick={() => setShowCustomers(true)}>Gerenciar clientes</button>
-    <button type="button" className="secondary-button" onClick={() => setShowProducts(true)}>Brinquedos e estoque</button>
-    <button type="button" onClick={() => setShowRentals(true)}>Gerenciar locações</button>
-    <button type="button" className="secondary-button" onClick={() => setShowOccurrences(true)}>Ocorrências</button>
-    <button type="button" onClick={() => setShowTeamChat(true)}>Mensagens da equipe</button>
-    {(company.role === 'owner' || company.role === 'admin') && <button type="button" className="secondary-button" onClick={() => setShowFinance(true)}>Financeiro</button>}
-    <p className="note">Os módulos estão sendo migrados gradualmente. Os dados permanecem no banco atual.</p>
-    <button onClick={logout} disabled={busy}>{busy ? 'Saindo...' : 'Sair da conta'}</button>
-  </section></main>;
 }
