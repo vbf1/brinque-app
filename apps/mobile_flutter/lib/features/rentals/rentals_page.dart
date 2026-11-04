@@ -62,6 +62,34 @@ class _RentalsPageState extends State<RentalsPage> {
       ));
     }
     if (itemRows.isEmpty) itemRows.add(_RentalItemDraft());
+
+    final client = Supabase.instance.client;
+    Map<String, dynamic>? globalReminder;
+    Map<String, dynamic>? rentalReminder;
+    try {
+      globalReminder = await client.from('company_event_reminder_settings')
+          .select('enabled, days_before, notifications_per_day')
+          .eq('company_id', widget.companyId).maybeSingle();
+      if (rental != null) {
+        rentalReminder = await client.from('rental_event_reminder_settings')
+            .select('enabled, days_before, notifications_per_day')
+            .eq('company_id', widget.companyId)
+            .eq('rental_id', rental['id']).maybeSingle();
+      }
+    } catch (error) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Não foi possível carregar os lembretes: $error')),
+      );
+    }
+    final reminderMode = ValueNotifier<String>(
+      rentalReminder == null ? 'global' : ((rentalReminder['enabled'] as bool? ?? false) ? 'custom' : 'off'),
+    );
+    final reminderDays = ValueNotifier<int>(
+      rentalReminder?['days_before'] as int? ?? globalReminder?['days_before'] as int? ?? 3,
+    );
+    final reminderFrequency = ValueNotifier<int>(
+      rentalReminder?['notifications_per_day'] as int? ?? globalReminder?['notifications_per_day'] as int? ?? 1,
+    );
     final formKey = GlobalKey<FormState>();
 
     final saved = await showDialog<bool>(
@@ -178,6 +206,44 @@ class _RentalsPageState extends State<RentalsPage> {
                   }),
                 );
               }),
+              const SizedBox(height: 14),
+              Text('Lembretes deste evento', style: Theme.of(context).textTheme.titleMedium),
+              const SizedBox(height: 6),
+              DropdownButtonFormField<String>(
+                initialValue: reminderMode.value,
+                decoration: const InputDecoration(labelText: 'Como deseja receber os avisos?'),
+                items: const [
+                  DropdownMenuItem(value: 'global', child: Text('Usar configuração geral')),
+                  DropdownMenuItem(value: 'custom', child: Text('Personalizar para esta locação')),
+                  DropdownMenuItem(value: 'off', child: Text('Não avisar nesta locação')),
+                ],
+                onChanged: (value) => setDialogState(() => reminderMode.value = value ?? 'global'),
+              ),
+              if (reminderMode.value == 'custom') ...[
+                const SizedBox(height: 8),
+                Row(children: [
+                  Expanded(child: DropdownButtonFormField<int>(
+                    initialValue: reminderDays.value,
+                    decoration: const InputDecoration(labelText: 'Dias antes'),
+                    items: List.generate(30, (index) => index + 1)
+                        .map((value) => DropdownMenuItem(value: value, child: Text('$value dia(s)')))
+                        .toList(),
+                    onChanged: (value) => setDialogState(() => reminderDays.value = value ?? 3),
+                  )),
+                  const SizedBox(width: 10),
+                  Expanded(child: DropdownButtonFormField<int>(
+                    initialValue: reminderFrequency.value,
+                    decoration: const InputDecoration(labelText: 'Avisos por dia'),
+                    items: List.generate(4, (index) => index + 1)
+                        .map((value) => DropdownMenuItem(value: value, child: Text('$value aviso(s)')))
+                        .toList(),
+                    onChanged: (value) => setDialogState(() => reminderFrequency.value = value ?? 1),
+                  )),
+                ]),
+              ],
+              const SizedBox(height: 6),
+              const Text('Os lembretes seguem o horário de Brasília. Os avisos gerais são usados quando esta locação não tem uma configuração própria.', style: TextStyle(fontSize: 12)),
+              const SizedBox(height: 12),
               Text('Período: ${days > 0 ? days : 0} dia(s). O valor total pode ser ajustado manualmente.', style: const TextStyle(fontSize: 12)),
             ])),
           )),
@@ -206,18 +272,40 @@ class _RentalsPageState extends State<RentalsPage> {
           'product_id': item.productId, 'quantity': item.quantity, 'unit_price': item.price,
         }).toList();
         final responsibleIds = selectedResponsibleIds.toList();
+        String rentalId;
         if (rental == null) {
-          await repo.createRentalWithItems(
+          rentalId = await repo.createRentalWithItems(
             customerId: customerId.value!, startDate: _iso(start.value), endDate: _iso(end.value),
             status: status.value, deliveryMethod: delivery.value, totalAmount: total,
             items: items, deliveryAddress: address.text, responsibleUserIds: responsibleIds,
           );
         } else {
+          rentalId = rental['id'] as String;
           await repo.updateRentalWithItems(
-            rentalId: rental['id'] as String, customerId: customerId.value!,
+            rentalId: rentalId, customerId: customerId.value!,
             startDate: _iso(start.value), endDate: _iso(end.value),
             status: status.value, deliveryMethod: delivery.value, totalAmount: total,
             items: items, deliveryAddress: address.text, responsibleUserIds: responsibleIds,
+          );
+        }
+        try {
+          if (reminderMode.value == 'global') {
+            await Supabase.instance.client.from('rental_event_reminder_settings')
+                .delete().eq('company_id', widget.companyId).eq('rental_id', rentalId);
+          } else {
+            await Supabase.instance.client.from('rental_event_reminder_settings').upsert({
+              'company_id': widget.companyId,
+              'rental_id': rentalId,
+              'enabled': reminderMode.value == 'custom',
+              'days_before': reminderMode.value == 'custom' ? reminderDays.value : 3,
+              'notifications_per_day': reminderMode.value == 'custom' ? reminderFrequency.value : 1,
+              'updated_by': Supabase.instance.client.auth.currentUser?.id,
+              'updated_at': DateTime.now().toUtc().toIso8601String(),
+            }, onConflict: 'rental_id');
+          }
+        } catch (reminderError) {
+          if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Locação salva, mas não foi possível salvar o lembrete: $reminderError')),
           );
         }
         await reload();
@@ -226,7 +314,7 @@ class _RentalsPageState extends State<RentalsPage> {
         if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Não foi possível salvar: $error')));
       }
     }
-    customerId.dispose(); start.dispose(); end.dispose(); status.dispose(); delivery.dispose(); address.dispose(); totalController.dispose();
+    customerId.dispose(); start.dispose(); end.dispose(); status.dispose(); delivery.dispose(); reminderMode.dispose(); reminderDays.dispose(); reminderFrequency.dispose(); address.dispose(); totalController.dispose();
   }
 
 
