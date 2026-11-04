@@ -1,0 +1,52 @@
+name: Build and publish React web app
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'apps/desktop_react/**'
+      - '.github/workflows/deploy-react-pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: react-web-publish
+  cancel-in-progress: true
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: apps/desktop_react/package-lock.json
+      - name: Install dependencies
+        working-directory: apps/desktop_react
+        run: npm ci --no-audit --no-fund
+      - name: Build React
+        working-directory: apps/desktop_react
+        run: npm run build
+      - name: Publish built files to GitHub Pages branch root
+        run: |
+          cp -a apps/desktop_react/dist/. .
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A index.html assets
+          if [ -d dist ]; then git add -A dist; fi
+          if git diff --cached --quiet; then
+            echo 'No published changes.'
+            exit 0
+          fi
+          git commit -m 'deploy(web): publish React application'
+          git push origin HEAD:main
