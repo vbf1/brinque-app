@@ -157,7 +157,7 @@ async function sendFcmNotifications(
           },
           body: JSON.stringify({
             message: {
-              token: device.token,
+              fid: device.token,
               notification: { title, body },
               data: { url: "https://vbf1.github.io/kidsloc-app/", tag: "kidsloc-notification" },
               android: {
