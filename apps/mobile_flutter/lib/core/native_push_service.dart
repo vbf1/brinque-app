@@ -98,9 +98,26 @@ class NativePushService {
     }
   }
 
+  Future<void> _showInitialMessage(FirebaseMessaging messaging) async {
+    try {
+      final message = await messaging.getInitialMessage();
+      if (message == null) return;
+      final title = message.notification?.title ?? 'KidsLoc App';
+      final body = message.notification?.body ?? 'Você recebeu um aviso.';
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        appMessengerKey.currentState?.showSnackBar(
+          SnackBar(content: Text('$title: $body')),
+        );
+      });
+    } catch (error) {
+      debugPrint('KidsLoc: não foi possível recuperar a notificação que abriu o app: $error');
+    }
+  }
+
   void _listen(FirebaseMessaging messaging) {
     if (_initialized) return;
     _initialized = true;
+    unawaited(_showInitialMessage(messaging));
 
     _registeredSubscription = messaging.onRegistered.listen((fid) {
       _saveToken(fid).then((_) {
