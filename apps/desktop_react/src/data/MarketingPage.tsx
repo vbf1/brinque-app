@@ -61,10 +61,25 @@ export function MarketingPage({ companyId, userId }: { companyId: string; userId
  async function copyAd(ad:Ad){
   const content=[ad.title,ad.description,ad.keywords.length?'Palavras-chave: '+ad.keywords.join(', '):'', 'Canais sugeridos: '+ad.platforms.map(v=>channels.find(ch=>ch.id===v)?.label??v).join(', ')].filter(Boolean).join('\n\n');
   try{
-   if(!navigator.clipboard?.writeText)throw new Error('A cópia automática não está disponível neste navegador.');
-   await navigator.clipboard.writeText(content);
+   if(navigator.clipboard?.writeText){
+    await navigator.clipboard.writeText(content);
+   }else{
+    const fallback=document.createElement('textarea');
+    fallback.value=content;
+    fallback.setAttribute('readonly','');
+    fallback.style.position='fixed';
+    fallback.style.opacity='0';
+    fallback.style.pointerEvents='none';
+    document.body.appendChild(fallback);
+    fallback.select();
+    const copied=document.execCommand('copy');
+    document.body.removeChild(fallback);
+    if(!copied)throw new Error('Este navegador não permitiu copiar. Selecione e copie o texto manualmente.');
+   }
    setMessage('Anúncio copiado. Revise e publique manualmente no canal escolhido.');
-  }catch(e){setMessage(e instanceof Error?e.message:'Não foi possível copiar o anúncio.');}
+  }catch(e){
+   setMessage(e instanceof Error?e.message:'Não foi possível copiar o anúncio. Selecione o texto e copie manualmente.');
+  }
  }
  async function saveSettings(e:FormEvent){
   e.preventDefault();setSaving(true);
