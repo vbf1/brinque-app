@@ -174,6 +174,47 @@ export function MarketingPage({ companyId, userId }: { companyId: string; userId
    return matchesStatus&&matchesChannel&&(!term||searchable.includes(term));
   });
  },[ads,filter,channelFilter,searchTerm]);
+ function exportVisibleAds(){
+  if(!visible.length){setMessage('Não há anúncios nos filtros atuais para exportar.');return;}
+  const sections=visible.map((ad,index)=>{
+   const channelNames=ad.platforms.map(v=>channels.find(ch=>ch.id===v)?.label??v);
+   return [
+    'ANÚNCIO '+(index+1),
+    '=====================',
+    'TÍTULO',
+    ad.title,
+    '',
+    'DESCRIÇÃO',
+    ad.description,
+    '',
+    'PALAVRAS-CHAVE',
+    ad.keywords.join(', ')||'Não informadas',
+    '',
+    'CANAIS',
+    channelNames.join(', ')||'Não informados',
+    '',
+    'LINK DA IMAGEM',
+    ad.image_url||'Não informado',
+    '',
+    'ORIENTAÇÃO PARA A IMAGEM',
+    ad.image_prompt||'Não informada',
+    '',
+    'STATUS',
+    labels[ad.status]??ad.status
+   ].join(String.fromCharCode(10));
+  });
+  const content=['PACOTE DE DIVULGAÇÃO — KIDSLOC','Anúncios exportados conforme os filtros ativos: '+visible.length,'Exportado em: '+new Date().toLocaleString('pt-BR'),'','Publicação externa deve ser feita manualmente.','',...sections].join(String.fromCharCode(10,10));
+  const file=new Blob([String.fromCharCode(65279),content],{type:'text/plain;charset=utf-8'});
+  const url=URL.createObjectURL(file);
+  const link=document.createElement('a');
+  link.href=url;
+  link.download='kidsloc-anuncios-filtrados.txt';
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+  setMessage(visible.length+' anúncio(s) exportado(s) em um único arquivo TXT.');
+ }
  const selected=products.find(p=>p.id===productId);
  return <section className="module-shell marketing-module">
   <header className="module-header"><div><p className="eyebrow">DIVULGAÇÃO DA EMPRESA</p><h2>Marketing e anúncios</h2><p className="module-description">Prepare anúncios, revise o conteúdo e aprove antes de qualquer publicação.</p><p className="marketing-manual-note">A publicação automática ainda não está conectada. Depois da aprovação, copie o conteúdo e publique manualmente na plataforma escolhida.</p></div><button type="button" onClick={()=>{clearForm();setTab('ads');}}>＋ Novo anúncio</button></header>
@@ -189,7 +230,7 @@ export function MarketingPage({ companyId, userId }: { companyId: string; userId
    <div className="form-actions"><button type="submit" disabled={saving}>{saving?'Salvando...':'Salvar configurações'}</button></div>
   </form>:<>
    <div className="marketing-summary"><div><strong>{ads.length}</strong><span>Total</span></div><div><strong>{ads.filter(a=>a.status==='draft').length}</strong><span>Rascunhos</span></div><div><strong>{ads.filter(a=>a.status==='pending_approval').length}</strong><span>Para revisar</span></div><div><strong>{ads.filter(a=>a.status==='approved').length}</strong><span>Aprovados</span></div></div>
-   <div className="marketing-toolbar marketing-toolbar-filters"><input aria-label="Pesquisar anúncios" type="search" value={searchTerm} onChange={e=>setSearchTerm(e.target.value)} placeholder="Pesquisar por título, descrição ou palavra-chave..."/><select aria-label="Filtrar por status" value={filter} onChange={e=>setFilter(e.target.value)}><option value="all">Todos os status</option>{Object.entries(labels).map(([k,v])=><option value={k} key={k}>{v}</option>)}</select><select aria-label="Filtrar por canal" value={channelFilter} onChange={e=>setChannelFilter(e.target.value)}><option value="all">Todos os canais</option>{channels.map(c=><option value={c.id} key={c.id}>{c.label}</option>)}</select><button type="button" className="secondary-button" onClick={()=>{setSearchTerm('');setFilter('all');setChannelFilter('all');}}>Limpar filtros</button><button type="button" className="secondary-button" onClick={()=>void load()}>Atualizar</button></div>
+   <div className="marketing-toolbar marketing-toolbar-filters"><input aria-label="Pesquisar anúncios" type="search" value={searchTerm} onChange={e=>setSearchTerm(e.target.value)} placeholder="Pesquisar por título, descrição ou palavra-chave..."/><select aria-label="Filtrar por status" value={filter} onChange={e=>setFilter(e.target.value)}><option value="all">Todos os status</option>{Object.entries(labels).map(([k,v])=><option value={k} key={k}>{v}</option>)}</select><select aria-label="Filtrar por canal" value={channelFilter} onChange={e=>setChannelFilter(e.target.value)}><option value="all">Todos os canais</option>{channels.map(c=><option value={c.id} key={c.id}>{c.label}</option>)}</select><button type="button" className="secondary-button" onClick={()=>{setSearchTerm('');setFilter('all');setChannelFilter('all');}}>Limpar filtros</button><button type="button" className="secondary-button" onClick={()=>void load()}>Atualizar</button><button type="button" className="secondary-button" onClick={exportVisibleAds} disabled={loading||visible.length===0}>Baixar lista filtrada</button></div>
    {loading?<p className="module-empty">Carregando anúncios...</p>:visible.length===0?<p className="module-empty">{ads.length===0?'Nenhum anúncio cadastrado. Crie o primeiro usando um brinquedo do estoque.':'Nenhum anúncio corresponde aos filtros atuais. Tente outro termo ou limpe os filtros.'}</p>:<><p className="marketing-results-count">Exibindo {visible.length} de {ads.length} anúncios</p><div className="marketing-ad-list">{visible.map(ad=><article className="marketing-ad-card" key={ad.id}>
     {ad.image_url?<img src={ad.image_url} alt="Imagem do anúncio"/>:<div className="marketing-image-placeholder">Imagem ainda não adicionada</div>}
     <div className="marketing-ad-content"><div className="marketing-ad-top"><span className={'marketing-status status-'+ad.status}>{labels[ad.status]??ad.status}</span><small>{new Date(ad.created_at).toLocaleDateString('pt-BR')}</small></div><h3>{ad.title}</h3><p>{ad.description}</p><div className="marketing-tags">{ad.platforms.map(v=><span key={v}>{channels.find(c=>c.id===v)?.label??v}</span>)}</div><small>Palavras-chave: {ad.keywords.join(', ')||'Não informadas'}</small>
