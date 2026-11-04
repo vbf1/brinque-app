@@ -9,6 +9,7 @@ import { OccurrencesPage } from './data/OccurrencesPage';
 import { TeamChatPage } from './data/TeamChatPage';
 import { MarketingPage } from './data/MarketingPage';
 import { ContractsPage } from './data/ContractsPage';
+import { PublicContractPage } from './data/PublicContractPage';
 
 type CompanyContext = { id: string; name: string; role: string };
 type Page = 'inicio' | 'locacoes' | 'clientes' | 'estoque' | 'financeiro' | 'ocorrencias' | 'mensagens' | 'marketing' | 'contratos';
@@ -197,6 +198,8 @@ export default function App() {
   const userLabel = session?.user.user_metadata?.full_name || session?.user.email?.split('@')[0] || 'Bem-vindo';
   const pageTitle = navigation.find(item => item.id === page)?.label ?? 'Início';
   const visibleNavigation = navigation.filter(item => !item.admin || isAdmin);
+  const publicContractToken = new URLSearchParams(window.location.search).get('contract');
+  if (publicContractToken) return <PublicContractPage token={publicContractToken} />;
 
   if (loading) return <main className="legacy-auth-screen"><section className="legacy-auth-card"><div className="legacy-auth-brand">KIDSLOC APP</div><p className="legacy-muted">Acesse sua empresa Sonho Kids Brinquedos</p><div className="legacy-loading">Verificando sua sessão e preparando o aplicativo...</div></section></main>;
 
