@@ -64,7 +64,7 @@ export function MarketingPage({ companyId, userId }: { companyId: string; userId
   }catch(e){setMessage(e instanceof Error?e.message:'Falha ao salvar configurações.');}
   finally{setSaving(false);}
  }
- async function saveAd(e:FormEvent,send:boolean){
+ async function saveAd(e:Pick<FormEvent,'preventDefault'>,send:boolean){
   e.preventDefault();
   if(title.trim().length<5||description.trim().length<10){setMessage('Preencha um título e uma descrição completos.');return;}
   if(!platforms.length){setMessage('Selecione pelo menos um canal.');return;}
