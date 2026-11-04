@@ -101,25 +101,25 @@ class _ContractsPageState extends State<ContractsPage> {
     final doc = pw.Document();
     final items = (data['items'] as List? ?? []).map((raw) {
       final item = Map<String, dynamic>.from(raw as Map);
-      return pw.Text('\${item['quantity']} × \${item['name']} — \${_currency.format(item['subtotal'] ?? 0)}');
+      return pw.Text('${item['quantity']} × ${item['name']} — ${_currency.format(item['subtotal'] ?? 0)}');
     }).toList();
     doc.addPage(pw.MultiPage(build: (_) => [
       pw.Text('CONTRATO DE LOCAÇÃO DE BRINQUEDOS', style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold)),
       pw.Text('Contrato nº $number'), pw.SizedBox(height: 12),
       pw.Text('LOCADORA', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-      pw.Text('\${data['companyName']}'), pw.SizedBox(height: 8),
+      pw.Text('${data['companyName']}'), pw.SizedBox(height: 8),
       pw.Text('CLIENTE', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-      pw.Text('Nome: \${data['customerName']}'), pw.Text('Telefone: \${data['customerPhone']}'),
-      pw.Text('Endereço: \${data['customerAddress']}'),
-      pw.Text('Período: \${data['startDate']} até \${data['endDate']}'),
-      pw.Text('Endereço de entrega: \${data['deliveryAddress']}'), pw.SizedBox(height: 12),
+      pw.Text('Nome: ${data['customerName']}'), pw.Text('Telefone: ${data['customerPhone']}'),
+      pw.Text('Endereço: ${data['customerAddress']}'),
+      pw.Text('Período: ${data['startDate']} até ${data['endDate']}'),
+      pw.Text('Endereço de entrega: ${data['deliveryAddress']}'), pw.SizedBox(height: 12),
       pw.Text('ITENS LOCADOS', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)), ...items,
       pw.SizedBox(height: 8),
-      pw.Text('Valor total: \${_currency.format(data['totalAmount'] ?? 0)}', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-      pw.Text('Caução/garantia: \${_currency.format(data['depositAmount'] ?? 0)}'),
-      if ((data['rentalNotes'] ?? '').toString().isNotEmpty) pw.Text('Observações: \${data['rentalNotes']}'),
+      pw.Text('Valor total: ${_currency.format(data['totalAmount'] ?? 0)}', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+      pw.Text('Caução/garantia: ${_currency.format(data['depositAmount'] ?? 0)}'),
+      if ((data['rentalNotes'] ?? '').toString().isNotEmpty) pw.Text('Observações: ${data['rentalNotes']}'),
       pw.SizedBox(height: 12), pw.Text('CONDIÇÕES', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-      ...(data['clauses'] as List).asMap().entries.map((e) => pw.Text('\${e.key + 1}. \${e.value}')),
+      ...(data['clauses'] as List).asMap().entries.map((e) => pw.Text('${e.key + 1}. ${e.value}')),
       pw.SizedBox(height: 36),
       pw.Row(children: [
         pw.Expanded(child: pw.Column(children: [pw.Divider(), pw.Text('LOCADORA')])),
@@ -149,12 +149,12 @@ class _ContractsPageState extends State<ContractsPage> {
       if (token != null) _tokens[row['id'] as String] = token;
       if (_method == 'external') {
         final bytes = await _pdf(snapshot, (row['contract_number'] as num).toInt());
-        final path = '\${widget.companyId}/\${row['id']}/contrato-original.pdf';
+        final path = '${widget.companyId}/${row['id']}/contrato-original.pdf';
         await _db.storage.from('rental-contracts').uploadBinary(path, bytes,
           fileOptions: const FileOptions(contentType: 'application/pdf', upsert: true));
         await _db.from('rental_contracts').update({'original_pdf_path': path})
           .eq('id', row['id']).eq('company_id', widget.companyId);
-        await Printing.sharePdf(bytes: bytes, filename: 'contrato-kidsloc-\${row['contract_number']}.pdf');
+        await Printing.sharePdf(bytes: bytes, filename: 'contrato-kidsloc-${row['contract_number']}.pdf');
       }
       if (!mounted) return;
       setState(() => _rentalId = null);
@@ -219,7 +219,7 @@ class _ContractsPageState extends State<ContractsPage> {
     final bytes = file.bytes;
     if (bytes == null || file.size > 10 * 1024 * 1024) { _message('Selecione um PDF de até 10 MB.'); return; }
     setState(() => _busy = true);
-    final path = '\${widget.companyId}/\${contract['id']}/contrato-assinado.pdf';
+    final path = '${widget.companyId}/${contract['id']}/contrato-assinado.pdf';
     try {
       await _db.storage.from('rental-contracts').uploadBinary(path, bytes,
         fileOptions: const FileOptions(contentType: 'application/pdf', upsert: true));
@@ -278,17 +278,17 @@ class _ContractsPageState extends State<ContractsPage> {
               Text('Novo contrato', style: Theme.of(context).textTheme.titleLarge),
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
-                value: _rentalId, isExpanded: true, decoration: const InputDecoration(labelText: 'Locação'),
+                initialValue: _rentalId, isExpanded: true, decoration: const InputDecoration(labelText: 'Locação'),
                 items: _rentals.map((r) {
                   final name = (r['customers'] as Map?)?['name'] ?? 'Cliente';
                   return DropdownMenuItem(value: r['id'] as String,
-                    child: Text('#\${r['rental_number']} · $name · \${_dateText(r['start_date'])}', overflow: TextOverflow.ellipsis));
+                    child: Text('#${r['rental_number']} · $name · ${_dateText(r['start_date'])}', overflow: TextOverflow.ellipsis));
                 }).toList(),
                 onChanged: _busy ? null : (value) => setState(() => _rentalId = value),
               ),
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
-                value: _method, decoration: const InputDecoration(labelText: 'Modalidade de assinatura'),
+                initialValue: _method, decoration: const InputDecoration(labelText: 'Modalidade de assinatura'),
                 items: const [
                   DropdownMenuItem(value: 'external', child: Text('Gov.br ou outro serviço externo')),
                   DropdownMenuItem(value: 'in_app', child: Text('Assinar diretamente pelo KidsLoc')),
@@ -317,18 +317,18 @@ class _ContractsPageState extends State<ContractsPage> {
                 padding: const EdgeInsets.all(14), child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start, children: [
                     Row(children: [
-                      Expanded(child: Text('Contrato #\${contract['contract_number']}', style: Theme.of(context).textTheme.titleMedium)),
+                      Expanded(child: Text('Contrato #${contract['contract_number']}', style: Theme.of(context).textTheme.titleMedium)),
                       Chip(label: Text(_status(status))),
                     ]),
-                    Text('\${data['customerName'] ?? 'Cliente'} · Locação #\${data['rentalNumber'] ?? '—'}'),
-                    Text('\${_dateText(data['startDate'])} a \${_dateText(data['endDate'])} · \${_currency.format(data['totalAmount'] ?? 0)}'),
+                    Text('${data['customerName'] ?? 'Cliente'} · Locação #${data['rentalNumber'] ?? '—'}'),
+                    Text('${_dateText(data['startDate'])} a ${_dateText(data['endDate'])} · ${_currency.format(data['totalAmount'] ?? 0)}'),
                     Text(contract['signature_method'] == 'in_app' ? 'Assinatura pelo KidsLoc' : 'Assinatura externa',
                       style: Theme.of(context).textTheme.bodySmall),
                     const SizedBox(height: 8),
                     Wrap(spacing: 8, runSpacing: 6, children: [
                       OutlinedButton.icon(onPressed: () async {
                         final bytes = await _pdf(data, (contract['contract_number'] as num).toInt());
-                        await Printing.sharePdf(bytes: bytes, filename: 'contrato-kidsloc-\${contract['contract_number']}.pdf');
+                        await Printing.sharePdf(bytes: bytes, filename: 'contrato-kidsloc-${contract['contract_number']}.pdf');
                       }, icon: const Icon(Icons.picture_as_pdf_outlined), label: const Text('PDF')),
                       if (!terminal) OutlinedButton.icon(onPressed: () => _whatsApp(contract),
                         icon: const Icon(Icons.chat_outlined), label: const Text('WhatsApp')),
