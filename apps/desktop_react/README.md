@@ -1,18 +1,22 @@
 # KidsLoc App — Desktop React
 
-Base inicial da futura aplicação web/desktop em React + TypeScript + Vite.
+Aplicação React + TypeScript + Vite.
 
-## Estado desta etapa
-- Aplicação isolada da versão atual.
-- React com TypeScript estrito.
-- Build independente.
-- Sem autenticação ou chamadas ao Supabase nesta etapa.
+## Autenticação nesta etapa
+- Login por e-mail e senha com as contas já existentes.
+- Sessão persistente no navegador e renovação automática.
+- Verificação de vínculo em `company_members` e leitura de `companies`.
+- Recuperação de senha e atualização após o link.
+- Logout local, sem encerrar as sessões de outros dispositivos.
+- Nenhuma tabela, política ou configuração do Supabase foi alterada.
 
-## Executar localmente
+A configuração usa a URL e a chave publishable já utilizadas pela aplicação atual. A chave publishable é pública e não concede privilégios administrativos; nunca use a chave service_role/secret no frontend.
+
+## Executar
 ```sh
 npm install
 npm run dev
 npm run build
 ```
 
-A URL e a chave pública do Supabase serão configuradas por variáveis de ambiente na etapa de autenticação. Nunca inserir service_role ou chaves secretas no frontend.
+As variáveis de `.env.example` podem ser copiadas para `.env.local`. Se não forem definidas, a configuração pública do projeto KidsLoc existente é usada como fallback.
