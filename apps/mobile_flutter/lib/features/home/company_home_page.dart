@@ -42,16 +42,18 @@ class _CompanyHomePageState extends State<CompanyHomePage> {
           if (snapshot.connectionState != ConnectionState.done) {
             return const Center(child: CircularProgressIndicator());
           }
-          if (snapshot.hasError) return Center(child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(mainAxisSize: MainAxisSize.min, children: [
-              const Icon(Icons.business_outlined, size: 48),
-              const SizedBox(height: 16),
-              Text(snapshot.error.toString().replaceFirst('Exception: ', ''), textAlign: TextAlign.center),
-              const SizedBox(height: 16),
-              FilledButton.tonal(onPressed: _logout, child: const Text('Sair')),
-            ]),
-          ));
+          if (snapshot.hasError) {
+            return Center(child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(mainAxisSize: MainAxisSize.min, children: [
+                const Icon(Icons.business_outlined, size: 48),
+                const SizedBox(height: 16),
+                Text(snapshot.error.toString().replaceFirst('Exception: ', ''), textAlign: TextAlign.center),
+                const SizedBox(height: 16),
+                FilledButton.tonal(onPressed: _logout, child: const Text('Sair')),
+              ]),
+            ));
+          }
           final data = snapshot.data!;
           return Center(child: Padding(
             padding: const EdgeInsets.all(24),
