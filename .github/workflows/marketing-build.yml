@@ -1,5 +1,11 @@
 name: Validate marketing module
 on:
+  push:
+    branches: [feature/marketing-anuncios]
+    paths:
+      - 'apps/desktop_react/**'
+      - 'supabase/migrations/**'
+      - '.github/workflows/marketing-build.yml'
   pull_request:
     branches: [main]
     paths:
