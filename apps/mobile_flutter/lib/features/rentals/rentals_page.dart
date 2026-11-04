@@ -68,8 +68,6 @@ class _RentalsPageState extends State<RentalsPage> {
       context: context,
       builder: (dialogContext) => StatefulBuilder(builder: (context, setDialogState) {
         final days = end.value.difference(start.value).inDays + 1;
-        final total = itemRows.fold<double>(0, (sum, item) =>
-          sum + item.quantity * item.price * (days > 0 ? days : 1));
         return AlertDialog(
           title: Text(rental == null ? 'Nova locação' : 'Editar locação'),
           content: SizedBox(width: 560, child: Form(
