@@ -346,22 +346,27 @@ class _RentalsPageState extends State<RentalsPage> {
       final existingContract = await Supabase.instance.client.from('rental_contracts')
           .select('id').eq('rental_id', rental['id']).limit(1).maybeSingle();
       if (existingContract != null) {
-        if (mounted) ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Esta locação já possui um contrato. A exclusão foi bloqueada para preservar o histórico e os documentos assinados.')),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Esta locação já possui um contrato. A exclusão foi bloqueada para preservar o histórico e os documentos assinados.')),
+          );
+        }
         return;
       }
     } catch (error) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Não foi possível verificar contratos vinculados: $error')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Não foi possível verificar contratos vinculados: $error')),
+        );
+      }
       return;
     }
+    if (!mounted) return;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: const Text('Excluir locação?'),
-        content: const Text('Os brinquedos e eventos vinculados serão removidos. Contratos emitidos serão preservados com seu histórico e documentos. Lançamentos financeiros e pagamentos relacionados serão preservados quando houver vínculo configurado. Esta ação não poderá ser desfeita.'),
+        content: const Text('Os brinquedos e eventos vinculados serão removidos. Se existir contrato vinculado, a exclusão será bloqueada para preservar o histórico e os documentos. Lançamentos financeiros e pagamentos relacionados serão preservados quando houver vínculo configurado. Esta ação não poderá ser desfeita.'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('Cancelar')),
           FilledButton.tonal(onPressed: () => Navigator.pop(dialogContext, true), child: const Text('Excluir')),
