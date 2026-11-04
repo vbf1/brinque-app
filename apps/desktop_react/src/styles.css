@@ -23,3 +23,30 @@ button.secondary-button { background: #edf4ef; color: #246b43; }
 .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #218653; }
 .note { margin: 28px 0 0; color: #718078; font-size: 14px; line-height: 1.7; }
 @media (max-width: 520px) { .page-shell { padding: 16px; } .welcome-card { border-radius: 18px; } }
+
+
+.module-page { min-height: 100vh; background: #f4f7f5; }
+.app-topbar { min-height: 68px; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px clamp(16px, 4vw, 48px); background: #fff; border-bottom: 1px solid #e1e9e4; }
+.topbar-actions { display: flex; gap: 10px; }
+.module-shell { width: min(100% - 32px, 1040px); margin: 32px auto; padding: clamp(20px, 4vw, 36px); border: 1px solid #e1e9e4; border-radius: 20px; background: #fff; box-shadow: 0 12px 40px rgb(25 60 40 / 6%); }
+.module-header { display: flex; align-items: center; justify-content: space-between; gap: 20px; }
+.module-header .eyebrow { margin-top: 0; }
+.module-header h2 { margin: 0; font-size: 30px; }
+.module-description { color: #66766d; }
+.module-toolbar { display: flex; gap: 10px; margin: 24px 0 12px; }
+.module-toolbar input, .customer-form input, .customer-form textarea { width: 100%; min-width: 0; min-height: 44px; padding: 10px 12px; border: 1px solid #d5e0d9; border-radius: 10px; background: #fff; color: #17251e; font: inherit; }
+.module-toolbar input { flex: 1; }
+.module-feedback { color: #246b43; font-size: 14px; }
+.module-empty { padding: 36px 12px; color: #718078; text-align: center; }
+.customer-list { display: grid; gap: 8px; margin-top: 18px; }
+.customer-row { display: flex; align-items: center; gap: 14px; padding: 14px; border: 1px solid #e5ece7; border-radius: 14px; }
+.customer-avatar { width: 42px; height: 42px; display: grid; flex: 0 0 42px; place-items: center; border-radius: 50%; background: #eaf4ed; color: #246b43; font-weight: 800; }
+.customer-info { display: grid; flex: 1; min-width: 0; gap: 4px; }
+.customer-info span { overflow: hidden; color: #718078; font-size: 13px; text-overflow: ellipsis; white-space: nowrap; }
+.customer-form { display: grid; gap: 12px; margin: 18px 0; padding: 20px; border: 1px solid #dfe9e2; border-radius: 14px; background: #f9fbf9; }
+.customer-form h3 { margin: 0 0 4px; }
+.customer-form label { display: grid; gap: 6px; color: #35473d; font-size: 13px; font-weight: 650; }
+.customer-form textarea { resize: vertical; }
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.form-actions { display: flex; justify-content: flex-end; gap: 10px; }
+@media (max-width: 600px) { .module-header { align-items: flex-start; flex-direction: column; } .module-toolbar { flex-direction: column; } .form-grid { grid-template-columns: 1fr; } .customer-row { gap: 10px; padding: 10px; } .customer-row button { padding: 8px 10px; } .app-topbar { flex-wrap: wrap; } }
