@@ -223,3 +223,75 @@ button:focus-visible{outline:3px solid #3478e566;outline-offset:2px}
 .marketing-toolbar-filters input,.marketing-toolbar-filters select{min-width:0;width:100%;min-height:40px;padding:8px 10px;border:1px solid var(--line);border-radius:9px;background:var(--surface);color:var(--ink);font:inherit;font-size:13px}
 .marketing-results-count{margin:0 0 8px;color:var(--muted);font-size:12px}
 @media(max-width:760px){.marketing-toolbar-filters{grid-template-columns:1fr 1fr}.marketing-toolbar-filters input{grid-column:1/-1}.marketing-toolbar-filters button{grid-column:1/-1}}
+
+
+/* Public KidsLoc sales and Pix checkout */
+.kidsloc-checkout{--kc-ink:#17233b;--kc-muted:#66738b;--kc-blue:#2857d5;--kc-cyan:#25b8a5;min-height:100vh;background:#f5f7fc;color:var(--kc-ink);font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+.kidsloc-checkout *{box-sizing:border-box}
+.kc-topbar{height:72px;max-width:1160px;margin:auto;padding:0 24px;display:flex;align-items:center;justify-content:space-between}
+.kc-brand{display:flex;align-items:center;gap:10px;color:var(--kc-ink);font-size:18px;font-weight:900;letter-spacing:.04em;text-decoration:none}
+.kc-brand b{color:var(--kc-blue)}
+.kc-mark{display:grid;place-items:center;width:36px;height:36px;border-radius:12px;background:linear-gradient(135deg,#315fdd,#22b9a7);color:white;font-size:22px}
+.kc-secure{color:var(--kc-muted);font-size:12px}
+.kc-hero{max-width:1160px;margin:auto;padding:55px 24px 48px;display:grid;grid-template-columns:1.12fr .88fr;align-items:center;gap:54px}
+.kc-eyebrow{color:var(--kc-blue);font-size:11px;font-weight:850;letter-spacing:.13em}
+.kc-hero h1{max-width:650px;margin:17px 0;font-size:clamp(38px,5vw,60px);line-height:1.06;letter-spacing:-.045em}
+.kc-hero h1 em{color:var(--kc-blue);font-style:normal}
+.kc-hero-copy>p{max-width:540px;color:var(--kc-muted);font-size:17px;line-height:1.7}
+.kc-cta{display:inline-flex;align-items:center;gap:18px;margin-top:15px;padding:15px 20px;border-radius:12px;background:var(--kc-blue);color:white;text-decoration:none;font-weight:800;box-shadow:0 10px 24px #2857d533}
+.kc-cta span{font-size:20px}
+.kc-proof{display:flex;flex-wrap:wrap;gap:10px 18px;margin-top:22px;color:var(--kc-muted);font-size:12px}
+.kc-proof span{color:#159b79;font-weight:900}
+.kc-preview{padding:24px;border:1px solid #e3e8f3;border-radius:23px;background:white;box-shadow:0 24px 70px #20365b16;transform:rotate(1deg)}
+.kc-preview-head{display:flex;justify-content:space-between;color:var(--kc-muted);font-size:12px;font-weight:750}
+.kc-preview-head i{color:#b5bfd0;font-size:9px;font-style:normal;letter-spacing:3px}
+.kc-preview-title{margin:23px 0 14px;font-size:21px;font-weight:850}
+.kc-stats{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.kc-stats>div{display:grid;gap:5px;padding:14px;border-radius:13px;background:#f3f6ff}
+.kc-stats small,.kc-stats span,.kc-feature-line small{color:var(--kc-muted);font-size:11px}
+.kc-stats strong{font-size:17px}
+.kc-feature-line{display:flex;align-items:center;gap:12px;margin-top:10px;padding:13px;border:1px solid #edf0f6;border-radius:12px}
+.kc-feature-line>span{display:grid;place-items:center;width:36px;height:36px;border-radius:10px;background:#edf2ff;color:var(--kc-blue);font-size:18px}
+.kc-feature-line>div{display:grid;gap:3px;flex:1}
+.kc-feature-line b{font-size:12px}
+.kc-feature-line>i{color:#159b79;font-style:normal}
+.kc-benefits{max-width:1160px;margin:0 auto;padding:10px 24px 55px;display:grid;grid-template-columns:repeat(4,1fr);gap:13px}
+.kc-benefits article{padding:19px;border:1px solid #e5eaf3;border-radius:15px;background:white}
+.kc-benefits article>span{display:grid;place-items:center;width:37px;height:37px;border-radius:11px;background:#edf2ff;color:var(--kc-blue);font-size:19px}
+.kc-benefits b{display:block;margin-top:12px;font-size:14px}
+.kc-benefits p{margin:6px 0 0;color:var(--kc-muted);font-size:12px;line-height:1.6}
+.kc-checkout-wrap{max-width:1060px;margin:10px auto 65px;padding:35px 24px;display:grid;grid-template-columns:1fr minmax(320px,440px);align-items:center;gap:48px;border-radius:25px;background:#eaf0ff}
+.kc-checkout-intro h2{max-width:450px;margin:13px 0;font-size:34px;line-height:1.12;letter-spacing:-.03em}
+.kc-checkout-intro>p{max-width:450px;color:var(--kc-muted);font-size:14px;line-height:1.7}
+.kc-checkout-intro ul{display:grid;gap:12px;margin:23px 0 0;padding:0;list-style:none;font-size:13px;font-weight:700}
+.kc-checkout-intro li{color:#256c58}
+.kc-payment-card{padding:25px;border:1px solid #e4eaf4;border-radius:19px;background:white;box-shadow:0 16px 45px #243d6814}
+.kc-plan-label{color:var(--kc-blue);font-size:10px;font-weight:900;letter-spacing:.13em}
+.kc-price{display:flex;align-items:baseline;margin-top:8px;color:var(--kc-ink)}
+.kc-price strong{font-size:48px;letter-spacing:-.05em}
+.kc-price>span{font-size:19px;font-weight:800}
+.kc-price small{color:var(--kc-muted);font-size:13px;font-weight:500}
+.kc-price-note{margin:0 0 20px;color:var(--kc-muted);font-size:12px}
+.kc-payment-card label{display:block;margin:12px 0 6px;font-size:12px;font-weight:750}
+.kc-payment-card input{width:100%;min-height:43px;margin:0;padding:10px 12px;border:1px solid #dce3ef;border-radius:9px;background:white;color:var(--kc-ink);font:inherit;font-size:13px}
+.kc-pix-box{margin-top:17px;padding:15px;border:1px solid #dce8e5;border-radius:13px;background:#f5fbf9}
+.kc-pix-title{display:flex;align-items:center;gap:10px}
+.kc-pix-title>span{display:grid;place-items:center;width:35px;height:35px;border-radius:10px;background:#dff5ed;color:#12845e;font-size:20px}
+.kc-pix-title>div{display:grid;gap:3px}
+.kc-pix-title b{font-size:13px}
+.kc-pix-title small{color:var(--kc-muted);font-size:10px}
+.kc-pix-key{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:13px;padding:9px;border:1px dashed #b9d6cb;border-radius:9px;background:white}
+.kc-pix-key>span{font-size:13px;font-weight:800;letter-spacing:.03em}
+.kc-pix-key button{flex-shrink:0;padding:8px 10px;border:0;border-radius:7px;background:#147b5d;color:white;font-size:11px;font-weight:800}
+.kc-pix-value{display:flex;justify-content:space-between;margin-top:12px;padding-top:11px;border-top:1px solid #dcebe5;font-size:12px}
+.kc-pix-value span{color:var(--kc-muted)}
+.kc-pix-value b{font-size:15px}
+.kc-payment-steps{margin:17px 0}
+.kc-payment-steps>b{font-size:12px}
+.kc-payment-steps ol{display:grid;gap:8px;margin:9px 0 0;padding-left:19px;color:var(--kc-muted);font-size:11px;line-height:1.55}
+.kc-copy-bottom{width:100%;min-height:46px;border:0;border-radius:10px;background:var(--kc-blue);color:white;font:inherit;font-size:13px;font-weight:850}
+.kc-manual-note{display:block;margin-top:11px;color:var(--kc-muted);font-size:10px;line-height:1.5;text-align:center}
+.kc-footer{display:flex;justify-content:center;gap:12px;padding:24px;border-top:1px solid #e4e9f2;color:var(--kc-muted);font-size:11px}
+.kc-footer b{color:var(--kc-ink)}
+@media(max-width:760px){.kc-topbar{height:62px;padding:0 17px}.kc-secure{font-size:10px}.kc-hero{grid-template-columns:1fr;padding:38px 18px 30px;gap:28px}.kc-hero h1{font-size:42px}.kc-preview{transform:none}.kc-benefits{grid-template-columns:1fr 1fr;padding:5px 18px 35px}.kc-checkout-wrap{grid-template-columns:1fr;margin:8px 12px 42px;padding:24px 16px;gap:22px}.kc-checkout-intro h2{font-size:29px}.kc-payment-card{padding:19px}}
+@media(max-width:390px){.kc-hero h1{font-size:36px}.kc-benefits{gap:8px}.kc-benefits article{padding:13px}.kc-pix-key{align-items:flex-start;flex-direction:column}.kc-pix-key button{width:100%}.kc-footer{flex-direction:column;align-items:center;gap:4px}}
