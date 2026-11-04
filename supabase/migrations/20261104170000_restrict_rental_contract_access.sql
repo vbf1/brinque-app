@@ -19,7 +19,7 @@ create policy rental_contracts_select_assigned_rentals on public.rental_contract
 drop policy if exists rental_contracts_insert_company_members on public.rental_contracts;
 create policy rental_contracts_insert_assigned_rentals on public.rental_contracts
   for insert to authenticated
-  with check ((public.has_company_role(company_id, array['owner','admin']) or (rental_id is not null and public.can_manage_rental(company_id, rental_id))));
+  with check (rental_id is not null and public.can_manage_rental(company_id, rental_id));
 
 drop policy if exists rental_contracts_update_company_members on public.rental_contracts;
 create policy rental_contracts_update_assigned_rentals on public.rental_contracts
