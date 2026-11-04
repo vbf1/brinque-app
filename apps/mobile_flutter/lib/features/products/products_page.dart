@@ -54,7 +54,7 @@ class _ProductsPageState extends State<ProductsPage> {
             child: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [
               TextFormField(controller: name, decoration: const InputDecoration(labelText: 'Nome do brinquedo *'), validator: (v) => v == null || v.trim().isEmpty ? 'Informe o nome.' : null),
               DropdownButtonFormField<String>(
-                value: mode,
+                initialValue: mode,
                 decoration: const InputDecoration(labelText: 'Tipo de controle'),
                 items: const [
                   DropdownMenuItem(value: 'quantity', child: Text('Por quantidade')),
