@@ -27,6 +27,8 @@ export function MarketingPage({ companyId, userId }: { companyId: string; userId
  const [imagePrompt,setImagePrompt]=useState('');
  const [platforms,setPlatforms]=useState<string[]>(['facebook_marketplace']);
  const [filter,setFilter]=useState('all');
+ const [searchTerm,setSearchTerm]=useState('');
+ const [channelFilter,setChannelFilter]=useState('all');
 
  const load=useCallback(async()=>{
   setLoading(true);
@@ -119,7 +121,15 @@ export function MarketingPage({ companyId, userId }: { companyId: string; userId
   const {error}=await supabase.from('marketing_ads').delete().eq('id',ad.id).eq('company_id',companyId);
   if(error)setMessage(error.message);else{await load();setMessage('Anúncio excluído.');}
  }
- const visible=useMemo(()=>ads.filter(a=>filter==='all'||a.status===filter),[ads,filter]);
+ const visible=useMemo(()=>{
+  const term=searchTerm.trim().toLocaleLowerCase('pt-BR');
+  return ads.filter(a=>{
+   const matchesStatus=filter==='all'||a.status===filter;
+   const matchesChannel=channelFilter==='all'||a.platforms.includes(channelFilter);
+   const searchable=[a.title,a.description,...a.keywords].join(' ').toLocaleLowerCase('pt-BR');
+   return matchesStatus&&matchesChannel&&(!term||searchable.includes(term));
+  });
+ },[ads,filter,channelFilter,searchTerm]);
  const selected=products.find(p=>p.id===productId);
  return <section className="module-shell marketing-module">
   <header className="module-header"><div><p className="eyebrow">DIVULGAÇÃO DA EMPRESA</p><h2>Marketing e anúncios</h2><p className="module-description">Prepare anúncios, revise o conteúdo e aprove antes de qualquer publicação.</p><p className="marketing-manual-note">A publicação automática ainda não está conectada. Depois da aprovação, copie o conteúdo e publique manualmente na plataforma escolhida.</p></div><button type="button" onClick={()=>{clearForm();setTab('ads');}}>＋ Novo anúncio</button></header>
@@ -135,12 +145,12 @@ export function MarketingPage({ companyId, userId }: { companyId: string; userId
    <div className="form-actions"><button type="submit" disabled={saving}>{saving?'Salvando...':'Salvar configurações'}</button></div>
   </form>:<>
    <div className="marketing-summary"><div><strong>{ads.length}</strong><span>Total</span></div><div><strong>{ads.filter(a=>a.status==='draft').length}</strong><span>Rascunhos</span></div><div><strong>{ads.filter(a=>a.status==='pending_approval').length}</strong><span>Para revisar</span></div><div><strong>{ads.filter(a=>a.status==='approved').length}</strong><span>Aprovados</span></div></div>
-   <div className="marketing-toolbar"><select aria-label="Filtrar anúncios" value={filter} onChange={e=>setFilter(e.target.value)}><option value="all">Todos os anúncios</option>{Object.entries(labels).map(([k,v])=><option value={k} key={k}>{v}</option>)}</select><button type="button" className="secondary-button" onClick={()=>void load()}>Atualizar</button></div>
-   {loading?<p className="module-empty">Carregando anúncios...</p>:visible.length===0?<p className="module-empty">Nenhum anúncio nesta lista. Crie o primeiro usando um brinquedo do estoque.</p>:<div className="marketing-ad-list">{visible.map(ad=><article className="marketing-ad-card" key={ad.id}>
+   <div className="marketing-toolbar marketing-toolbar-filters"><input aria-label="Pesquisar anúncios" type="search" value={searchTerm} onChange={e=>setSearchTerm(e.target.value)} placeholder="Pesquisar por título, descrição ou palavra-chave..."/><select aria-label="Filtrar por status" value={filter} onChange={e=>setFilter(e.target.value)}><option value="all">Todos os status</option>{Object.entries(labels).map(([k,v])=><option value={k} key={k}>{v}</option>)}</select><select aria-label="Filtrar por canal" value={channelFilter} onChange={e=>setChannelFilter(e.target.value)}><option value="all">Todos os canais</option>{channels.map(c=><option value={c.id} key={c.id}>{c.label}</option>)}</select><button type="button" className="secondary-button" onClick={()=>void load()}>Atualizar</button></div>
+   {loading?<p className="module-empty">Carregando anúncios...</p>:visible.length===0?<p className="module-empty">{ads.length===0?'Nenhum anúncio cadastrado. Crie o primeiro usando um brinquedo do estoque.':'Nenhum anúncio corresponde aos filtros atuais. Tente outro termo ou limpe os filtros.'}</p>:<><p className="marketing-results-count">Exibindo {visible.length} de {ads.length} anúncios</p><div className="marketing-ad-list">{visible.map(ad=><article className="marketing-ad-card" key={ad.id}>
     {ad.image_url?<img src={ad.image_url} alt="Imagem do anúncio"/>:<div className="marketing-image-placeholder">Imagem ainda não adicionada</div>}
     <div className="marketing-ad-content"><div className="marketing-ad-top"><span className={'marketing-status status-'+ad.status}>{labels[ad.status]??ad.status}</span><small>{new Date(ad.created_at).toLocaleDateString('pt-BR')}</small></div><h3>{ad.title}</h3><p>{ad.description}</p><div className="marketing-tags">{ad.platforms.map(v=><span key={v}>{channels.find(c=>c.id===v)?.label??v}</span>)}</div><small>Palavras-chave: {ad.keywords.join(', ')||'Não informadas'}</small>
     <div className="marketing-actions"><button type="button" className="secondary-button" onClick={()=>void copyAd(ad)}>Copiar anúncio</button><button type="button" className="secondary-button" onClick={()=>edit(ad)}>Editar</button>{ad.status==='draft'||ad.status==='rejected'?<button type="button" onClick={()=>void status(ad,'pending_approval')}>Enviar para revisão</button>:null}{ad.status==='pending_approval'?<><button type="button" onClick={()=>void status(ad,'approved')}>Aprovar</button><button type="button" className="secondary-button" onClick={()=>void status(ad,'rejected')}>Solicitar ajustes</button></>:null}{ad.status==='approved'?<span className="marketing-not-published">Aprovado · publicação não conectada</span>:null}<button type="button" className="danger-button" onClick={()=>void remove(ad)}>Excluir</button></div>
-    </div></article>)}</div>}
+    </div></article>)}</div></>}
    <form className="customer-form marketing-editor" onSubmit={e=>void saveAd(e,false)}>
     <h3>{editing?'Editar anúncio':'Preparar anúncio'}</h3><p className="module-description">Selecione um brinquedo para preencher uma primeira versão. Você pode revisar todos os campos antes de salvar.</p>
     <label>Brinquedo do estoque<select value={productId} onChange={e=>generate(e.target.value)}><option value="">Selecione um brinquedo</option>{products.map(p=><option value={p.id} key={p.id}>{p.name}</option>)}</select></label>
