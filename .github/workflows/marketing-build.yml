@@ -9,6 +9,12 @@ on:
   workflow_dispatch:
 permissions:
   contents: read
+concurrency:
+  group: marketing-build-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+concurrency:
+  group: marketing-build-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 jobs:
   build-web:
     runs-on: ubuntu-latest
