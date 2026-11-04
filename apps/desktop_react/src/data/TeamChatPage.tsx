@@ -119,7 +119,8 @@ export function TeamChatPage({ companyId }: { companyId: string }) {
   const memberName = (id: string) => members.find(member => member.user_id === id)?.name || 'Membro da equipe';
   const conversationName = (conversation: Conversation) => {
     if (conversation.conversation_type === 'team') return 'Grupo da equipe';
-    return memberName(conversationPeers.get(conversation.id) || '') || 'Conversa privada';
+    const peerId = conversationPeers.get(conversation.id);
+    return peerId ? memberName(peerId) : 'Conversa privada';
   };
 
   return <section className="module-content team-chat-page">
