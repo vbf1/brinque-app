@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../customers/customers_page.dart';
+
 class CompanyHomePage extends StatefulWidget {
   const CompanyHomePage({super.key});
   @override
@@ -23,7 +25,7 @@ class _CompanyHomePageState extends State<CompanyHomePage> {
     }
     final company = await client.from('companies').select('id, name, logo_url, home_image_url')
       .eq('id', member['company_id']).single();
-    return {'name': company['name'], 'role': member['role'], 'email': user.email ?? ''};
+    return {'id': company['id'], 'name': company['name'], 'role': member['role'], 'email': user.email ?? ''};
   }
 
   Future<void> _logout() async {
@@ -68,7 +70,20 @@ class _CompanyHomePageState extends State<CompanyHomePage> {
                 Text(data['name'] as String, style: Theme.of(context).textTheme.titleLarge),
                 Text('Perfil: ${data['role']}'),
                 const SizedBox(height: 20),
-                const Text('Esta é a primeira etapa da migração. Os módulos operacionais serão incorporados gradualmente.', textAlign: TextAlign.center),
+                const Text('Acesse os primeiros módulos da migração.', textAlign: TextAlign.center),
+                const SizedBox(height: 20),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => CustomersPage(companyId: data['id'] as String),
+                      ),
+                    ),
+                    icon: const Icon(Icons.people_alt_outlined),
+                    label: const Text('Gerenciar clientes'),
+                  ),
+                ),
               ])),
             )),
           ));
