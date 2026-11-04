@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../customers/customers_page.dart';
+import '../products/products_page.dart';
 
 class CompanyHomePage extends StatefulWidget {
   const CompanyHomePage({super.key});
@@ -82,6 +83,19 @@ class _CompanyHomePageState extends State<CompanyHomePage> {
                     ),
                     icon: const Icon(Icons.people_alt_outlined),
                     label: const Text('Gerenciar clientes'),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => ProductsPage(companyId: data['id'] as String),
+                      ),
+                    ),
+                    icon: const Icon(Icons.toys_outlined),
+                    label: const Text('Brinquedos e estoque'),
                   ),
                 ),
               ])),
