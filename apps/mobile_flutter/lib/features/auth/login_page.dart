@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -46,7 +48,10 @@ class _LoginPageState extends State<LoginPage> {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _busy = true); _feedback('Validando seu acesso...');
     try {
-      await _client.auth.signInWithPassword(email: _email.text.trim(), password: _password.text);
+      await _client.auth.signInWithPassword(email: _email.text.trim(), password: _password.text).timeout(
+        const Duration(seconds: 20),
+        onTimeout: () => throw TimeoutException('O servidor de autenticação demorou demais. Verifique sua conexão e tente novamente.'),
+      );
     } catch (error) { _feedback(_friendlyError(error), error: true); }
     finally { if (mounted) setState(() => _busy = false); }
   }
@@ -58,6 +63,9 @@ class _LoginPageState extends State<LoginPage> {
       await _client.auth.resetPasswordForEmail(
         _email.text.trim(),
         redirectTo: kIsWeb ? null : SupabaseConfig.passwordRecoveryRedirect,
+      ).timeout(
+        const Duration(seconds: 20),
+        onTimeout: () => throw TimeoutException('O pedido de recuperação demorou demais. Verifique sua conexão e tente novamente.'),
       );
       _feedback('Se o e-mail estiver cadastrado, você receberá um link para redefinir a senha. Confira também o spam.');
     } catch (error) { _feedback(_friendlyError(error), error: true); }
@@ -71,7 +79,10 @@ class _LoginPageState extends State<LoginPage> {
     }
     setState(() => _busy = true); _feedback('Atualizando sua senha...');
     try {
-      await _client.auth.updateUser(UserAttributes(password: _newPassword.text));
+      await _client.auth.updateUser(UserAttributes(password: _newPassword.text)).timeout(
+        const Duration(seconds: 20),
+        onTimeout: () => throw TimeoutException('A atualização da senha demorou demais. Verifique sua conexão e tente novamente.'),
+      );
       await _client.auth.signOut();
       _feedback('Senha definida com sucesso! Entre com a nova senha.');
     } catch (error) { _feedback(_friendlyError(error), error: true); }
