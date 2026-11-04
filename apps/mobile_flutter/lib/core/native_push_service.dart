@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'app_messenger.dart';
@@ -19,11 +20,13 @@ class NativePushService {
       : _client = client ?? Supabase.instance.client;
 
   final SupabaseClient _client;
-  StreamSubscription<String>? _tokenSubscription;
+  StreamSubscription<String>? _registeredSubscription;
   StreamSubscription<RemoteMessage>? _messageSubscription;
   StreamSubscription<RemoteMessage>? _openedSubscription;
+  Completer<String>? _registrationCompleter;
   String? _companyId;
   String? _userId;
+  String? _currentFid;
   bool _initialized = false;
 
   bool get isAndroid =>
@@ -49,10 +52,8 @@ class NativePushService {
     if (!authorized) return false;
 
     _listen(messaging);
-    final token = await messaging.getToken();
-    if (token == null || token.trim().isEmpty) return false;
-    await _saveToken(token);
-    return true;
+    await _register(messaging);
+    return _currentFid != null;
   }
 
   Future<bool> requestAndRegister({
@@ -67,9 +68,7 @@ class NativePushService {
     if (Firebase.apps.isEmpty) {
       await Firebase.initializeApp();
     }
-    FirebaseMessaging.onBackgroundMessage(
-      kidsLocFirebaseBackgroundHandler,
-    );
+    FirebaseMessaging.onBackgroundMessage(kidsLocFirebaseBackgroundHandler);
 
     final messaging = FirebaseMessaging.instance;
     final permission = await messaging.requestPermission(
@@ -84,21 +83,37 @@ class NativePushService {
     if (!authorized) return false;
 
     _listen(messaging);
-    final token = await messaging.getToken();
-    if (token == null || token.trim().isEmpty) {
-      throw StateError('O Firebase não retornou o token deste aparelho.');
+    await _register(messaging);
+    return _currentFid != null;
+  }
+
+  Future<void> _register(FirebaseMessaging messaging) async {
+    final completer = Completer<String>();
+    _registrationCompleter = completer;
+    try {
+      await messaging.register();
+      await completer.future.timeout(const Duration(seconds: 20));
+    } finally {
+      _registrationCompleter = null;
     }
-    await _saveToken(token);
-    return true;
   }
 
   void _listen(FirebaseMessaging messaging) {
     if (_initialized) return;
     _initialized = true;
 
-    _tokenSubscription = messaging.onTokenRefresh.listen((token) {
-      _saveToken(token).catchError((Object error) {
-        debugPrint('KidsLoc: falha ao atualizar token FCM: $error');
+    _registeredSubscription = messaging.onRegistered.listen((fid) {
+      _saveToken(fid).then((_) {
+        final completer = _registrationCompleter;
+        if (completer != null && !completer.isCompleted) {
+          completer.complete(fid);
+        }
+      }).catchError((Object error) {
+        debugPrint('KidsLoc: falha ao registrar instalação FCM: $error');
+        final completer = _registrationCompleter;
+        if (completer != null && !completer.isCompleted) {
+          completer.completeError(error);
+        }
       });
     });
 
@@ -119,16 +134,27 @@ class NativePushService {
     });
   }
 
-  Future<void> _saveToken(String token) async {
+  Future<void> _saveToken(String fid) async {
     final companyId = _companyId;
     final userId = _userId;
-    if (companyId == null || userId == null || token.trim().isEmpty) return;
+    if (companyId == null || userId == null || fid.trim().isEmpty) return;
+
+    final normalizedFid = fid.trim();
+    final previousFid = _currentFid;
+    _currentFid = normalizedFid;
+    if (previousFid != null && previousFid != normalizedFid) {
+      await _client
+          .from('fcm_device_tokens')
+          .delete()
+          .eq('user_id', userId)
+          .eq('token', previousFid);
+    }
 
     await _client.from('fcm_device_tokens').upsert(
       {
         'company_id': companyId,
         'user_id': userId,
-        'token': token.trim(),
+        'token': normalizedFid,
         'platform': 'android',
         'updated_at': DateTime.now().toUtc().toIso8601String(),
       },
@@ -138,27 +164,35 @@ class NativePushService {
 
   Future<void> unregisterCurrentDevice() async {
     final userId = _client.auth.currentUser?.id;
-    if (userId == null) return;
-
-    try {
-      final token = await FirebaseMessaging.instance.getToken();
-      if (token != null && token.isNotEmpty) {
+    final fid = _currentFid;
+    if (userId != null && fid != null) {
+      try {
         await _client
             .from('fcm_device_tokens')
             .delete()
             .eq('user_id', userId)
-            .eq('token', token);
+            .eq('token', fid);
+      } catch (error) {
+        debugPrint('KidsLoc: não foi possível remover o registro FCM: $error');
       }
-    } catch (error) {
-      debugPrint('KidsLoc: não foi possível remover o token FCM: $error');
     }
 
-    await _tokenSubscription?.cancel();
+    try {
+      if (Firebase.apps.isNotEmpty) {
+        await FirebaseMessaging.instance.unregister();
+      }
+    } catch (error) {
+      debugPrint('KidsLoc: não foi possível cancelar o registro FCM: $error');
+    }
+
+    await _registeredSubscription?.cancel();
     await _messageSubscription?.cancel();
     await _openedSubscription?.cancel();
-    _tokenSubscription = null;
+    _registeredSubscription = null;
     _messageSubscription = null;
     _openedSubscription = null;
+    _registrationCompleter = null;
+    _currentFid = null;
     _initialized = false;
     _companyId = null;
     _userId = null;
