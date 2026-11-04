@@ -130,6 +130,18 @@ export function createCompanyDataRepository(
     },
 
 
+
+    async deleteRental(rentalId: string) {
+      const { data, error } = await client.from('rentals')
+        .delete()
+        .eq('id', rentalId)
+        .eq('company_id', companyId)
+        .select('id')
+        .maybeSingle();
+      if (error) throw error;
+      if (!data) throw new Error('A locação não foi encontrada ou você não tem permissão para excluí-la.');
+    },
+
     async saveProduct(input: {
       id?: string;
       name: string;
