@@ -9,6 +9,7 @@ import '../occurrences/occurrences_page.dart';
 import '../team_chat/team_chat_page.dart';
 import '../../core/native_push_service.dart';
 import '../reminders/reminder_settings_page.dart';
+import '../contracts/contracts_page.dart';
 
 class CompanyHomePage extends StatefulWidget {
   const CompanyHomePage({super.key});
@@ -216,6 +217,22 @@ class _CompanyHomePageState extends State<CompanyHomePage> {
                     ),
                     icon: const Icon(Icons.event_note_outlined),
                     label: const Text('Gerenciar locações'),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => ContractsPage(
+                          companyId: data['id'] as String,
+                          companyName: data['name'] as String,
+                        ),
+                      ),
+                    ),
+                    icon: const Icon(Icons.description_outlined),
+                    label: const Text('Contratos de locação'),
                   ),
                 ),
                 const SizedBox(height: 10),
