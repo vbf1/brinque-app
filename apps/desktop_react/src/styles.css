@@ -150,3 +150,33 @@ button:focus-visible{outline:3px solid #3478e566;outline-offset:2px}
 @media(max-width:640px){.legacy-header{padding:11px 12px 13px}.legacy-greeting{font-size:19px}.legacy-main{padding:14px 12px 88px}.legacy-menu-panel{top:74px;right:10px}.module-header,.data-page-heading{align-items:flex-start;flex-direction:column}.module-toolbar{flex-direction:row}.form-grid{grid-template-columns:minmax(0,1fr)}.customer-row{gap:9px}.customer-row button{padding:8px 10px}.team-chat-layout{grid-template-columns:1fr}.team-chat-panel{min-height:420px}.team-chat-message-list{max-height:45vh}.legacy-page-heading h1{font-size:22px}}
 @media(max-width:390px){.legacy-dashboard-card{min-height:126px;padding:12px}.legacy-card-icon{width:35px;height:35px}.legacy-auth-card{padding:22px 18px}.legacy-welcome-panel{align-items:flex-start;flex-direction:column}.data-list-row{grid-template-columns:minmax(0,1fr) auto}.data-row-actions{grid-column:1/-1;justify-content:flex-end}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
+
+/* Marketing and ad preparation */
+.marketing-tabs{display:flex;gap:8px;margin:18px 0;border-bottom:1px solid var(--line)}
+.marketing-tabs button{background:transparent;color:var(--muted);border-radius:10px 10px 0 0;border-bottom:3px solid transparent}
+.marketing-tabs button.active{color:var(--blue);border-bottom-color:var(--blue)}
+.marketing-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:16px 0}
+.marketing-summary>div{background:var(--surface);border:1px solid var(--line);border-radius:13px;padding:13px;display:flex;flex-direction:column;gap:3px}
+.marketing-summary strong{font-size:24px}.marketing-summary span,.marketing-ad-top small{font-size:12px;color:var(--muted)}
+.marketing-toolbar{display:flex;gap:10px;align-items:center;margin:12px 0}.marketing-toolbar select{max-width:260px;margin:0}
+.marketing-ad-list{display:grid;gap:12px;margin:14px 0}
+.marketing-ad-card{display:grid;grid-template-columns:180px minmax(0,1fr);gap:16px;background:var(--surface);border:1px solid var(--line);border-radius:15px;padding:13px;min-width:0}
+.marketing-ad-card>img,.marketing-image-placeholder{width:100%;height:150px;object-fit:cover;border-radius:10px}
+.marketing-image-placeholder{display:grid;place-items:center;text-align:center;padding:12px;background:var(--bg);color:var(--muted);font-size:13px}
+.marketing-ad-content{min-width:0}.marketing-ad-top{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.marketing-status{display:inline-flex;padding:4px 9px;border-radius:99px;font-size:11px;font-weight:750;background:var(--bg)}
+.status-approved{color:#16845b}.status-pending_approval{color:#a36b08}.status-rejected{color:#c94b4b}.status-published{color:#3478e5}
+.marketing-ad-content h3{margin:8px 0 5px;font-size:16px}.marketing-ad-content p{white-space:pre-line;color:var(--muted);margin:0 0 10px;font-size:13px}
+.marketing-tags{display:flex;flex-wrap:wrap;gap:5px;margin:8px 0}.marketing-tags span{font-size:11px;padding:4px 8px;background:var(--bg);border-radius:99px}
+.marketing-ad-content>small{font-size:11px;color:var(--muted)}
+.marketing-actions{display:flex;flex-wrap:wrap;gap:7px;margin-top:12px;align-items:center}.marketing-actions button{min-height:36px;padding:8px 11px;font-size:12px}
+.marketing-not-published{font-size:12px;color:var(--muted)}.marketing-editor,.marketing-settings{margin-top:18px}
+.marketing-editor h3,.marketing-settings h3{margin:0 0 4px}.marketing-editor label,.marketing-settings label{margin-top:12px}
+.marketing-product-hint,.marketing-settings small{font-size:12px;color:var(--muted)}
+.marketing-channel-field{border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin:14px 0}
+.marketing-channel-field legend{font-size:12px;font-weight:700;color:var(--muted);padding:0 5px}
+.marketing-check{display:inline-flex!important;align-items:center;gap:7px;margin:5px 14px 5px 0!important;font-weight:500!important;color:var(--ink)!important}
+.marketing-check input{width:17px;min-height:17px;margin:0}.danger-button{background:#fff0f0;color:#b73535}
+@media(max-width:640px){.marketing-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.marketing-ad-card{grid-template-columns:1fr}.marketing-ad-card>img,.marketing-image-placeholder{height:190px}.marketing-actions button{flex:1 1 auto}.marketing-toolbar select{max-width:none;flex:1}.marketing-summary strong{font-size:21px}}
+
+.marketing-manual-note{margin:8px 0 14px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--muted);font-size:12px;line-height:1.5}
