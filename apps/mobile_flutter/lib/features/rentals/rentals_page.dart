@@ -213,7 +213,7 @@ class _RentalsPageState extends State<RentalsPage> {
           await repo.createRentalWithItems(
             customerId: customerId.value!, startDate: _iso(start.value), endDate: _iso(end.value),
             status: status.value, deliveryMethod: delivery.value, totalAmount: total,
-            items: items, deliveryAddress: address.text, responsibleUserIds: const [],
+            items: items, deliveryAddress: address.text, responsibleUserIds: responsibleIds,
           );
         } else {
           await repo.updateRentalWithItems(
