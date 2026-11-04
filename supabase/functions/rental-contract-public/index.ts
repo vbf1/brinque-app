@@ -125,6 +125,9 @@ Deno.serve(async (req: Request) => {
       return json({ error: "O prazo deste link expirou. Solicite um novo contrato à empresa." }, 410);
     }
     if (body.action === "view") {
+      if (!["sent", "viewed"].includes(contract.status)) {
+        return json({ error: "Este contrato ainda não foi enviado pela empresa." }, 409);
+      }
       await admin.from("rental_contracts").update({
         status: contract.status === "sent" ? "viewed" : contract.status,
         viewed_at: contract.viewed_at ?? new Date().toISOString(),
