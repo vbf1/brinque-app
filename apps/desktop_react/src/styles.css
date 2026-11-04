@@ -64,3 +64,11 @@ button.secondary-button { background: #edf4ef; color: #246b43; }
 .rental-total strong { font-size: 20px; }
 .rental-row .customer-info span { white-space: normal; line-height: 1.5; }
 @media (max-width: 600px) { .rental-items-heading { align-items: flex-start; flex-direction: column; } .rental-total { align-items: flex-start; flex-direction: column; } }
+
+.rental-responsibles { display: grid; gap: 8px; padding: 14px; border: 1px solid #e1e9e4; border-radius: 12px; background: #fff; }
+.rental-responsibles h3 { margin: 0 0 4px; }
+.rental-responsible-option { display: flex !important; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid #edf1ee; }
+.rental-responsible-option:last-child { border-bottom: 0; }
+.rental-responsible-option input { width: auto !important; min-height: auto !important; }
+.rental-responsible-option span { display: grid; gap: 2px; }
+.rental-responsible-option small { color: #718078; font-size: 12px; }
