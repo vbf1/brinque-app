@@ -52,9 +52,9 @@ class _OccurrencesPageState extends State<OccurrencesPage> {
     final location = TextEditingController(text: row?['location'] as String? ?? '');
     final description = TextEditingController(text: row?['description'] as String? ?? '');
     final loss = TextEditingController(text: row?['loss_amount']?.toString() ?? '');
-    var category = row?['category'] as String? ?? _categories.first;
-    var severity = row?['severity'] as String? ?? 'medium';
-    var occurred = DateTime.tryParse(row?['occurred_at']?.toString() ?? '') ?? DateTime.now();
+    var category = _categories.contains(row?['category']) ? row!['category'] as String : _categories.first;
+    var severity = _severities.containsKey(row?['severity']) ? row!['severity'] as String : 'medium';
+    var occurred = DateTime.tryParse(row?['occurred_at']?.toString() ?? '')?.toLocal() ?? DateTime.now();
     final picked = <XFile>[];
     final formKey = GlobalKey<FormState>();
     final canEdit = row == null || _canManage(row);
