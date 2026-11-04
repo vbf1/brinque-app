@@ -157,6 +157,7 @@ export default function App() {
       setSession(nextSession);
       if (event === 'PASSWORD_RECOVERY') setRecovery(true);
       if (event === 'SIGNED_OUT') {
+        pageHistoryRef.current = ['inicio'];
         setCompany(null);
         setPage('inicio');
         setMenuOpen(false);
