@@ -22,6 +22,26 @@ class _CompanyHomePageState extends State<CompanyHomePage> {
   bool _pushBusy = false;
   String _pushStatus = 'Ative os avisos para receber lembretes neste aparelho.';
 
+  @override
+  void initState() {
+    super.initState();
+    _companyFuture.then((data) async {
+      final user = Supabase.instance.client.auth.currentUser;
+      if (user == null) return;
+      try {
+        final enabled = await _pushService.registerIfAuthorized(
+          companyId: data['id'] as String,
+          userId: user.id,
+        );
+        if (enabled && mounted) {
+          setState(() => _pushStatus = 'Notificações ativadas neste aparelho.');
+        }
+      } catch (error) {
+        debugPrint('KidsLoc: não foi possível restaurar o registro de notificações: $error');
+      }
+    }).catchError((Object _) {});
+  }
+
   Future<Map<String, dynamic>> _loadCompany() async {
     final client = Supabase.instance.client;
     final user = client.auth.currentUser;
