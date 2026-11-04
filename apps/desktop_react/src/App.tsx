@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useState, useRef, type FormEvent } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { supabase } from './lib/supabase';
 import { CustomersPage } from './data/CustomersPage';
@@ -61,6 +61,33 @@ export default function App() {
   const [company, setCompany] = useState<CompanyContext | null>(null);
   const [companyLoading, setCompanyLoading] = useState(false);
   const [page, setPage] = useState<Page>('inicio');
+  const pageHistoryRef = useRef<Page[]>(['inicio']);
+
+  const navigateTo = useCallback((nextPage: Page) => {
+    if (nextPage === pageHistoryRef.current[pageHistoryRef.current.length - 1]) return;
+    pageHistoryRef.current.push(nextPage);
+    window.history.pushState({ kidsLocApp: true, page: nextPage }, '', window.location.href);
+    setPage(nextPage);
+  }, []);
+
+  useEffect(() => {
+    if (!company) return;
+    pageHistoryRef.current = ['inicio'];
+    window.history.replaceState({ ...(window.history.state ?? {}), kidsLocApp: true, page: 'inicio' }, '', window.location.href);
+    const handleBack = () => {
+      if (pageHistoryRef.current.length > 1) {
+        pageHistoryRef.current.pop();
+        setPage(pageHistoryRef.current[pageHistoryRef.current.length - 1] ?? 'inicio');
+      } else {
+        // Mantém o usuário dentro do app quando já está na tela inicial.
+        window.history.pushState({ kidsLocApp: true, page: 'inicio' }, '', window.location.href);
+        pageHistoryRef.current = ['inicio'];
+        setPage('inicio');
+      }
+    };
+    window.addEventListener('popstate', handleBack);
+    return () => window.removeEventListener('popstate', handleBack);
+  }, [company?.id]);
   const [menuOpen, setMenuOpen] = useState(false);
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
     try { return localStorage.getItem('brq_theme') === 'dark' ? 'dark' : 'light'; } catch { return 'light'; }
@@ -298,7 +325,7 @@ export default function App() {
       </header>
       {menuOpen && <button className="legacy-menu-backdrop" aria-label="Fechar menu" onClick={() => setMenuOpen(false)} />}
       <nav className={menuOpen ? 'legacy-menu-panel open' : 'legacy-menu-panel'} aria-label="Menus de navegação">
-        {visibleNavigation.map(item => <button type="button" key={item.id} className={page === item.id ? 'active' : ''} onClick={() => { setPage(item.id); setMenuOpen(false); }}><span>{item.icon}</span>{item.label}</button>)}
+        {visibleNavigation.map(item => <button type="button" key={item.id} className={page === item.id ? 'active' : ''} onClick={() => { navigateTo(item.id); setMenuOpen(false); }}><span>{item.icon}</span>{item.label}</button>)}
         <button type="button" className="legacy-menu-logout" onClick={() => { setMenuOpen(false); void logout(); }}><span>↪</span>Sair</button>
       </nav>
 
@@ -307,19 +334,19 @@ export default function App() {
           <section>
             <div className="legacy-section-title">Resumo do negócio <span>Seus dados</span></div>
             <div className="legacy-dashboard-grid">
-              <button className="legacy-dashboard-card" onClick={() => setPage('locacoes')}><span className="legacy-card-icon">▣</span><strong>Locações</strong><small>Gerencie reservas e entregas</small></button>
-              <button className="legacy-dashboard-card" onClick={() => setPage('contratos')}><span className="legacy-card-icon">✎</span><strong>Contratos</strong><small>Gere e acompanhe assinaturas</small></button>
-              <button className="legacy-dashboard-card" onClick={() => setPage('clientes')}><span className="legacy-card-icon">♙</span><strong>Clientes</strong><small>Consulte e cadastre clientes</small></button>
-              <button className="legacy-dashboard-card" onClick={() => setPage('estoque')}><span className="legacy-card-icon">▤</span><strong>Brinquedos e estoque</strong><small>Controle itens e unidades</small></button>
-              {isAdmin && <button className="legacy-dashboard-card" onClick={() => setPage('financeiro')}><span className="legacy-card-icon">＄</span><strong>Financeiro</strong><small>Entradas e saídas</small></button>}
-              <button className="legacy-dashboard-card" onClick={() => setPage('mensagens')}><span className="legacy-card-icon">▰</span><strong>Mensagens da equipe</strong><small>Converse com os funcionários</small></button>
-              <button className="legacy-dashboard-card" onClick={() => setPage('ocorrencias')}><span className="legacy-card-icon">⚠</span><strong>Ocorrências</strong><small>Registre e acompanhe relatos</small></button>
-              {isAdmin && <button className="legacy-dashboard-card" onClick={() => setPage('marketing')}><span className="legacy-card-icon">✧</span><strong>Marketing e anúncios</strong><small>Crie, revise e organize divulgações</small></button>}
+              <button className="legacy-dashboard-card" onClick={() => navigateTo('locacoes')}><span className="legacy-card-icon">▣</span><strong>Locações</strong><small>Gerencie reservas e entregas</small></button>
+              <button className="legacy-dashboard-card" onClick={() => navigateTo('contratos')}><span className="legacy-card-icon">✎</span><strong>Contratos</strong><small>Gere e acompanhe assinaturas</small></button>
+              <button className="legacy-dashboard-card" onClick={() => navigateTo('clientes')}><span className="legacy-card-icon">♙</span><strong>Clientes</strong><small>Consulte e cadastre clientes</small></button>
+              <button className="legacy-dashboard-card" onClick={() => navigateTo('estoque')}><span className="legacy-card-icon">▤</span><strong>Brinquedos e estoque</strong><small>Controle itens e unidades</small></button>
+              {isAdmin && <button className="legacy-dashboard-card" onClick={() => navigateTo('financeiro')}><span className="legacy-card-icon">＄</span><strong>Financeiro</strong><small>Entradas e saídas</small></button>}
+              <button className="legacy-dashboard-card" onClick={() => navigateTo('mensagens')}><span className="legacy-card-icon">▰</span><strong>Mensagens da equipe</strong><small>Converse com os funcionários</small></button>
+              <button className="legacy-dashboard-card" onClick={() => navigateTo('ocorrencias')}><span className="legacy-card-icon">⚠</span><strong>Ocorrências</strong><small>Registre e acompanhe relatos</small></button>
+              {isAdmin && <button className="legacy-dashboard-card" onClick={() => navigateTo('marketing')}><span className="legacy-card-icon">✧</span><strong>Marketing e anúncios</strong><small>Crie, revise e organize divulgações</small></button>}
             </div>
             <section className="legacy-panel legacy-welcome-panel"><div><strong>Sessão ativa</strong><span>Conectado à empresa {company.name}</span></div><span className="legacy-status"><i /> {company.role === 'owner' ? 'Proprietário' : company.role === 'admin' ? 'Administrador' : 'Funcionário'}</span></section>
           </section>
         )}
-        {page !== 'inicio' && <div className="legacy-page-heading"><div><span>GESTÃO DE LOCAÇÕES</span><h1>{pageTitle}</h1></div><button type="button" className="legacy-back-button" onClick={() => setPage('inicio')}>‹ Início</button></div>}
+        {page !== 'inicio' && <div className="legacy-page-heading"><div><span>GESTÃO DE LOCAÇÕES</span><h1>{pageTitle}</h1></div><button type="button" className="legacy-back-button" onClick={() => navigateTo('inicio')}>‹ Início</button></div>}
         {page === 'clientes' && <CustomersPage companyId={company.id} />}
         {page === 'estoque' && <ProductsPage companyId={company.id} />}
         {page === 'locacoes' && <RentalsPage companyId={company.id} />}
