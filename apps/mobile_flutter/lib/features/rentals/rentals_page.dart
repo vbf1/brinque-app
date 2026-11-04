@@ -344,11 +344,11 @@ class _RentalsPageState extends State<RentalsPage> {
   Future<void> _deleteRental(Map<String, dynamic> rental) async {
     try {
       final existingContract = await Supabase.instance.client.from('rental_contracts')
-          .select('id').eq('rental_id', rental['id']).limit(1).maybeSingle();
+          .select('id,status').eq('rental_id', rental['id']).inFilter('status', ['sent', 'viewed', 'signed']).limit(1).maybeSingle();
       if (existingContract != null) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Esta locação já possui um contrato. A exclusão foi bloqueada para preservar o histórico e os documentos assinados.')),
+            const SnackBar(content: Text('Esta locação possui um contrato enviado ou assinado. A exclusão foi bloqueada para preservar o histórico e os documentos.')),
           );
         }
         return;
@@ -366,7 +366,7 @@ class _RentalsPageState extends State<RentalsPage> {
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: const Text('Excluir locação?'),
-        content: const Text('Os brinquedos e eventos vinculados serão removidos. Se existir contrato vinculado, a exclusão será bloqueada para preservar o histórico e os documentos. Lançamentos financeiros e pagamentos relacionados serão preservados quando houver vínculo configurado. Esta ação não poderá ser desfeita.'),
+        content: const Text('Os brinquedos e eventos vinculados serão removidos. Se houver contrato enviado ou assinado, a exclusão será bloqueada para preservar o histórico e os documentos. Lançamentos financeiros e pagamentos relacionados serão preservados quando houver vínculo configurado. Esta ação não poderá ser desfeita.'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('Cancelar')),
           FilledButton.tonal(onPressed: () => Navigator.pop(dialogContext, true), child: const Text('Excluir')),
