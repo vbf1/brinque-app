@@ -6,6 +6,7 @@ import '../products/products_page.dart';
 import '../rentals/rentals_page.dart';
 import '../finance/finance_page.dart';
 import '../occurrences/occurrences_page.dart';
+import '../team_chat/team_chat_page.dart';
 
 class CompanyHomePage extends StatefulWidget {
   const CompanyHomePage({super.key});
@@ -127,6 +128,19 @@ class _CompanyHomePageState extends State<CompanyHomePage> {
                     ),
                     icon: const Icon(Icons.event_note_outlined),
                     label: const Text('Gerenciar locações'),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.tonalIcon(
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => TeamChatPage(companyId: data['id'] as String),
+                      ),
+                    ),
+                    icon: const Icon(Icons.chat_bubble_outline),
+                    label: const Text('Mensagens da equipe'),
                   ),
                 ),
                 const SizedBox(height: 10),
