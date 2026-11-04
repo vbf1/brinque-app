@@ -62,7 +62,7 @@ export function MarketingPage({ companyId, userId }: { companyId: string; userId
    ]);
    if(s.error)throw s.error;if(p.error)throw p.error;if(a.error)throw a.error;if(pi.error)throw pi.error;
    const nextSettings=s.data?{business_name:s.data.business_name??'',whatsapp:s.data.whatsapp??'',service_regions:s.data.service_regions??[],default_description:s.data.default_description??'',default_call_to_action:s.data.default_call_to_action??initialSettings.default_call_to_action}:initialSettings;
-   const productNames=new Map((p.data??[]).map((item:Product)=>[item.id,item.name]));
+   const productNames=new Map<string,string>((p.data??[]).map((item:Product)=>[item.id,item.name] as [string,string]));
    const mappedImages=await Promise.all((pi.data??[]).map(async(row:any)=>{
     const result=await supabase.storage.from('product-images').createSignedUrl(row.storage_path,3600);
     return {...row,product_name:productNames.get(row.product_id)??'Brinquedo',signed_url:result.data?.signedUrl??null};
