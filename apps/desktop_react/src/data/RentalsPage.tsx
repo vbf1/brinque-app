@@ -111,6 +111,20 @@ export function RentalsPage({ companyId }: { companyId: string }) {
     } finally { setSaving(false); }
   }
 
+
+  async function deleteRental(rental: Row) {
+    const confirmed = window.confirm('Excluir esta locação? Os itens e eventos vinculados serão removidos. Lançamentos financeiros e pagamentos relacionados serão preservados quando houver vínculo configurado. Esta ação não poderá ser desfeita.');
+    if (!confirmed) return;
+    setSaving(true);
+    try {
+      await repo.deleteRental(rental.id);
+      await load();
+      setMessage('Locação excluída.');
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Não foi possível excluir a locação.');
+    } finally { setSaving(false); }
+  }
+
   const visible = rentals.filter(rental => String(rental.customers?.name ?? '').toLocaleLowerCase('pt-BR').includes(search.toLocaleLowerCase('pt-BR')));
 
   return <section className="module-shell">
@@ -143,7 +157,7 @@ export function RentalsPage({ companyId }: { companyId: string }) {
       <div className="form-actions"><button type="button" className="secondary-button" onClick={() => setFormOpen(false)}>Cancelar</button><button type="submit" disabled={saving}>{saving ? 'Salvando...' : 'Salvar locação'}</button></div>
     </form>}
     {loading ? <p className="module-empty">Carregando locações...</p> : visible.length === 0 ? <p className="module-empty">Nenhuma locação encontrada.</p> : <div className="customer-list">{visible.map(rental => <article className="customer-row rental-row" key={rental.id}>
-      <div className="customer-avatar">📅</div><div className="customer-info"><strong>{rental.customers?.name ?? 'Cliente'}</strong><span>{dateLabel(rental.start_date)} a {dateLabel(rental.end_date)} · {(rental.rental_items ?? []).map((item: Row) => item.products?.name ?? 'Brinquedo').join(', ')} · {money(Number(rental.total_amount ?? 0))} · {rental.status}</span></div><button type="button" className="secondary-button" disabled={!canManageRentals} title={!canManageRentals ? 'Edição restrita ao proprietário e administradores' : 'Editar locação'} onClick={() => openForm(rental)}>Editar</button>
+      <div className="customer-avatar">📅</div><div className="customer-info"><strong>{rental.customers?.name ?? 'Cliente'}</strong><span>{dateLabel(rental.start_date)} a {dateLabel(rental.end_date)} · {(rental.rental_items ?? []).map((item: Row) => item.products?.name ?? 'Brinquedo').join(', ')} · {money(Number(rental.total_amount ?? 0))} · {rental.status}</span></div><div className="rental-row-actions"><button type="button" className="secondary-button" disabled={!canManageRentals || saving} title={!canManageRentals ? 'Edição restrita ao proprietário e administradores' : 'Editar locação'} onClick={() => openForm(rental)}>Editar</button><button type="button" className="remove-item-button" disabled={!canManageRentals || saving} title={!canManageRentals ? 'Exclusão restrita ao proprietário e administradores' : 'Excluir locação'} onClick={() => void deleteRental(rental)}>Excluir</button></div>
     </article>)}</div>}
   </section>;
 }
