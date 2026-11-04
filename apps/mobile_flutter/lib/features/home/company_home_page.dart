@@ -18,7 +18,9 @@ class _CompanyHomePageState extends State<CompanyHomePage> {
     }
     final member = await client.from('company_members').select('company_id, role')
       .eq('user_id', user.id).limit(1).maybeSingle();
-    if (member == null) throw Exception('Esta conta ainda não está vinculada a uma empresa. Peça ao proprietário para conferir seu acesso.');
+    if (member == null) {
+      throw Exception('Esta conta ainda não está vinculada a uma empresa. Peça ao proprietário para conferir seu acesso.');
+    }
     final company = await client.from('companies').select('id, name, logo_url, home_image_url')
       .eq('id', member['company_id']).single();
     return {'name': company['name'], 'role': member['role'], 'email': user.email ?? ''};
