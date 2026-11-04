@@ -1,6 +1,8 @@
 import { useState } from 'react';
 
-const PIX_KEY = '148.567.896-00';
+const PIX_KEY = '31999857343';
+const PIX_KEY_TYPE = 'Celular';
+const PIX_OWNER = 'Victor Batista Ferreira';
 const PRICE = 'R$ 10,00';
 
 export function CheckoutPage() {
@@ -67,7 +69,8 @@ export function CheckoutPage() {
           <input id="kc-email" type="email" value={customerEmail} onChange={e => setCustomerEmail(e.target.value)} placeholder="voce@email.com" autoComplete="email" />
           <div className="kc-pix-box">
             <div className="kc-pix-title"><span>▦</span><div><b>Pague com Pix</b><small>Use a chave abaixo no aplicativo do seu banco</small></div></div>
-            <div className="kc-pix-key"><span>{PIX_KEY}</span><button type="button" onClick={copyPix}>{copied ? 'Copiado ✓' : 'Copiar chave'}</button></div>
+            <div className="kc-pix-owner"><span>Recebedor</span><b>{PIX_OWNER}</b></div>
+            <div className="kc-pix-key"><span><small>Chave Pix ({PIX_KEY_TYPE})</small><b>{PIX_KEY}</b></span><button type="button" onClick={copyPix}>{copied ? 'Copiado ✓' : 'Copiar chave'}</button></div>
             <div className="kc-pix-value"><span>Valor do Pix</span><b>{PRICE}</b></div>
           </div>
           <div className="kc-payment-steps"><b>Como finalizar</b><ol><li>Copie a chave Pix e faça o pagamento de R$ 10,00.</li><li>Guarde o comprovante da transferência.</li><li>Entre em contato com o responsável pelo KidsLoc e informe seu nome e e-mail para conferência e liberação.</li></ol></div>
