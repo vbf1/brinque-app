@@ -23,9 +23,12 @@ export function MarketingPage({ companyId, userId }: { companyId: string; userId
  const [description,setDescription]=useState('');
  const [keywords,setKeywords]=useState('');
  const [imageUrl,setImageUrl]=useState('');
+ const [imageLoadError,setImageLoadError]=useState(false);
  const [imagePrompt,setImagePrompt]=useState('');
  const [platforms,setPlatforms]=useState<string[]>(['facebook_marketplace']);
  const [filter,setFilter]=useState('all');
+ const [searchTerm,setSearchTerm]=useState('');
+ const [channelFilter,setChannelFilter]=useState('all');
 
  const load=useCallback(async()=>{
   setLoading(true);
@@ -44,7 +47,7 @@ export function MarketingPage({ companyId, userId }: { companyId: string; userId
  },[companyId]);
  useEffect(()=>{void load();},[load]);
 
- function clearForm(){setEditing(null);setProductId('');setTitle('');setDescription('');setKeywords('');setImageUrl('');setImagePrompt('');setPlatforms(['facebook_marketplace']);}
+ function clearForm(){setEditing(null);setProductId('');setTitle('');setDescription('');setKeywords('');setImageUrl('');setImageLoadError(false);setImagePrompt('');setPlatforms(['facebook_marketplace']);}
  function generate(id:string){
   const p=products.find(v=>v.id===id);if(!p)return;
   const area=settings.service_regions.length?settings.service_regions.join(', '):'Contagem e região';
@@ -57,15 +60,79 @@ export function MarketingPage({ companyId, userId }: { companyId: string; userId
   setKeywords([p.name,'aluguel de brinquedos','locação de brinquedos',...settings.service_regions].join(', '));
   setImagePrompt('Fotografia publicitária realista e original de '+p.name+' para locação em festa infantil. Brinquedo em destaque, ambiente alegre, sem textos, marcas ou marcas d’água.');
  }
- function edit(ad:Ad){setEditing(ad);setProductId(ad.product_id??'');setTitle(ad.title);setDescription(ad.description);setKeywords(ad.keywords.join(', '));setImageUrl(ad.image_url??'');setImagePrompt(ad.image_prompt??'');setPlatforms(ad.platforms??['facebook_marketplace']);setTab('ads');}
+ function edit(ad:Ad){setEditing(ad);setProductId(ad.product_id??'');setTitle(ad.title);setDescription(ad.description);setKeywords(ad.keywords.join(', '));setImageUrl(ad.image_url??'');setImageLoadError(false);setImagePrompt(ad.image_prompt??'');setPlatforms(ad.platforms??['facebook_marketplace']);setTab('ads');}
+ function duplicateAd(ad:Ad){setEditing(null);setProductId(ad.product_id??'');setTitle((ad.title+' (cópia)').slice(0,180));setDescription(ad.description);setKeywords(ad.keywords.join(', '));setImageUrl(ad.image_url??'');setImageLoadError(false);setImagePrompt(ad.image_prompt??'');setPlatforms(ad.platforms??['facebook_marketplace']);setTab('ads');setMessage('Cópia preparada como novo rascunho. Revise o conteúdo antes de salvar.');}
  async function copyAd(ad:Ad){
-  const content=[ad.title,ad.description,ad.keywords.length?'Palavras-chave: '+ad.keywords.join(', '):'', 'Canais sugeridos: '+ad.platforms.map(v=>channels.find(ch=>ch.id===v)?.label??v).join(', ')].filter(Boolean).join('\n\n');
+  const content=[ad.title,ad.description,ad.keywords.length?'Palavras-chave: '+ad.keywords.join(', '):'', 'Canais sugeridos: '+ad.platforms.map(v=>channels.find(ch=>ch.id===v)?.label??v).join(', '), settings.default_call_to_action.trim()?'Chamada para ação: '+settings.default_call_to_action.trim():'', settings.whatsapp.trim()?'WhatsApp: '+settings.whatsapp.trim(): ''].filter(Boolean).join('\n\n');
   try{
-   if(!navigator.clipboard?.writeText)throw new Error('A cópia automática não está disponível neste navegador.');
-   await navigator.clipboard.writeText(content);
+   if(navigator.clipboard?.writeText){
+    await navigator.clipboard.writeText(content);
+   }else{
+    const fallback=document.createElement('textarea');
+    fallback.value=content;
+    fallback.setAttribute('readonly','');
+    fallback.style.position='fixed';
+    fallback.style.opacity='0';
+    fallback.style.pointerEvents='none';
+    document.body.appendChild(fallback);
+    fallback.select();
+    const copied=document.execCommand('copy');
+    document.body.removeChild(fallback);
+    if(!copied)throw new Error('Este navegador não permitiu copiar. Selecione e copie o texto manualmente.');
+   }
    setMessage('Anúncio copiado. Revise e publique manualmente no canal escolhido.');
-  }catch(e){setMessage(e instanceof Error?e.message:'Não foi possível copiar o anúncio.');}
+  }catch(e){
+   setMessage(e instanceof Error?e.message:'Não foi possível copiar o anúncio. Selecione o texto e copie manualmente.');
+  }
  }
+
+ function exportAd(ad:Ad){
+  const channelNames=ad.platforms.map(v=>channels.find(ch=>ch.id===v)?.label??v);
+  const content=[
+   'MATERIAL DE DIVULGAÇÃO',
+   '=====================',
+   '',
+   'TÍTULO',
+   ad.title,
+   '',
+   'DESCRIÇÃO',
+   ad.description,
+   '',
+   'PALAVRAS-CHAVE',
+   ad.keywords.join(', ')||'Não informadas',
+   '',
+   'CANAIS SELECIONADOS',
+   channelNames.join(', ')||'Não informados',
+   '',
+   'LINK DA IMAGEM',
+   ad.image_url||'Não informado',
+   '',
+   'ORIENTAÇÃO PARA A IMAGEM',
+   ad.image_prompt||'Não informada',
+   '',
+   'CHAMADA PARA AÇÃO',
+   settings.default_call_to_action.trim()||'Não configurada',
+   'WHATSAPP',
+   settings.whatsapp.trim()||'Não configurado',
+   '',
+   'STATUS NO KIDSLOC',
+   labels[ad.status]??ad.status,
+   '',
+   'Observação: este arquivo reúne o material preparado no aplicativo. A publicação deve ser feita manualmente na plataforma escolhida.'
+  ].join(String.fromCharCode(10));
+  const safeName=ad.title.normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/gi,'-').replace(/^-|-$/g,'').toLowerCase()||'anuncio';
+  const file=new Blob([String.fromCharCode(65279),content],{type:'text/plain;charset=utf-8'});
+  const url=URL.createObjectURL(file);
+  const link=document.createElement('a');
+  link.href=url;
+  link.download=safeName+'.txt';
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+  setMessage('Material do anúncio preparado para download.');
+ }
+
  async function saveSettings(e:FormEvent){
   e.preventDefault();setSaving(true);
   try{
@@ -79,9 +146,14 @@ export function MarketingPage({ companyId, userId }: { companyId: string; userId
   e.preventDefault();
   if(title.trim().length<5||description.trim().length<10){setMessage('Preencha um título e uma descrição completos.');return;}
   if(!platforms.length){setMessage('Selecione pelo menos um canal.');return;}
+  const normalizedImageUrl=imageUrl.trim();
+  if(normalizedImageUrl){
+   try{const parsedUrl=new URL(normalizedImageUrl);if(!['http:','https:'].includes(parsedUrl.protocol))throw new Error();}
+   catch{setMessage('Informe um link de imagem válido começando com http:// ou https://.');return;}
+  }
   setSaving(true);
   try{
-   const payload={company_id:companyId,product_id:productId||null,title:title.trim(),description:description.trim(),keywords:keywords.split(',').map(v=>v.trim()).filter(Boolean),image_url:imageUrl.trim()||null,image_prompt:imagePrompt.trim(),platforms,status:send?'pending_approval':'draft',created_by:userId};
+   const payload={company_id:companyId,product_id:productId||null,title:title.trim(),description:description.trim(),keywords:keywords.split(',').map(v=>v.trim()).filter(Boolean),image_url:normalizedImageUrl||null,image_prompt:imagePrompt.trim(),platforms,status:send?'pending_approval':'draft',created_by:userId};
    const result=editing?await supabase.from('marketing_ads').update({product_id:payload.product_id,title:payload.title,description:payload.description,keywords:payload.keywords,image_url:payload.image_url,image_prompt:payload.image_prompt,platforms:payload.platforms,status:payload.status,approved_by:null,approved_at:null,approval_note:null,published_at:null}).eq('id',editing.id).eq('company_id',companyId):await supabase.from('marketing_ads').insert(payload);
    if(result.error)throw result.error;
    clearForm();await load();setMessage(send?'Anúncio enviado para revisão.':'Rascunho salvo.');
@@ -98,7 +170,61 @@ export function MarketingPage({ companyId, userId }: { companyId: string; userId
   const {error}=await supabase.from('marketing_ads').delete().eq('id',ad.id).eq('company_id',companyId);
   if(error)setMessage(error.message);else{await load();setMessage('Anúncio excluído.');}
  }
- const visible=useMemo(()=>ads.filter(a=>filter==='all'||a.status===filter),[ads,filter]);
+ const visible=useMemo(()=>{
+  const term=searchTerm.trim().toLocaleLowerCase('pt-BR');
+  return ads.filter(a=>{
+   const matchesStatus=filter==='all'||a.status===filter;
+   const matchesChannel=channelFilter==='all'||a.platforms.includes(channelFilter);
+   const searchable=[a.title,a.description,...a.keywords].join(' ').toLocaleLowerCase('pt-BR');
+   return matchesStatus&&matchesChannel&&(!term||searchable.includes(term));
+  });
+ },[ads,filter,channelFilter,searchTerm]);
+ function exportVisibleAds(){
+  if(!visible.length){setMessage('Não há anúncios nos filtros atuais para exportar.');return;}
+  const sections=visible.map((ad,index)=>{
+   const channelNames=ad.platforms.map(v=>channels.find(ch=>ch.id===v)?.label??v);
+   return [
+    'ANÚNCIO '+(index+1),
+    '=====================',
+    'TÍTULO',
+    ad.title,
+    '',
+    'DESCRIÇÃO',
+    ad.description,
+    '',
+    'PALAVRAS-CHAVE',
+    ad.keywords.join(', ')||'Não informadas',
+    '',
+    'CANAIS',
+    channelNames.join(', ')||'Não informados',
+    '',
+    'LINK DA IMAGEM',
+    ad.image_url||'Não informado',
+    '',
+    'ORIENTAÇÃO PARA A IMAGEM',
+    ad.image_prompt||'Não informada',
+    '',
+    'CHAMADA PARA AÇÃO',
+    settings.default_call_to_action.trim()||'Não configurada',
+    'WHATSAPP',
+    settings.whatsapp.trim()||'Não configurado',
+    '',
+    'STATUS',
+    labels[ad.status]??ad.status
+   ].join(String.fromCharCode(10));
+  });
+  const content=['PACOTE DE DIVULGAÇÃO — KIDSLOC','Anúncios exportados conforme os filtros ativos: '+visible.length,'Exportado em: '+new Date().toLocaleString('pt-BR'),'','Publicação externa deve ser feita manualmente.','',...sections].join(String.fromCharCode(10,10));
+  const file=new Blob([String.fromCharCode(65279),content],{type:'text/plain;charset=utf-8'});
+  const url=URL.createObjectURL(file);
+  const link=document.createElement('a');
+  link.href=url;
+  link.download='kidsloc-anuncios-filtrados.txt';
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+  setMessage(visible.length+' anúncio(s) exportado(s) em um único arquivo TXT.');
+ }
  const selected=products.find(p=>p.id===productId);
  return <section className="module-shell marketing-module">
   <header className="module-header"><div><p className="eyebrow">DIVULGAÇÃO DA EMPRESA</p><h2>Marketing e anúncios</h2><p className="module-description">Prepare anúncios, revise o conteúdo e aprove antes de qualquer publicação.</p><p className="marketing-manual-note">A publicação automática ainda não está conectada. Depois da aprovação, copie o conteúdo e publique manualmente na plataforma escolhida.</p></div><button type="button" onClick={()=>{clearForm();setTab('ads');}}>＋ Novo anúncio</button></header>
@@ -114,12 +240,12 @@ export function MarketingPage({ companyId, userId }: { companyId: string; userId
    <div className="form-actions"><button type="submit" disabled={saving}>{saving?'Salvando...':'Salvar configurações'}</button></div>
   </form>:<>
    <div className="marketing-summary"><div><strong>{ads.length}</strong><span>Total</span></div><div><strong>{ads.filter(a=>a.status==='draft').length}</strong><span>Rascunhos</span></div><div><strong>{ads.filter(a=>a.status==='pending_approval').length}</strong><span>Para revisar</span></div><div><strong>{ads.filter(a=>a.status==='approved').length}</strong><span>Aprovados</span></div></div>
-   <div className="marketing-toolbar"><select aria-label="Filtrar anúncios" value={filter} onChange={e=>setFilter(e.target.value)}><option value="all">Todos os anúncios</option>{Object.entries(labels).map(([k,v])=><option value={k} key={k}>{v}</option>)}</select><button type="button" className="secondary-button" onClick={()=>void load()}>Atualizar</button></div>
-   {loading?<p className="module-empty">Carregando anúncios...</p>:visible.length===0?<p className="module-empty">Nenhum anúncio nesta lista. Crie o primeiro usando um brinquedo do estoque.</p>:<div className="marketing-ad-list">{visible.map(ad=><article className="marketing-ad-card" key={ad.id}>
+   <div className="marketing-toolbar marketing-toolbar-filters"><input aria-label="Pesquisar anúncios" type="search" value={searchTerm} onChange={e=>setSearchTerm(e.target.value)} placeholder="Pesquisar por título, descrição ou palavra-chave..."/><select aria-label="Filtrar por status" value={filter} onChange={e=>setFilter(e.target.value)}><option value="all">Todos os status</option>{Object.entries(labels).map(([k,v])=><option value={k} key={k}>{v}</option>)}</select><select aria-label="Filtrar por canal" value={channelFilter} onChange={e=>setChannelFilter(e.target.value)}><option value="all">Todos os canais</option>{channels.map(c=><option value={c.id} key={c.id}>{c.label}</option>)}</select><button type="button" className="secondary-button" onClick={()=>{setSearchTerm('');setFilter('all');setChannelFilter('all');}}>Limpar filtros</button><button type="button" className="secondary-button" onClick={()=>void load()}>Atualizar</button><button type="button" className="secondary-button" onClick={exportVisibleAds} disabled={loading||visible.length===0}>Baixar lista filtrada</button></div>
+   {loading?<p className="module-empty">Carregando anúncios...</p>:visible.length===0?<p className="module-empty">{ads.length===0?'Nenhum anúncio cadastrado. Crie o primeiro usando um brinquedo do estoque.':'Nenhum anúncio corresponde aos filtros atuais. Tente outro termo ou limpe os filtros.'}</p>:<><p className="marketing-results-count">Exibindo {visible.length} de {ads.length} anúncios</p><div className="marketing-ad-list">{visible.map(ad=><article className="marketing-ad-card" key={ad.id}>
     {ad.image_url?<img src={ad.image_url} alt="Imagem do anúncio"/>:<div className="marketing-image-placeholder">Imagem ainda não adicionada</div>}
     <div className="marketing-ad-content"><div className="marketing-ad-top"><span className={'marketing-status status-'+ad.status}>{labels[ad.status]??ad.status}</span><small>{new Date(ad.created_at).toLocaleDateString('pt-BR')}</small></div><h3>{ad.title}</h3><p>{ad.description}</p><div className="marketing-tags">{ad.platforms.map(v=><span key={v}>{channels.find(c=>c.id===v)?.label??v}</span>)}</div><small>Palavras-chave: {ad.keywords.join(', ')||'Não informadas'}</small>
-    <div className="marketing-actions"><button type="button" className="secondary-button" onClick={()=>void copyAd(ad)}>Copiar anúncio</button><button type="button" className="secondary-button" onClick={()=>edit(ad)}>Editar</button>{ad.status==='draft'||ad.status==='rejected'?<button type="button" onClick={()=>void status(ad,'pending_approval')}>Enviar para revisão</button>:null}{ad.status==='pending_approval'?<><button type="button" onClick={()=>void status(ad,'approved')}>Aprovar</button><button type="button" className="secondary-button" onClick={()=>void status(ad,'rejected')}>Solicitar ajustes</button></>:null}{ad.status==='approved'?<span className="marketing-not-published">Aprovado · publicação não conectada</span>:null}<button type="button" className="danger-button" onClick={()=>void remove(ad)}>Excluir</button></div>
-    </div></article>)}</div>}
+    <div className="marketing-actions"><button type="button" className="secondary-button" onClick={()=>void copyAd(ad)}>Copiar anúncio</button><button type="button" className="secondary-button" onClick={()=>exportAd(ad)}>Baixar material</button><button type="button" className="secondary-button" onClick={()=>edit(ad)}>Editar</button><button type="button" className="secondary-button" onClick={()=>duplicateAd(ad)}>Duplicar</button>{ad.status==='draft'||ad.status==='rejected'?<button type="button" onClick={()=>void status(ad,'pending_approval')}>Enviar para revisão</button>:null}{ad.status==='pending_approval'?<><button type="button" onClick={()=>void status(ad,'approved')}>Aprovar</button><button type="button" className="secondary-button" onClick={()=>void status(ad,'rejected')}>Solicitar ajustes</button></>:null}{ad.status==='approved'?<span className="marketing-not-published">Aprovado · publicação não conectada</span>:null}<button type="button" className="danger-button" onClick={()=>void remove(ad)}>Excluir</button></div>
+    </div></article>)}</div></>}
    <form className="customer-form marketing-editor" onSubmit={e=>void saveAd(e,false)}>
     <h3>{editing?'Editar anúncio':'Preparar anúncio'}</h3><p className="module-description">Selecione um brinquedo para preencher uma primeira versão. Você pode revisar todos os campos antes de salvar.</p>
     <label>Brinquedo do estoque<select value={productId} onChange={e=>generate(e.target.value)}><option value="">Selecione um brinquedo</option>{products.map(p=><option value={p.id} key={p.id}>{p.name}</option>)}</select></label>
@@ -127,10 +253,24 @@ export function MarketingPage({ companyId, userId }: { companyId: string; userId
     <label>Título *<input required minLength={5} maxLength={180} value={title} onChange={e=>setTitle(e.target.value)} placeholder="Título do anúncio"/></label>
     <label>Descrição *<textarea required minLength={10} maxLength={5000} rows={6} value={description} onChange={e=>setDescription(e.target.value)}/></label>
     <label>Palavras-chave (separadas por vírgula)<input value={keywords} onChange={e=>setKeywords(e.target.value)}/></label>
-    <label>Link da imagem (opcional)<input type="url" value={imageUrl} onChange={e=>setImageUrl(e.target.value)} placeholder="https://..."/></label>
+    <label>Link da imagem (opcional)<input type="url" value={imageUrl} onChange={e=>{setImageUrl(e.target.value);setImageLoadError(false);}} placeholder="https://..."/></label>
     <label>Orientação para produzir a imagem<textarea rows={3} value={imagePrompt} onChange={e=>setImagePrompt(e.target.value)} placeholder="Descreva a imagem que deverá acompanhar o anúncio."/></label>
     <fieldset className="marketing-channel-field"><legend>Canais desejados</legend>{channels.map(c=><label className="marketing-check" key={c.id}><input type="checkbox" checked={platforms.includes(c.id)} onChange={e=>setPlatforms(e.target.checked?[...platforms,c.id]:platforms.filter(v=>v!==c.id))}/>{c.label}</label>)}</fieldset>
     <div className="form-actions"><button type="button" className="secondary-button" onClick={clearForm}>Limpar</button><button type="submit" disabled={saving}>{saving?'Salvando...':'Salvar rascunho'}</button><button type="button" disabled={saving} onClick={()=>void saveAd({preventDefault:()=>{}} as FormEvent,true)}>{saving?'Aguarde...':'Enviar para aprovação'}</button></div>
+    <section className="marketing-preview" aria-label="Prévia do anúncio">
+     <div className="marketing-preview-heading"><div><span>VISUALIZAÇÃO</span><h4>Prévia do anúncio</h4></div><small>Prévia aproximada · confira no canal antes de publicar</small></div>
+     <article className="marketing-preview-card">
+      <div className="marketing-preview-brand"><span className="marketing-preview-avatar">{(settings.business_name.trim()||'K').slice(0,1).toUpperCase()}</span><div><strong>{settings.business_name.trim()||'Nome da empresa'}</strong><small>{platforms.map(v=>channels.find(c=>c.id===v)?.label??v).join(' · ')||'Nenhum canal selecionado'}</small></div></div>
+      {imageUrl.trim()&&!imageLoadError?<img className="marketing-preview-image" src={imageUrl.trim()} alt={selected?.name? 'Imagem de '+selected.name:'Imagem do anúncio'} onError={()=>setImageLoadError(true)}/>:<div className="marketing-preview-image marketing-preview-no-image"><span>{imageLoadError?'Não foi possível carregar a imagem':'Imagem do anúncio'}</span><small>{imageLoadError?'Confira o link ou escolha outra imagem.':'Adicione um link de imagem para visualizar aqui'}</small></div>}
+      <div className="marketing-preview-copy">
+       <strong>{title.trim()||'Título do anúncio'}</strong>
+       <p>{description.trim()||'A descrição do anúncio aparecerá aqui enquanto você preenche o formulário.'}</p>
+       {keywords.trim()&&<small>#{keywords.split(',').map(v=>v.trim()).filter(Boolean).join(' #')}</small>}
+       {(settings.default_call_to_action.trim()||settings.whatsapp.trim())&&<div className="marketing-preview-cta"><strong>{settings.default_call_to_action.trim()||'Entre em contato'}</strong>{settings.whatsapp.trim()&&<span>WhatsApp: {settings.whatsapp.trim()}</span>}</div>}
+      </div>
+     </article>
+     <div className="marketing-preview-count"><span>Título: {title.length}/180 caracteres</span><span>Descrição: {description.length}/5000 caracteres</span></div>
+    </section>
    </form>
   </>}
  </section>;
