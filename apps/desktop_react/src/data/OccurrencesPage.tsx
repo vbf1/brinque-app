@@ -181,8 +181,8 @@ export function OccurrencesPage({ companyId, role }: { companyId: string; role: 
         <label>Prejuízo estimado (R$), opcional<input disabled={!!editing && !canManage(editing)} type="number" min="0" step="0.01" value={form.loss_amount} onChange={(e) => setForm({ ...form, loss_amount: e.target.value })} /></label>
         {(!editing || canManage(editing)) && <label>Fotos e evidências (JPG, PNG ou WEBP; até 8 MB por foto)<input type="file" accept="image/jpeg,image/png,image/webp" multiple onChange={(e) => setFiles(Array.from(e.target.files ?? []))} /></label>}
         {editing?.photos.map((photo) => <div className="data-row-actions" key={photo.id}><a href={photo.url} target="_blank" rel="noreferrer">Abrir foto</a>{editing && canManage(editing) && <button type="button" className="danger-button" disabled={busy} onClick={() => void removePhoto(photo)}>Excluir foto</button>}</div>)}
-        <div className="data-form-actions"><button disabled={busy} type="submit">{busy ? 'Salvando...' : 'Salvar ocorrência'}</button><button type="button" className="secondary-button" onClick={() => { setEditing(null); setForm(emptyForm); setFiles([]); }}>Cancelar</button>
-          {editing && (isAdmin || editing.created_by === rows.find((row) => row.id === editing.id)?.created_by) && <button type="button" className="danger-button" disabled={busy} onClick={() => void remove(editing)}>Excluir ocorrência</button>}
+        <div className="data-form-actions">{(!editing || canManage(editing)) && <button disabled={busy} type="submit">{busy ? 'Salvando...' : 'Salvar ocorrência'}</button>}<button type="button" className="secondary-button" onClick={() => { setEditing(null); setShowForm(false); setForm(emptyForm); setFiles([]); }}>Fechar</button>
+          {editing && canManage(editing) && <button type="button" className="danger-button" disabled={busy} onClick={() => void remove(editing)}>Excluir ocorrência</button>}
         </div>
       </form>
     ) : null}
