@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - prototype/first-test-build
     paths:
       - 'apps/mobile_flutter/**'
       - '.github/workflows/build-flutter-apk.yml'
@@ -50,11 +51,13 @@ jobs:
         run: flutter test
       - name: Build installable APK
         working-directory: /tmp/kidsloc-android
-        run: flutter build apk --release --build-number=${GITHUB_RUN_NUMBER}
+        run: |
+          flutter build apk --release --build-number=${GITHUB_RUN_NUMBER}
+          cp build/app/outputs/flutter-apk/app-release.apk build/app/outputs/flutter-apk/kidsloc-app.apk
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: kidsloc-flutter-android-${{ github.run_number }}
-          path: /tmp/kidsloc-android/build/app/outputs/flutter-apk/app-release.apk
+          name: kidsloc-app-android-apk
+          path: /tmp/kidsloc-android/build/app/outputs/flutter-apk/kidsloc-app.apk
           if-no-files-found: error
           retention-days: 30
