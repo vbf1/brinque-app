@@ -8,9 +8,10 @@ import { FinancePage } from './data/FinancePage';
 import { OccurrencesPage } from './data/OccurrencesPage';
 import { TeamChatPage } from './data/TeamChatPage';
 import { MarketingPage } from './data/MarketingPage';
+import { ContractsPage } from './data/ContractsPage';
 
 type CompanyContext = { id: string; name: string; role: string };
-type Page = 'inicio' | 'locacoes' | 'clientes' | 'estoque' | 'financeiro' | 'ocorrencias' | 'mensagens' | 'marketing';
+type Page = 'inicio' | 'locacoes' | 'clientes' | 'estoque' | 'financeiro' | 'ocorrencias' | 'mensagens' | 'marketing' | 'contratos';
 const PASSWORD_RESET_REDIRECT = 'https://vbf1.github.io/kidsloc-app/';
 
 function friendlyError(error: unknown): string {
@@ -25,6 +26,7 @@ function friendlyError(error: unknown): string {
 const navigation: Array<{ id: Page; label: string; icon: string; admin?: boolean }> = [
   { id: 'inicio', label: 'Início', icon: '▦' },
   { id: 'locacoes', label: 'Locações', icon: '▣' },
+  { id: 'contratos', label: 'Contratos', icon: '✎' },
   { id: 'clientes', label: 'Clientes', icon: '♙' },
   { id: 'estoque', label: 'Estoque', icon: '▤' },
   { id: 'financeiro', label: 'Financeiro', icon: '＄', admin: true },
@@ -264,6 +266,7 @@ export default function App() {
             <div className="legacy-section-title">Resumo do negócio <span>Seus dados</span></div>
             <div className="legacy-dashboard-grid">
               <button className="legacy-dashboard-card" onClick={() => setPage('locacoes')}><span className="legacy-card-icon">▣</span><strong>Locações</strong><small>Gerencie reservas e entregas</small></button>
+              <button className="legacy-dashboard-card" onClick={() => setPage('contratos')}><span className="legacy-card-icon">✎</span><strong>Contratos</strong><small>Gere e acompanhe assinaturas</small></button>
               <button className="legacy-dashboard-card" onClick={() => setPage('clientes')}><span className="legacy-card-icon">♙</span><strong>Clientes</strong><small>Consulte e cadastre clientes</small></button>
               <button className="legacy-dashboard-card" onClick={() => setPage('estoque')}><span className="legacy-card-icon">▤</span><strong>Brinquedos e estoque</strong><small>Controle itens e unidades</small></button>
               {isAdmin && <button className="legacy-dashboard-card" onClick={() => setPage('financeiro')}><span className="legacy-card-icon">＄</span><strong>Financeiro</strong><small>Entradas e saídas</small></button>}
@@ -278,6 +281,7 @@ export default function App() {
         {page === 'clientes' && <CustomersPage companyId={company.id} />}
         {page === 'estoque' && <ProductsPage companyId={company.id} />}
         {page === 'locacoes' && <RentalsPage companyId={company.id} />}
+        {page === 'contratos' && <ContractsPage companyId={company.id} companyName={company.name} />}
         {page === 'financeiro' && isAdmin && <FinancePage companyId={company.id} />}
         {page === 'ocorrencias' && <OccurrencesPage companyId={company.id} role={company.role} />}
         {page === 'mensagens' && <TeamChatPage companyId={company.id} />}
