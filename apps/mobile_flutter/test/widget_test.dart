@@ -1,11 +1,13 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kidsloc_mobile/main.dart';
+import 'package:kidsloc_mobile/features/auth/login_page.dart';
 
 void main() {
-  testWidgets('exibe a tela inicial da base de migração', (tester) async {
-    await tester.pumpWidget(const KidsLocApp());
+  testWidgets('mostra o formulário de login do KidsLoc', (tester) async {
+    await tester.pumpWidget(const MaterialApp(home: LoginPage()));
     expect(find.text('KidsLoc App'), findsOneWidget);
-    expect(find.text('Nova base mobile preparada'), findsOneWidget);
-    expect(find.textContaining('Ambiente de migração'), findsOneWidget);
+    expect(find.text('SONHO KIDS BRINQUEDOS'), findsOneWidget);
+    expect(find.text('Entrar'), findsOneWidget);
+    expect(find.text('Esqueci minha senha'), findsOneWidget);
   });
 }
