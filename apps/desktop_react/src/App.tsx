@@ -5,6 +5,7 @@ import { CustomersPage } from './data/CustomersPage';
 import { ProductsPage } from './data/ProductsPage';
 import { RentalsPage } from './data/RentalsPage';
 import { FinancePage } from './data/FinancePage';
+import { OccurrencesPage } from './data/OccurrencesPage';
 
 type CompanyContext = { id: string; name: string; role: string };
 const PASSWORD_RESET_REDIRECT = 'https://vbf1.github.io/kidsloc-app/';
@@ -36,6 +37,7 @@ export default function App() {
   const [showProducts, setShowProducts] = useState(false);
   const [showRentals, setShowRentals] = useState(false);
   const [showFinance, setShowFinance] = useState(false);
+  const [showOccurrences, setShowOccurrences] = useState(false);
   const feedback = useCallback((value: string, error = false) => {
     setMessage(value);
     setIsError(error);
@@ -86,6 +88,7 @@ export default function App() {
         setShowProducts(false);
         setShowRentals(false);
         setShowFinance(false);
+        setShowOccurrences(false);
         setRecovery(false);
         setForgot(false);
         setPassword('');
@@ -217,6 +220,19 @@ export default function App() {
     <button onClick={logout} disabled={busy}>Sair</button>
   </section></main>;
 
+  if (showOccurrences) return (
+    <main className="module-page">
+      <header className="app-topbar">
+        <strong>KidsLoc App · {company?.name ?? ''}</strong>
+        <div className="topbar-actions">
+          <button type="button" className="secondary-button" onClick={() => setShowOccurrences(false)}>Início</button>
+          <button type="button" onClick={logout} disabled={busy}>Sair</button>
+        </div>
+      </header>
+      {company && <OccurrencesPage companyId={company.id} role={company.role} />}
+    </main>
+  );
+
   if (showFinance) return (
     <main className="module-page">
       <header className="app-topbar">
@@ -277,6 +293,7 @@ export default function App() {
     <button type="button" onClick={() => setShowCustomers(true)}>Gerenciar clientes</button>
     <button type="button" className="secondary-button" onClick={() => setShowProducts(true)}>Brinquedos e estoque</button>
     <button type="button" onClick={() => setShowRentals(true)}>Gerenciar locações</button>
+    <button type="button" className="secondary-button" onClick={() => setShowOccurrences(true)}>Ocorrências</button>
     {(company.role === 'owner' || company.role === 'admin') && <button type="button" className="secondary-button" onClick={() => setShowFinance(true)}>Financeiro</button>}
     <p className="note">Os módulos estão sendo migrados gradualmente. Os dados permanecem no banco atual.</p>
     <button onClick={logout} disabled={busy}>{busy ? 'Saindo...' : 'Sair da conta'}</button>
