@@ -21,6 +21,12 @@ jobs:
       - name: Build web app
         working-directory: apps/desktop_react
         run: npm run build
+      - name: Upload web preview artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: kidsloc-web-preview
+          path: apps/desktop_react/dist
+          retention-days: 7
   flutter-validation:
     runs-on: ubuntu-latest
     steps:
@@ -53,3 +59,9 @@ jobs:
       - name: Build Flutter APK
         working-directory: /tmp/kidsloc-android
         run: flutter build apk --release --build-number=${GITHUB_RUN_NUMBER}
+      - name: Upload Android preview APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: kidsloc-android-preview-apk
+          path: /tmp/kidsloc-android/build/app/outputs/flutter-apk/app-release.apk
+          retention-days: 7
