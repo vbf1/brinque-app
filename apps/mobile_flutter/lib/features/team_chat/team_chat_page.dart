@@ -13,6 +13,7 @@ class _TeamChatPageState extends State<TeamChatPage> {
   final _composer = TextEditingController();
   List<Map<String, dynamic>> _members = [], _conversations = [], _messages = [];
   final Map<String, String> _conversationPeers = {};
+  final Map<String, String> _conversationPreviews = {};
   String? _viewerId, _recipientId, _error;
   Map<String, dynamic>? _active;
   dynamic _channel;
@@ -58,6 +59,18 @@ class _TeamChatPageState extends State<TeamChatPage> {
             .map((row) => MapEntry(row['conversation_id'] as String, row['user_id'] as String)));
         _conversations = conversations.where((row) => visibleIds.contains(row['id'])).toList();
       } else { _conversations = []; }
+      _conversationPreviews.clear();
+      if (conversationIds.isNotEmpty) {
+        final recentMessages = await _client.from('team_messages')
+            .select('conversation_id, sender_id, body, created_at').inFilter('conversation_id', conversationIds)
+            .order('created_at', ascending: false).limit(1000);
+        for (final row in List<Map<String, dynamic>>.from(recentMessages)) {
+          final conversationId = row['conversation_id'] as String;
+          if (!_conversationPreviews.containsKey(conversationId)) {
+            _conversationPreviews[conversationId] = (row['sender_id'] == _viewerId ? 'Você: ' : '') + (row['body'] as String? ?? '');
+          }
+        }
+      }
       if (groupId != null && !_conversations.any((row) => row['id'] == groupId)) {
         final group = await _client.from('team_conversations').select('id, conversation_type, title, created_at').eq('id', groupId).maybeSingle();
         if (group != null) _conversations.insert(0, Map<String, dynamic>.from(group));
@@ -163,7 +176,7 @@ class _TeamChatPageState extends State<TeamChatPage> {
       ..._conversations.map((conversation) => Card(child: ListTile(
         leading: CircleAvatar(child: Icon(conversation['conversation_type'] == 'team' ? Icons.groups_outlined : Icons.person_outline)),
         title: Text(_conversationName(conversation)),
-        subtitle: Text(conversation['conversation_type'] == 'team' ? 'Grupo da equipe' : 'Conversa privada'),
+        subtitle: Text(_conversationPreviews[conversation['id']] ?? (conversation['conversation_type'] == 'team' ? 'Mensagens para toda a equipe' : 'Comece a conversa'), maxLines: 1, overflow: TextOverflow.ellipsis),
         trailing: const Icon(Icons.chevron_right), onTap: () => _open(conversation)))),
       if (_conversations.isEmpty) const Padding(padding: EdgeInsets.all(18),
         child: Text('Nenhuma conversa disponível. Inicie uma conversa ou abra o grupo da equipe.')),
