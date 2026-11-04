@@ -12,6 +12,10 @@ on:
       - '.github/workflows/migration-foundations.yml'
   workflow_dispatch:
 
+concurrency:
+  group: migration-foundations-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
@@ -48,3 +52,34 @@ jobs:
       - name: Build React
         working-directory: apps/desktop_react
         run: npm run build
+
+  lockfiles:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - name: Generate pinned dependency lockfiles
+        run: |
+          npm install --package-lock-only --ignore-scripts --no-audit --no-fund --prefix apps/desktop_react
+          cd apps/mobile_flutter
+          flutter pub get
+          cd ../..
+      - name: Commit lockfiles to migration branch
+        run: |
+          git add apps/desktop_react/package-lock.json apps/mobile_flutter/pubspec.lock
+          if git diff --cached --quiet; then
+            echo "Lockfiles already up to date."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "build: lock Flutter and React dependencies"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
