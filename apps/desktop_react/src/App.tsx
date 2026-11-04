@@ -79,7 +79,7 @@ export default function App() {
     let active = true;
     const timeoutId = window.setTimeout(() => {
       if (!active) return;
-      setSession(supabase.auth.currentSession);
+      setSession(null);
       setLoading(false);
       feedback('A verificação da sessão está demorando. Confira sua conexão e tente entrar novamente.', true);
     }, 15000);
@@ -116,7 +116,7 @@ export default function App() {
         setSession(data.session);
       } catch (error) {
         if (active) {
-          setSession(supabase.auth.currentSession);
+          setSession(null);
           feedback('Não foi possível verificar sua sessão: ' + friendlyError(error), true);
         }
       } finally {
