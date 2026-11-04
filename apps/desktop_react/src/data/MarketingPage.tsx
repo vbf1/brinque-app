@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { supabase } from '../lib/supabase';
 
 type Product = { id: string; name: string; description: string | null; daily_price: number };
@@ -44,6 +44,7 @@ export function MarketingPage({ companyId, userId }: { companyId: string; userId
  const [platforms,setPlatforms]=useState<string[]>(['facebook_marketplace']);
  const [filter,setFilter]=useState('all');
  const [previewChannel,setPreviewChannel]=useState('instagram');
+ const imageInputRef=useRef<HTMLInputElement>(null);
 
  useEffect(()=>{
   if(!imageFile){setImagePreview('');return;}
@@ -82,7 +83,7 @@ export function MarketingPage({ companyId, userId }: { companyId: string; userId
  useEffect(()=>{void load();},[load]);
 
  function clearForm(){
-  setEditing(null);setProductId('');setTitle('');setDescription('');setKeywords('');setImageUrl('');setImagePrompt('');setImageFile(null);setSelectedProductImagePath('');setPlatforms(['facebook_marketplace']);
+  setEditing(null);setProductId('');setTitle('');setDescription('');setKeywords('');setImageUrl('');setImagePrompt('');setImageFile(null);setSelectedProductImagePath('');if(imageInputRef.current)imageInputRef.current.value='';setPlatforms(['facebook_marketplace']);
  }
  function generate(id:string){
   const p=products.find(v=>v.id===id);if(!p)return;
@@ -97,7 +98,7 @@ export function MarketingPage({ companyId, userId }: { companyId: string; userId
   setImagePrompt('Fotografia publicitária realista e original de '+p.name+' para locação em festa infantil. Brinquedo em destaque, ambiente alegre, sem textos, marcas ou marcas d’água.');
  }
  function edit(ad:Ad){
-  setEditing(ad);setProductId(ad.product_id??'');setTitle(ad.title);setDescription(ad.description);setKeywords(ad.keywords.join(', '));setImagePrompt(ad.image_prompt??'');setPlatforms(ad.platforms??['facebook_marketplace']);setTab('ads');setImageFile(null);
+  setEditing(ad);setProductId(ad.product_id??'');setTitle(ad.title);setDescription(ad.description);setKeywords(ad.keywords.join(', '));setImagePrompt(ad.image_prompt??'');setPlatforms(ad.platforms??['facebook_marketplace']);setTab('ads');setImageFile(null);if(imageInputRef.current)imageInputRef.current.value='';
   if(ad.image_url?.startsWith(PRODUCT_IMAGE_PREFIX)){setSelectedProductImagePath(ad.image_url.slice(PRODUCT_IMAGE_PREFIX.length));setImageUrl('');}
   else{setSelectedProductImagePath('');setImageUrl(ad.image_url??'');}
  }
@@ -192,9 +193,9 @@ export function MarketingPage({ companyId, userId }: { companyId: string; userId
      <label>Título *<input required minLength={5} maxLength={180} value={title} onChange={e=>setTitle(e.target.value)} placeholder="Título do anúncio"/></label>
      <label>Descrição *<textarea required minLength={10} maxLength={5000} rows={6} value={description} onChange={e=>setDescription(e.target.value)}/></label>
      <label>Palavras-chave (separadas por vírgula)<input value={keywords} onChange={e=>setKeywords(e.target.value)}/></label>
-     <label>Foto cadastrada no estoque<select value={selectedProductImagePath} onChange={e=>{setSelectedProductImagePath(e.target.value);setImageFile(null);setImageUrl('');}}><option value="">Não usar foto do estoque</option>{productImages.map(image=><option key={image.id} value={image.storage_path}>{image.product_name}{image.caption?' · '+image.caption:''}{image.is_cover?' · Capa':''}</option>)}</select><small>As fotos existentes são exibidas com acesso temporário seguro e não são duplicadas.</small></label>
-     <label>Enviar nova imagem (PNG, JPG ou WebP · até 5 MB)<input type="file" accept="image/png,image/jpeg,image/webp" onChange={e=>{const file=e.target.files?.[0]??null;setImageFile(file);setSelectedProductImagePath('');setImageUrl('');}}/></label>
-     <label>Ou link da imagem (opcional)<input type="url" value={imageUrl} onChange={e=>{setImageUrl(e.target.value);setImageFile(null);setSelectedProductImagePath('');}} placeholder="https://..."/></label>
+     <label>Foto cadastrada no estoque<select value={selectedProductImagePath} onChange={e=>{setSelectedProductImagePath(e.target.value);setImageFile(null);setImageUrl('');if(imageInputRef.current)imageInputRef.current.value='';}}><option value="">Não usar foto do estoque</option>{productImages.map(image=><option key={image.id} value={image.storage_path}>{image.product_name}{image.caption?' · '+image.caption:''}{image.is_cover?' · Capa':''}</option>)}</select><small>As fotos existentes são exibidas com acesso temporário seguro e não são duplicadas.</small></label>
+     <label>Enviar nova imagem (PNG, JPG ou WebP · até 5 MB)<input ref={imageInputRef} type="file" accept="image/png,image/jpeg,image/webp" onChange={e=>{const file=e.target.files?.[0]??null;setImageFile(file);setSelectedProductImagePath('');setImageUrl('');}}/></label>
+     <label>Ou link da imagem (opcional)<input type="url" value={imageUrl} onChange={e=>{setImageUrl(e.target.value);setImageFile(null);setSelectedProductImagePath('');if(imageInputRef.current)imageInputRef.current.value='';}} placeholder="https://..."/></label>
      <label>Orientação para produzir a imagem<textarea rows={3} value={imagePrompt} onChange={e=>setImagePrompt(e.target.value)} placeholder="Descreva a imagem que deverá acompanhar o anúncio."/></label>
      <fieldset className="marketing-channel-field"><legend>Canais desejados</legend>{channels.map(c=><label className="marketing-check" key={c.id}><input type="checkbox" checked={platforms.includes(c.id)} onChange={e=>setPlatforms(e.target.checked?[...platforms,c.id]:platforms.filter(v=>v!==c.id))}/>{c.label}</label>)}</fieldset>
      <div className="form-actions"><button type="button" className="secondary-button" onClick={clearForm}>Limpar</button><button type="submit" disabled={saving}>{saving?'Salvando...':'Salvar rascunho'}</button><button type="button" disabled={saving} onClick={()=>void saveAd({preventDefault:()=>{}},true)}>{saving?'Aguarde...':'Enviar para aprovação'}</button></div>
