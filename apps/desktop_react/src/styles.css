@@ -281,7 +281,7 @@ button:focus-visible{outline:3px solid #3478e566;outline-offset:2px}
 .kc-pix-title b{font-size:13px}
 .kc-pix-title small{color:var(--kc-muted);font-size:10px}
 .kc-pix-key{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:13px;padding:9px;border:1px dashed #b9d6cb;border-radius:9px;background:white}
-.kc-pix-key>span{font-size:13px;font-weight:800;letter-spacing:.03em}
+.kc-pix-owner{display:flex;justify-content:space-between;gap:12px;margin-top:14px;padding:0 2px;font-size:11px}.kc-pix-owner span{color:var(--kc-muted)}.kc-pix-owner b{color:var(--kc-ink);text-align:right}.kc-pix-key>span{display:grid;gap:4px;font-size:13px;font-weight:800;letter-spacing:.03em}.kc-pix-key>span small{color:var(--kc-muted);font-size:9px;font-weight:600;letter-spacing:0}
 .kc-pix-key button{flex-shrink:0;padding:8px 10px;border:0;border-radius:7px;background:#147b5d;color:white;font-size:11px;font-weight:800}
 .kc-pix-value{display:flex;justify-content:space-between;margin-top:12px;padding-top:11px;border-top:1px solid #dcebe5;font-size:12px}
 .kc-pix-value span{color:var(--kc-muted)}
