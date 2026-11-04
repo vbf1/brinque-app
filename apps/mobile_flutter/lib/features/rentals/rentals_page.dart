@@ -76,7 +76,7 @@ class _RentalsPageState extends State<RentalsPage> {
               DropdownButtonFormField<String>(
                 value: status.value,
                 decoration: const InputDecoration(labelText: 'Status'),
-                items: const [
+                items: [
                   DropdownMenuItem(value: 'pending', child: Text('Pendente')),
                   DropdownMenuItem(value: 'confirmed', child: Text('Confirmada')),
                   DropdownMenuItem(value: 'ongoing', child: Text('Em andamento')),
