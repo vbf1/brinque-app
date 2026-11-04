@@ -160,7 +160,7 @@ class _RentalsPageState extends State<RentalsPage> {
               const SizedBox(height: 8),
               TextFormField(
                 controller: totalController,
-                decoration: const InputDecoration(labelText: 'Valor total da locação (R$) *'),
+                decoration: const InputDecoration(labelText: 'Valor total da locação (R\$) *'),
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
                 validator: (v) => (double.tryParse((v ?? '').replaceAll(',', '.')) ?? -1) < 0 ? 'Informe um valor válido.' : null,
               ),
@@ -201,7 +201,6 @@ class _RentalsPageState extends State<RentalsPage> {
 
     if (saved == true && mounted) {
       try {
-        final days = end.value.difference(start.value).inDays + 1;
         final total = double.tryParse(totalController.text.replaceAll(',', '.')) ?? 0;
         final items = itemRows.map((item) => {
           'product_id': item.productId, 'quantity': item.quantity, 'unit_price': item.price,
