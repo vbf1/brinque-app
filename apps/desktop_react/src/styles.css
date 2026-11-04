@@ -295,3 +295,32 @@ button:focus-visible{outline:3px solid #3478e566;outline-offset:2px}
 .kc-footer b{color:var(--kc-ink)}
 @media(max-width:760px){.kc-topbar{height:62px;padding:0 17px}.kc-secure{font-size:10px}.kc-hero{grid-template-columns:1fr;padding:38px 18px 30px;gap:28px}.kc-hero h1{font-size:42px}.kc-preview{transform:none}.kc-benefits{grid-template-columns:1fr 1fr;padding:5px 18px 35px}.kc-checkout-wrap{grid-template-columns:1fr;margin:8px 12px 42px;padding:24px 16px;gap:22px}.kc-checkout-intro h2{font-size:29px}.kc-payment-card{padding:19px}}
 @media(max-width:390px){.kc-hero h1{font-size:36px}.kc-benefits{gap:8px}.kc-benefits article{padding:13px}.kc-pix-key{align-items:flex-start;flex-direction:column}.kc-pix-key button{width:100%}.kc-footer{flex-direction:column;align-items:center;gap:4px}}
+
+/* Login responsivo: evita o cartão exagerado em celulares e respeita a área útil do navegador. */
+@media(max-width:640px){
+  .legacy-auth-screen{
+    min-height:100vh;
+    min-height:100svh;
+    padding:clamp(12px,3.5vh,22px) 16px;
+    place-items:center;
+  }
+  .legacy-auth-card{
+    width:min(430px,100%);
+    padding:clamp(19px,5vw,24px);
+    border-radius:18px;
+  }
+  .legacy-auth-brand{font-size:20px}
+  .legacy-muted{margin:2px 0 14px;font-size:12px}
+  .legacy-login-accent{margin:14px 0}
+  .legacy-auth-card h1{font-size:clamp(22px,6vw,25px);line-height:1.2}
+  .legacy-intro{margin-bottom:14px;font-size:13px}
+  .legacy-form{gap:1px}
+  .legacy-form label{margin:5px 0 3px;font-size:12px}
+  .legacy-form input{min-height:46px;margin-bottom:8px;padding:10px 12px;font-size:14px}
+  .legacy-primary-button,.legacy-secondary-button{min-height:46px;margin-top:7px;padding:10px 12px;font-size:14px}
+  .legacy-feedback{margin-top:10px;font-size:11px}
+}
+@media(max-height:700px) and (max-width:640px){
+  .legacy-auth-screen{place-items:start center}
+  .legacy-auth-card{margin:0 auto}
+}
