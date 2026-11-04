@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -50,12 +52,18 @@ class _CompanyHomePageState extends State<CompanyHomePage> {
       throw Exception('Sua sessão expirou. Entre novamente.');
     }
     final member = await client.from('company_members').select('company_id, role')
-      .eq('user_id', user.id).limit(1).maybeSingle();
+      .eq('user_id', user.id).limit(1).maybeSingle().timeout(
+        const Duration(seconds: 15),
+        onTimeout: () => throw TimeoutException('A consulta da sua empresa demorou demais. Verifique sua conexão e tente novamente.'),
+      );
     if (member == null) {
       throw Exception('Esta conta ainda não está vinculada a uma empresa. Peça ao proprietário para conferir seu acesso.');
     }
     final company = await client.from('companies').select('id, name, logo_url, home_image_url')
-      .eq('id', member['company_id']).single();
+      .eq('id', member['company_id']).single().timeout(
+        const Duration(seconds: 15),
+        onTimeout: () => throw TimeoutException('Os dados da empresa demoraram demais para carregar. Verifique sua conexão.'),
+      );
     return {'id': company['id'], 'name': company['name'], 'role': member['role'], 'email': user.email ?? ''};
   }
 
