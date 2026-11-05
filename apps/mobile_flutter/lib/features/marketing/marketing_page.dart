@@ -1,7 +1,11 @@
+import 'dart:convert';
+import 'dart:io';
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class MarketingPage extends StatefulWidget {
   const MarketingPage({super.key, required this.companyId, required this.userId});
@@ -29,6 +33,13 @@ class _MarketingPageState extends State<MarketingPage> {
   String? _editingId, _productId, _productImage;
   XFile? _imageFile;
   final _picker = ImagePicker();
+  bool _studioConsent = false, _studioBusy = false;
+  String _studioScene = 'festa', _studioProgress = '';
+  int _studioCount = 4;
+  String? _studioSourcePath;
+  XFile? _studioSourceFile;
+  List<Map<String, dynamic>> _studioResults = [];
+  static const _hordeApi = 'https://aihorde.net/api/v2';
   List<Map<String, dynamic>> _products = [], _images = [], _ads = [];
   List<String> _platforms = ['facebook_marketplace'];
   static const _channels = {
@@ -189,6 +200,101 @@ class _MarketingPageState extends State<MarketingPage> {
       if(mounted)setState(()=>_message='Falha ao salvar anúncio: $e');
     }
     finally{if(mounted)setState(()=>_saving=false);}
+  }
+
+
+  Future<Map<String, dynamic>> _hordeRequest(String method, String path, {Map<String, dynamic>? body}) async {
+    final client = HttpClient()..connectionTimeout = const Duration(seconds: 30);
+    try {
+      final request = await client.openUrl(method, Uri.parse(_hordeApi + path)).timeout(const Duration(seconds: 35));
+      request.headers.set(HttpHeaders.contentTypeHeader, 'application/json');
+      request.headers.set('apikey', '0000000000');
+      request.headers.set('Client-Agent', 'KidsLocApp:1.0');
+      if (body != null) request.add(utf8.encode(jsonEncode(body)));
+      final response = await request.close().timeout(const Duration(seconds: 35));
+      final responseText = await response.transform(utf8.decoder).join();
+      final decoded = jsonDecode(responseText);
+      if (response.statusCode < 200 || response.statusCode >= 300) throw Exception('Falha no AI Horde: HTTP ' + response.statusCode.toString());
+      return decoded is Map<String, dynamic> ? decoded : <String, dynamic>{};
+    } finally { client.close(force: true); }
+  }
+
+  Future<void> _generateStudioImages() async {
+    if (!_studioConsent) { setState(() => _message = 'Confirme o aviso de privacidade antes de enviar a foto.'); return; }
+    if (_studioSourceFile == null && (_studioSourcePath == null || _studioSourcePath!.isEmpty)) { setState(() => _message = 'Escolha uma foto do estoque ou envie uma imagem.'); return; }
+    setState(() { _studioBusy = true; _studioResults = []; _studioProgress = 'Preparando a foto...'; _message = ''; });
+    try {
+      late final List<int> bytes;
+      String mime = 'image/jpeg';
+      if (_studioSourceFile != null) {
+        bytes = await _studioSourceFile!.readAsBytes();
+        mime = _studioSourceFile!.mimeType ?? 'image/jpeg';
+      } else {
+        bytes = await _db.storage.from('product-images').download(_studioSourcePath!);
+        final p = _studioSourcePath!.toLowerCase();
+        mime = p.endsWith('.png') ? 'image/png' : p.endsWith('.webp') ? 'image/webp' : 'image/jpeg';
+      }
+      if (bytes.length > 5 * 1024 * 1024 || !['image/png','image/jpeg','image/webp'].contains(mime)) throw Exception('Use uma foto PNG, JPG ou WebP de até 5 MB.');
+      const scenes = {
+        'festa': ['em salão de festa infantil com balões em tons pastel', 'em festa infantil ao ar livre com mesas decoradas', 'em espaço de recreação infantil colorido', 'em salão de eventos elegante'],
+        'externo': ['em gramado amplo com árvores', 'em quintal espaçoso com jardim', 'em área externa para eventos', 'em parque arborizado com luz natural'],
+        'estudio': ['em estúdio com fundo branco', 'em estúdio com fundo bege claro', 'em estúdio com fundo cinza claro', 'em estúdio com fundo creme'],
+        'neutro': ['em cenário minimalista branco', 'em cenário areia claro', 'em cenário cinza pérola', 'em cenário off-white'],
+      };
+      final variants = scenes[_studioScene] ?? scenes['festa']!;
+      final source = base64Encode(bytes);
+      final random = Random.secure();
+      final jobs = <Map<String, dynamic>>[];
+      for (var i = 0; i < _studioCount; i++) {
+        final prompt = 'Fotografia publicitária realista usando a foto como referência obrigatória. Preserve exatamente o mesmo brinquedo, modelo, estrutura, formato, cores, proporções e acessórios. Não redesenhe, não acrescente nem remova partes, não espelhe. Mantenha o brinquedo inteiro visível e mude somente o cenário: ' + variants[i % variants.length] + '. Sem pessoas, textos, logotipos ou marcas d’água.';
+        final response = await _hordeRequest('POST', '/generate/async', body: {
+          'prompt': prompt,
+          'params': {'n': 1, 'width': 512, 'height': 512, 'steps': 25, 'cfg_scale': 8, 'denoising_strength': 0.45, 'seed': random.nextInt(0x7fffffff).toString()},
+          'nsfw': false, 'censor_nsfw': true, 'r2': true, 'shared': false,
+          'source_image': source, 'source_processing': 'img2img',
+        });
+        if (response['id'] == null) throw Exception('AI Horde não retornou o ID da geração.');
+        jobs.add({'id': response['id'].toString(), 'done': false});
+      }
+      final results = <Map<String, dynamic>>[];
+      for (var attempt = 0; attempt < 120 && jobs.any((j) => j['done'] != true); attempt++) {
+        await Future.delayed(const Duration(seconds: 5));
+        for (final job in jobs.where((j) => j['done'] != true).toList()) {
+          final check = await _hordeRequest('GET', '/generate/check/' + job['id']);
+          if (check['done'] == true || (int.tryParse(check['finished']?.toString() ?? '') ?? 0) > 0) {
+            job['done'] = true;
+            final result = await _hordeRequest('GET', '/generate/status/' + job['id']);
+            final generations = result['generations'];
+            if (generations is List) {
+              for (final item in generations) {
+                if (item is Map && item['img'] is String && item['img'].startsWith('https://')) results.add({'url': item['img']});
+              }
+            }
+          }
+        }
+        if (mounted) setState(() => _studioProgress = 'Imagens recebidas: ' + results.length.toString() + '/' + _studioCount.toString());
+      }
+      if (mounted) setState(() {
+        _studioResults = results;
+        if (results.isEmpty) _message = 'A fila terminou sem retornar imagens. Tente novamente mais tarde.';
+        else if (results.length < _studioCount) _message = 'O serviço retornou ' + results.length.toString() + ' de ' + _studioCount.toString() + ' imagens.';
+      });
+    } catch (e) {
+      if (mounted) setState(() => _message = e.toString().replaceFirst('Exception: ', ''));
+    } finally { if (mounted) setState(() => _studioBusy = false); }
+  }
+
+  Future<void> _chooseStudioFile() async {
+    final file = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 95);
+    if (file != null && mounted) setState(() { _studioSourceFile = file; _studioSourcePath = null; _studioResults = []; });
+  }
+
+  void _useStudioImage(String url) {
+    _imageUrl.text = url;
+    _imageFile = null;
+    _productImage = null;
+    setState(() => _message = 'Imagem selecionada. Revise e salve o anúncio.');
+    _editor();
   }
 
   Future<void> _status(Map<String,dynamic> ad,String next) async {
