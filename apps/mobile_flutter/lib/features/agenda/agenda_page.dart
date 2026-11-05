@@ -6,8 +6,9 @@ import '../../data/company_data_repository.dart';
 import '../../data/rental_time.dart';
 
 class AgendaPage extends StatefulWidget {
-  const AgendaPage({super.key, required this.companyId});
+  const AgendaPage({super.key, required this.companyId, this.onOpenRentals});
   final String companyId;
+  final VoidCallback? onOpenRentals;
 
   @override
   State<AgendaPage> createState() => _AgendaPageState();
@@ -85,6 +86,8 @@ class _AgendaPageState extends State<AgendaPage> {
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(title: const Text('Agenda'), actions: [
       IconButton(tooltip: 'Atualizar', onPressed: _reload, icon: const Icon(Icons.refresh)),
+      if (widget.onOpenRentals != null)
+        TextButton.icon(onPressed: widget.onOpenRentals, icon: const Icon(Icons.add), label: const Text('Nova locação')),
     ]),
     body: FutureBuilder<List<Map<String, dynamic>>>(
       future: _future,
@@ -160,6 +163,14 @@ class _AgendaPageState extends State<AgendaPage> {
                 const Padding(padding: EdgeInsets.all(22), child: Center(child: Text('Nenhuma reserva neste dia.')))
               else
                 ...selectedRentals.map(_rentalCard),
+              if (widget.onOpenRentals != null) ...[
+                const SizedBox(height: 12),
+                OutlinedButton.icon(
+                  onPressed: widget.onOpenRentals,
+                  icon: const Icon(Icons.event_note_outlined),
+                  label: const Text('Abrir todas as locações'),
+                ),
+              ],
             ],
           ),
         );
