@@ -8,6 +8,7 @@ import '../agenda/agenda_page.dart';
 import '../contracts/contracts_page.dart';
 import '../customers/customers_page.dart';
 import '../finance/finance_page.dart';
+import '../marketing/marketing_page.dart';
 import '../occurrences/occurrences_page.dart';
 import '../products/products_page.dart';
 import '../quotes/quotes_page.dart';
@@ -72,6 +73,7 @@ class _NativeCompanyHomePageState extends State<NativeCompanyHomePage> {
       'services' => ServicesPage(companyId: company.id),
       'quotes' => QuotesPage(companyId: company.id),
       'finance' => FinancePage(companyId: company.id),
+      'marketing' => MarketingPage(companyId: company.id, userId: Supabase.instance.client.auth.currentUser!.id),
       'chat' => TeamChatPage(companyId: company.id),
       'occurrences' => OccurrencesPage(companyId: company.id, role: company.role),
       'users' => UsersPage(companyId: company.id, viewerRole: company.role),
@@ -168,6 +170,7 @@ class _NativeCompanyHomePageState extends State<NativeCompanyHomePage> {
         _HomePage('services', 'Serviços', 'Serviços e preços', Icons.miscellaneous_services_outlined),
         _HomePage('quotes', 'Orçamentos', 'Propostas e PDFs', Icons.request_quote_outlined),
         if (admin) _HomePage('finance', 'Financeiro', 'Entradas e saídas', Icons.account_balance_wallet_outlined),
+        if (admin) _HomePage('marketing', 'Marketing', 'Anúncios e divulgação', Icons.campaign_outlined),
         _HomePage('chat', 'Mensagens', 'Comunicação da equipe', Icons.chat_bubble_outline),
         _HomePage('occurrences', 'Ocorrências', 'Registros e fotos', Icons.report_gmailerrorred_outlined),
         if (admin) _HomePage('users', 'Usuários', 'Equipe e permissões', Icons.manage_accounts_outlined),
