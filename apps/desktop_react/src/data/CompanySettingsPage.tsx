@@ -56,10 +56,10 @@ export function CompanySettingsPage({ companyId, companyName, platformOwner, use
 
   return <section className="module-content">
     <div className="module-header"><div><h2>Configurações da empresa</h2><p className="module-description">Atualize os dados básicos da empresa selecionada.</p></div></div>
-    <form className="customer-form" onSubmit={save}>
+    {companyId && <form className="customer-form" onSubmit={save}>
       <label>Nome da empresa<input value={name} onChange={event => setName(event.target.value)} maxLength={120} required /></label>
       <div className="form-actions"><button type="submit" disabled={saving}>{saving ? 'Salvando...' : 'Salvar alterações'}</button></div>
-    </form>
+    </form>}
     {platformOwner && <form className="customer-form" onSubmit={createCompany}>
       <h3>Adicionar empresa</h3>
       <p className="module-description">Cadastre outra empresa sem misturar os dados das empresas existentes.</p>
