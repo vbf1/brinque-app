@@ -367,3 +367,50 @@ select:focus-visible{outline:3px solid #3478e52b;outline-offset:1px}
 .marketing-ai-grid a{color:var(--blue);font-size:11px;text-decoration:none}
 .marketing-ai-grid button{width:100%;min-height:36px;font-size:11px}
 @media(max-width:600px){.marketing-ai-studio{padding:12px}.marketing-ai-heading{flex-direction:column}.marketing-ai-controls{grid-template-columns:1fr}.marketing-ai-grid{grid-template-columns:1fr 1fr}}
+
+/* Agenda visual de reservas: calendário mensal e painel diário. */
+.agenda-page{gap:15px}
+.agenda-header-actions{display:flex;flex-wrap:wrap;gap:8px}
+.agenda-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.agenda-summary article{display:grid;gap:6px;padding:14px;border:1px solid var(--line);border-radius:13px;background:var(--surface);box-shadow:var(--shadow)}
+.agenda-summary span{color:var(--muted);font-size:11px}
+.agenda-summary strong{font-size:23px;letter-spacing:-.5px}
+.agenda-layout{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(270px,.8fr);gap:13px;align-items:start}
+.agenda-calendar,.agenda-day-panel{min-width:0;padding:14px;border:1px solid var(--line);border-radius:15px;background:var(--surface);box-shadow:var(--shadow)}
+.agenda-month-heading{display:flex;align-items:center;gap:8px;margin-bottom:13px}
+.agenda-month-heading h3{flex:1;margin:0;text-align:center;text-transform:capitalize;font-size:16px}
+.agenda-month-heading button{min-width:36px;min-height:35px;padding:6px 10px}
+.agenda-month-heading .agenda-today{font-size:11px}
+.agenda-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px}
+.agenda-weekdays{margin-bottom:5px}
+.agenda-weekdays span{padding:7px 2px;color:var(--muted);font-size:10px;font-weight:800;text-align:center}
+.agenda-day{display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:5px;min-width:0;min-height:68px;padding:8px 3px;border:1px solid var(--line);border-radius:9px;background:var(--bg);color:var(--ink);font:inherit;cursor:pointer}
+.agenda-day>span{font-size:13px;font-weight:750}
+.agenda-day small{max-width:100%;padding:3px 4px;border-radius:6px;background:#e8efff;color:#3159b8;font-size:9px;line-height:1.2;text-align:center;overflow-wrap:anywhere}
+.agenda-day.selected{border:2px solid var(--blue);background:color-mix(in srgb,var(--blue) 7%,var(--surface));padding:7px 2px}
+.agenda-day.today>span{display:grid;place-items:center;width:23px;height:23px;border-radius:50%;background:var(--blue);color:white}
+.agenda-day-empty{min-height:68px}
+.agenda-legend{display:flex;align-items:flex-start;gap:7px;margin:12px 0 0;color:var(--muted);font-size:10px;line-height:1.5}
+.agenda-legend i{flex:0 0 8px;width:8px;height:8px;margin-top:3px;border-radius:50%;background:#4776d0}
+.agenda-day-title{display:flex;align-items:center;justify-content:space-between;gap:8px;padding-bottom:12px;border-bottom:1px solid var(--line)}
+.agenda-day-title .eyebrow{margin:0 0 4px}
+.agenda-day-title h3{margin:0;font-size:15px;text-transform:capitalize}
+.agenda-day-title>span{display:grid;place-items:center;min-width:30px;height:30px;padding:0 7px;border-radius:20px;background:var(--bg);font-size:12px;font-weight:850}
+.agenda-empty{display:grid;justify-items:center;gap:7px;padding:28px 12px;text-align:center}
+.agenda-empty>span{font-size:24px;color:var(--muted)}
+.agenda-empty strong{font-size:12px}
+.agenda-empty small{color:var(--muted);font-size:10px;line-height:1.5}
+.agenda-bookings{display:grid;gap:9px;padding:12px 0}
+.agenda-bookings article{display:grid;gap:6px;padding:11px;border:1px solid var(--line);border-radius:10px;background:var(--bg)}
+.agenda-booking-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.agenda-booking-top>strong{font-size:12px;overflow-wrap:anywhere}
+.agenda-status{padding:4px 6px;border-radius:20px;background:#edf1f8;color:#59677d;font-size:9px;font-weight:800;white-space:nowrap}
+.agenda-status.status-confirmed{background:#e5f6ed;color:#17754d}
+.agenda-status.status-pending{background:#fff3d9;color:#8b6413}
+.agenda-status.status-ongoing{background:#e8efff;color:#3159b8}
+.agenda-bookings p{margin:0;color:var(--muted);font-size:11px;line-height:1.45}
+.agenda-bookings small{color:var(--muted);font-size:10px}
+.agenda-booking-value{font-size:12px}
+.agenda-all-rentals{width:100%;min-height:38px}
+@media(max-width:850px){.agenda-layout{grid-template-columns:1fr}.agenda-day-panel{order:2}}
+@media(max-width:560px){.agenda-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.agenda-header-actions{width:100%}.agenda-header-actions button{flex:1}.agenda-calendar,.agenda-day-panel{padding:10px}.agenda-grid{gap:3px}.agenda-day{min-height:58px;padding:6px 2px}.agenda-day-empty{min-height:58px}.agenda-day small{font-size:8px}.agenda-month-heading h3{font-size:14px}}
