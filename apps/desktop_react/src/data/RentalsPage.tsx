@@ -29,6 +29,8 @@ export function RentalsPage({ companyId }: { companyId: string }) {
   const [customerId, setCustomerId] = useState('');
   const [startDate, setStartDate] = useState(isoToday());
   const [endDate, setEndDate] = useState(addDays(isoToday(), 1));
+  const [startTime, setStartTime] = useState('09:00');
+  const [endTime, setEndTime] = useState('17:00');
   const [status, setStatus] = useState('pending');
   const [deliveryMethod, setDeliveryMethod] = useState('customer_pickup');
   const [deliveryAddress, setDeliveryAddress] = useState('');
@@ -59,6 +61,8 @@ export function RentalsPage({ companyId }: { companyId: string }) {
     setCustomerId(rental?.customer_id ?? '');
     setStartDate(rental?.start_date ?? isoToday());
     setEndDate(rental?.end_date ?? addDays(isoToday(), 1));
+    setStartTime(rental?.start_time ? String(rental.start_time).slice(0,5) : rental ? '00:00' : '09:00');
+    setEndTime(rental?.end_time ? String(rental.end_time).slice(0,5) : rental ? '23:59' : '17:00');
     setStatus(rental?.status ?? 'pending');
     setDeliveryMethod(rental?.delivery_method ?? 'customer_pickup');
     setDeliveryAddress(rental?.delivery_address ?? '');
@@ -78,8 +82,8 @@ export function RentalsPage({ companyId }: { companyId: string }) {
 
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!customerId || !startDate || !endDate || endDate < startDate) {
-      setMessage('Confira o cliente e o período da locação.'); return;
+    if (!customerId || !startDate || !endDate || endDate < startDate || !startTime || !endTime || (startDate === endDate && endTime <= startTime)) {
+      setMessage('Confira o cliente, as datas e os horários da locação.'); return;
     }
     if (deliveryMethod === 'delivery' && !deliveryAddress.trim()) {
       setMessage('Informe o endereço de entrega.'); return;
@@ -96,7 +100,7 @@ export function RentalsPage({ companyId }: { companyId: string }) {
     setSaving(true);
     try {
       const payload = {
-        customerId, startDate, endDate, status: status as 'pending' | 'confirmed' | 'ongoing' | 'completed' | 'cancelled',
+        customerId, startDate, endDate, startTime, endTime, status: status as 'pending' | 'confirmed' | 'ongoing' | 'completed' | 'cancelled',
         deliveryMethod: deliveryMethod as 'delivery' | 'customer_pickup',
         totalAmount: Number(totalAmount.replace(',', '.')),
         items: items.map(item => ({ product_id: item.productId, quantity: item.quantity, unit_price: Number(item.price.replace(',', '.')) })),
@@ -144,7 +148,9 @@ export function RentalsPage({ companyId }: { companyId: string }) {
       <label>Cliente *<select required value={customerId} onChange={e => setCustomerId(e.target.value)}><option value="">Selecione o cliente</option>{customers.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select></label>
       <div className="form-grid">
         <label>Data de início *<input type="date" required value={startDate} onChange={e => setStartDate(e.target.value)} /></label>
+        <label>Horário de início *<input type="time" required value={startTime} onChange={e => setStartTime(e.target.value)} /></label>
         <label>Data de término *<input type="date" min={startDate} required value={endDate} onChange={e => setEndDate(e.target.value)} /></label>
+        <label>Horário de término *<input type="time" required value={endTime} onChange={e => setEndTime(e.target.value)} /></label>
         <label>Status<select value={status} onChange={e => setStatus(e.target.value)}><option value="pending">Pendente</option><option value="confirmed">Confirmada</option><option value="ongoing">Em andamento</option>{editing && <><option value="completed">Concluída</option><option value="cancelled">Cancelada</option></>}</select></label>
         <label>Entrega<select value={deliveryMethod} onChange={e => setDeliveryMethod(e.target.value)}><option value="customer_pickup">Retirada pelo cliente</option><option value="delivery">Entregar no endereço</option></select></label>
       </div>
