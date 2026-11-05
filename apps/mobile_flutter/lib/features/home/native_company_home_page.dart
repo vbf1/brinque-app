@@ -55,7 +55,12 @@ class _NativeCompanyHomePageState extends State<NativeCompanyHomePage> {
 
   void _open(BuildContext context, _CompanyContext company, String page, {bool closeDrawer = false}) {
     final Widget? destination = switch (page) {
-      'agenda' => AgendaPage(companyId: company.id),
+      'agenda' => AgendaPage(
+        companyId: company.id,
+        onOpenRentals: () => Navigator.of(context).push(
+          MaterialPageRoute<void>(builder: (_) => RentalsPage(companyId: company.id)),
+        ),
+      ),
       'statistics' => StatisticsPage(companyId: company.id),
       'rentals' => RentalsPage(companyId: company.id),
       'contracts' => ContractsPage(companyId: company.id, companyName: company.name),
