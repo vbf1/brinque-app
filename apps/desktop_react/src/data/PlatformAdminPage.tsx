@@ -20,7 +20,6 @@ const roles = [
   { value: 'admin', label: 'Administrador' },
   { value: 'owner', label: 'Proprietário da empresa' },
 ];
-const roleLabel = (value: string) => roles.find(role => role.value === value)?.label || value;
 const dateLabel = (value?: string | null) => value
   ? new Date(value).toLocaleDateString('pt-BR') : 'Nunca';
 
