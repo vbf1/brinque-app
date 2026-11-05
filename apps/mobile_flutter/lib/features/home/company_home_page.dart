@@ -31,10 +31,11 @@ class _CompanyHomePageState extends State<CompanyHomePage> {
     super.initState();
     final nativeSession = Supabase.instance.client.auth.currentSession;
     final initialUri = Uri.parse(_webAppUrl);
-    final launchUri = nativeSession == null
+    final nativeRefreshToken = nativeSession?.refreshToken;
+    final launchUri = nativeSession == null || nativeRefreshToken == null
         ? initialUri
         : initialUri.replace(
-            fragment: 'access_token=${Uri.encodeComponent(nativeSession.accessToken)}&refresh_token=${Uri.encodeComponent(nativeSession.refreshToken)}&token_type=bearer',
+            fragment: 'access_token=${Uri.encodeComponent(nativeSession.accessToken)}&refresh_token=${Uri.encodeComponent(nativeRefreshToken)}&token_type=bearer',
           );
     _controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
