@@ -26,8 +26,14 @@ class _ServicesPageState extends State<ServicesPage> {
     for (final raw in rows) {
       final service = Map<String, dynamic>.from(raw);
       final images = (service['service_images'] as List? ?? []).whereType<Map>().toList();
-      final cover = images.cast<Map>().where((image) => image['is_cover'] == true).firstOrNull
-          ?? (images.isEmpty ? null : images.first);
+      Map? cover;
+      for (final image in images) {
+        if (image['is_cover'] == true) {
+          cover = image;
+          break;
+        }
+      }
+      cover ??= images.isEmpty ? null : images.first;
       if (cover != null) {
         try {
           service['_image_url'] = await _client.storage.from('product-images')
@@ -113,6 +119,22 @@ class _ServicesPageState extends State<ServicesPage> {
       setState(() => _busy = true);
       try {
         final amount = double.parse(price.text.replaceAll(',', '.'));
+        List<int>? imageBytes;
+        String? imageMime;
+        String? imageExtension;
+        if (image != null) {
+          imageBytes = await image!.readAsBytes();
+          if (imageBytes.length > 8 * 1024 * 1024) {
+            throw StateError('A imagem deve ter no máximo 8 MB.');
+          }
+          imageExtension = image!.name.split('.').last.toLowerCase();
+          imageMime = switch (imageExtension) {
+            'jpg' || 'jpeg' => 'image/jpeg',
+            'png' => 'image/png',
+            'webp' => 'image/webp',
+            _ => throw StateError('Use uma imagem JPG, PNG ou WebP.'),
+          };
+        }
         final values = {
           'name': name.text.trim(),
           'description': description.text.trim().isEmpty ? null : description.text.trim(),
@@ -132,31 +154,31 @@ class _ServicesPageState extends State<ServicesPage> {
           await _client.from('services').update(values)
               .eq('id', serviceId).eq('company_id', widget.companyId);
         }
-        if (image != null) {
-          final bytes = await image!.readAsBytes();
-          if (bytes.length > 8 * 1024 * 1024) {
-            throw StateError('A imagem deve ter no máximo 8 MB.');
-          }
-          final extension = image!.name.split('.').last.toLowerCase();
-          final mime = switch (extension) {
-            'jpg' || 'jpeg' => 'image/jpeg',
-            'png' => 'image/png',
-            'webp' => 'image/webp',
-            _ => throw StateError('Use uma imagem JPG, PNG ou WebP.'),
-          };
-          final path = '${widget.companyId}/services/$serviceId/${DateTime.now().microsecondsSinceEpoch}.$extension';
+        if (imageBytes != null && imageExtension != null && imageMime != null) {
+          final path = '${widget.companyId}/services/$serviceId/${DateTime.now().microsecondsSinceEpoch}.$imageExtension';
           await _client.storage.from('product-images').uploadBinary(
             path,
-            bytes,
-            fileOptions: FileOptions(contentType: mime),
+            imageBytes,
+            fileOptions: FileOptions(contentType: imageMime),
           );
-          await _client.from('service_images').insert({
-            'company_id': widget.companyId,
-            'service_id': serviceId,
-            'storage_path': path,
-            'caption': name.text.trim(),
-            'is_cover': true,
-          });
+          try {
+            final inserted = await _client.from('service_images').insert({
+              'company_id': widget.companyId,
+              'service_id': serviceId,
+              'storage_path': path,
+              'caption': name.text.trim(),
+              'is_cover': false,
+            }).select('id').single();
+            await _client.from('service_images').update({'is_cover': false})
+                .eq('company_id', widget.companyId)
+                .eq('service_id', serviceId)
+                .neq('id', inserted['id']);
+            await _client.from('service_images').update({'is_cover': true})
+                .eq('id', inserted['id']).eq('company_id', widget.companyId);
+          } catch (_) {
+            await _client.storage.from('product-images').remove([path]);
+            rethrow;
+          }
         }
         await _reload();
         if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Serviço salvo.')));
