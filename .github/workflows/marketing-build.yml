@@ -1,5 +1,10 @@
 name: Validate marketing module
 on:
+  push:
+    branches: [prototype/first-test-build]
+    paths:
+      - 'apps/desktop_react/**'
+      - '.github/workflows/marketing-build.yml'
   pull_request:
     branches: [main]
     paths:
