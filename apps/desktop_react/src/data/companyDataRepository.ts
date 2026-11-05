@@ -88,6 +88,8 @@ export function createCompanyDataRepository(
       customerId: string;
       startDate: string;
       endDate: string;
+      startTime: string;
+      endTime: string;
       status: 'pending' | 'confirmed' | 'ongoing';
       deliveryMethod: 'delivery' | 'customer_pickup';
       totalAmount: number;
@@ -100,6 +102,8 @@ export function createCompanyDataRepository(
         p_customer_id: input.customerId,
         p_start_date: input.startDate,
         p_end_date: input.endDate,
+        p_start_time: input.startTime,
+        p_end_time: input.endTime,
         p_status: input.status,
         p_delivery_method: input.deliveryMethod,
         p_total_amount: input.totalAmount,
@@ -116,6 +120,8 @@ export function createCompanyDataRepository(
       customerId: string;
       startDate: string;
       endDate: string;
+      startTime: string;
+      endTime: string;
       status: 'pending' | 'confirmed' | 'ongoing' | 'completed' | 'cancelled';
       deliveryMethod: 'delivery' | 'customer_pickup';
       totalAmount: number;
