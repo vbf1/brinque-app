@@ -149,9 +149,25 @@ class _CompanyHomePageState extends State<CompanyHomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('KidsLoc App'), actions: [
-        IconButton(tooltip: 'Sair', onPressed: _logout, icon: const Icon(Icons.logout_rounded)),
-      ]),
+      appBar: AppBar(
+        titleSpacing: 16,
+        title: Row(mainAxisSize: MainAxisSize.min, children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: Image.asset(
+              'assets/kidsloc-brand.webp',
+              width: 40,
+              height: 40,
+              fit: BoxFit.contain,
+            ),
+          ),
+          const SizedBox(width: 11),
+          const Text('KidsLoc App', style: TextStyle(fontWeight: FontWeight.w800, letterSpacing: -0.3)),
+        ]),
+        actions: [
+          IconButton(tooltip: 'Sair', onPressed: _logout, icon: const Icon(Icons.logout_rounded)),
+        ],
+      ),
       body: FutureBuilder<Map<String, dynamic>>(
         future: _companyFuture,
         builder: (context, snapshot) {
