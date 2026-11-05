@@ -329,9 +329,8 @@ class _QuotesPageState extends State<QuotesPage> {
 
   Future<void> _prepareWhatsApp(Map<String, dynamic> quote) async {
     final customer = quote['customers'] as Map<String, dynamic>? ?? {};
-    final phone = customer['phone']?.toString().replaceAll(RegExp(r'\D'), '') ?? '';
     final text = 'Olá, ${customer['name'] ?? 'tudo bem'}! Segue o orçamento #${quote['quote_number']} no valor de ${_money(quote['total_amount'] as num? ?? 0)}. Validade: ${_date(quote['valid_until'])}. Vou anexar o PDF do orçamento nesta conversa.';
-    final uri = Uri.parse('https://wa.me/${phone.isEmpty ? '' : phone}?text=${Uri.encodeComponent(text)}');
+    final uri = Uri.parse('https://wa.me/?text=${Uri.encodeComponent(text)}');
     if (!await launchUrl(uri, mode: LaunchMode.externalApplication) && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Não foi possível abrir o WhatsApp.')));
     }
