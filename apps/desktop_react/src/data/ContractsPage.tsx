@@ -16,7 +16,7 @@ const money = (value: unknown) => Number(value ?? 0).toLocaleString('pt-BR', { s
 const date = (value: string) => value ? new Date(value + 'T12:00:00').toLocaleDateString('pt-BR') : '—';
 const htmlEscapes: Record<string,string> = { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' };
 const escapeHtml = (value: unknown) => String(value ?? '').replace(/[&<>"']/g, char => htmlEscapes[char] ?? char);
-const statusLabels: Record<string,string> = { draft:'Rascunho', sent:'Enviado', viewed:'Visualizado', signed:'Assinado', cancelled:'Cancelado', expired:'Expirado' };
+const statusLabels: Record<string,string> = { draft:'Pendente', sent:'Enviado', viewed:'Visualizado', signed:'Assinado', cancelled:'Cancelado', expired:'Vencido' };
 
 function printable(snapshot: Record<string, any>, number?: number) {
   const items = (Array.isArray(snapshot.items) ? snapshot.items : []).map((item: any) =>
