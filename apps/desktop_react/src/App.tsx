@@ -345,11 +345,11 @@ export default function App() {
   const isPublicCheckout = new URLSearchParams(window.location.search).has('checkout') || window.location.pathname.split('/').filter(Boolean).at(-1) === 'checkout';
   if (isPublicCheckout) return <CheckoutPage />;
 
-  if (loading) return <main className="legacy-auth-screen"><section className="legacy-auth-card"><div className="legacy-auth-brand"><img src={`${import.meta.env.BASE_URL}kidsloc-brand.webp`} alt="KidsLoc App" /><div className="legacy-auth-wordmark"><strong>KidsLoc <span>App</span></strong><small>GESTÃO DE LOCAÇÕES</small></div><div className="legacy-login-accent" /></div><p className="legacy-muted">Acesse sua empresa Sonho Kids Brinquedos</p><div className="legacy-loading">Verificando sua sessão e preparando o aplicativo...</div></section></main>;
+  if (loading) return <main className="legacy-auth-screen"><section className="legacy-auth-card"><div className="legacy-auth-brand"><img src={`${import.meta.env.BASE_URL}kidsloc-brand.webp`} alt="KidsLoc App" /><div className="legacy-auth-wordmark"><strong>KidsLoc <span>App</span></strong><small>GESTÃO DE LOCAÇÕES</small></div><div className="legacy-login-accent" /></div><p className="legacy-muted">Acesse sua empresa</p><div className="legacy-loading">Verificando sua sessão e preparando o aplicativo...</div></section></main>;
 
   if (recovery && session) return (
     <main className="legacy-auth-screen"><section className="legacy-auth-card">
-      <div className="legacy-auth-brand"><img src={`${import.meta.env.BASE_URL}kidsloc-brand.webp`} alt="KidsLoc App" /><div className="legacy-auth-wordmark"><strong>KidsLoc <span>App</span></strong><small>GESTÃO DE LOCAÇÕES</small></div><div className="legacy-login-accent" /></div><p className="legacy-muted">SONHO KIDS BRINQUEDOS</p><h1>Definir nova senha</h1>
+      <div className="legacy-auth-brand"><img src={`${import.meta.env.BASE_URL}kidsloc-brand.webp`} alt="KidsLoc App" /><div className="legacy-auth-wordmark"><strong>KidsLoc <span>App</span></strong><small>GESTÃO DE LOCAÇÕES</small></div><div className="legacy-login-accent" /></div><p className="legacy-muted">GESTÃO DE LOCAÇÕES</p><h1>Definir nova senha</h1>
       <form onSubmit={updatePassword} className="legacy-form">
         <label htmlFor="new-password">Nova senha</label>
         <input id="new-password" type="password" autoComplete="new-password" value={newPassword} onChange={e => setNewPassword(e.target.value)} required minLength={6} placeholder="Digite a nova senha" />
