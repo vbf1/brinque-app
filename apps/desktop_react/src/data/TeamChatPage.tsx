@@ -54,16 +54,11 @@ export function TeamChatPage({ companyId }: { companyId: string }) {
       setViewerId(auth.user.id);
       const { data: groupId, error: groupError } = await supabase.rpc('ensure_team_group', { p_company_id: companyId });
       if (groupError) throw groupError;
-      const { data: memberRows, error: memberError } = await supabase.from('company_members')
-        .select('user_id, role').eq('company_id', companyId);
-      if (memberError) throw memberError;
-      const ids = (memberRows ?? []).map(row => row.user_id);
-      const { data: profiles, error: profileError } = ids.length
-        ? await supabase.from('profiles').select('id, full_name').in('id', ids)
-        : { data: [], error: null };
-      if (profileError) throw profileError;
-      const names = new Map((profiles ?? []).map(row => [row.id, row.full_name || 'Funcionário']));
-      setMembers((memberRows ?? []).map(row => ({ user_id: row.user_id, role: row.role, name: names.get(row.user_id) || 'Funcionário' })));
+      const { data: directory, error: directoryError } = await supabase.functions.invoke('team-chat-members', {
+        body: { company_id: companyId },
+      });
+      if (directoryError) throw directoryError;
+      setMembers((directory?.members ?? []) as Member[]);
       await loadConversations(auth.user.id);
       if (groupId) {
         const { data: group } = await supabase.from('team_conversations')
@@ -127,7 +122,7 @@ export function TeamChatPage({ companyId }: { companyId: string }) {
     finally { setSending(false); }
   }
 
-  const memberName = (id: string) => members.find(member => member.user_id === id)?.name || 'Membro da equipe';
+  const memberName = (id: string) => members.find(member => member.user_id === id)?.name || 'Usuário não identificado';
   const conversationName = (conversation: Conversation) => {
     if (conversation.conversation_type === 'team') return 'Grupo da equipe';
     const peerId = conversationPeers.get(conversation.id);
