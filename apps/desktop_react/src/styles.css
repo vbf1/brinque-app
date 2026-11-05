@@ -295,3 +295,25 @@ button:focus-visible{outline:3px solid #3478e566;outline-offset:2px}
 .kc-footer b{color:var(--kc-ink)}
 @media(max-width:760px){.kc-topbar{height:62px;padding:0 17px}.kc-secure{font-size:10px}.kc-hero{grid-template-columns:1fr;padding:38px 18px 30px;gap:28px}.kc-hero h1{font-size:42px}.kc-preview{transform:none}.kc-benefits{grid-template-columns:1fr 1fr;padding:5px 18px 35px}.kc-checkout-wrap{grid-template-columns:1fr;margin:8px 12px 42px;padding:24px 16px;gap:22px}.kc-checkout-intro h2{font-size:29px}.kc-payment-card{padding:19px}}
 @media(max-width:390px){.kc-hero h1{font-size:36px}.kc-benefits{gap:8px}.kc-benefits article{padding:13px}.kc-pix-key{align-items:flex-start;flex-direction:column}.kc-pix-key button{width:100%}.kc-footer{flex-direction:column;align-items:center;gap:4px}}
+
+/* Login atualizado: identidade KidsLoc, hierarquia clara e cartão adaptável. */
+.legacy-auth-screen{padding:clamp(16px,4vw,32px);background:radial-gradient(ellipse at 12% 12%,#ffd34e30,transparent 34%),radial-gradient(ellipse at 88% 86%,#3478e51a,transparent 38%),var(--bg)}
+.legacy-auth-card{width:min(440px,100%);padding:clamp(22px,5vw,34px);border-radius:26px;box-shadow:0 24px 70px #172b4d18}
+.legacy-auth-brand{display:flex;flex-direction:column;gap:3px;margin-bottom:25px}
+.legacy-auth-brand img{width:116px;height:116px;max-width:38vw;filter:drop-shadow(0 8px 16px #172b4d12)}
+.legacy-auth-wordmark{text-align:center}
+.legacy-auth-wordmark strong{display:block;color:var(--ink);font-size:25px;font-weight:850;letter-spacing:-1.1px;line-height:1.15}
+.legacy-auth-wordmark strong span{color:var(--blue)}
+.legacy-auth-wordmark small{display:block;margin-top:5px;color:var(--muted);font-size:9px;font-weight:800;letter-spacing:2px}
+.legacy-auth-brand .legacy-login-accent{width:54px;height:5px;margin:15px auto 0;background:var(--yellow)}
+.legacy-auth-card h1{font-size:24px;font-weight:800;letter-spacing:-.7px}
+.legacy-form{gap:5px}
+.legacy-form label{margin:9px 0 3px;color:var(--ink);font-size:12px;font-weight:700}
+.legacy-auth-card input{min-height:49px;padding:13px 14px;border-radius:13px;background:var(--bg)}
+.legacy-primary-button{min-height:49px;margin-top:13px;border-radius:13px;background:linear-gradient(110deg,#3478e5,#2868d2);box-shadow:0 8px 18px #3478e52a}
+.legacy-secondary-button{min-height:45px;border-radius:13px}
+.legacy-feedback{padding:0 3px;text-align:center}
+@media(max-width:480px){.legacy-auth-screen{place-items:center;padding:16px}.legacy-auth-card{padding:22px 19px;border-radius:22px}.legacy-auth-brand{margin-bottom:20px}.legacy-auth-brand img{width:104px;height:104px}}
+/* Selects: mantém o controle nativo e melhora a aparência visível em navegadores compatíveis. */
+select{appearance:none;-webkit-appearance:none;padding-right:42px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%23718096' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 13px center;cursor:pointer}
+select:focus-visible{outline:3px solid #3478e52b;outline-offset:1px}
