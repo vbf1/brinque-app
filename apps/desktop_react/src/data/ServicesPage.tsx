@@ -22,7 +22,7 @@ export function ServicesPage({ companyId }: { companyId: string }) {
     setLoading(true);
     try {
       const { data, error } = await supabase.from('services')
-        .select('id,name,description,price,price_unit,active,notes,service_images(storage_path,is_cover)')
+        .select('id,name,description,price,price_unit,active,notes,service_images!service_images_company_service_scope_fkey(storage_path,is_cover)')
         .eq('company_id', companyId).order('name');
       if (error) throw error;
       const mapped = await Promise.all((data ?? []).map(async (row: any) => {
