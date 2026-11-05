@@ -84,7 +84,7 @@ const navigation: Array<{ id: Page; label: string; icon: string; admin?: boolean
   { id: 'clientes', label: 'Clientes', icon: '♙' },
   { id: 'estoque', label: 'Estoque', icon: '▤' },
   { id: 'servicos', label: 'Serviços', icon: '✦' },
-  { id: 'orcamentos', label: 'Orçamentos', icon: 'R
+  { id: 'orcamentos', label: 'Orçamentos', icon: '▧' },
   { id: 'financeiro', label: 'Financeiro', icon: '＄', admin: true },
   { id: 'mensagens', label: 'Mensagens', icon: '▰' },
   { id: 'ocorrencias', label: 'Ocorrências', icon: '⚠' },
