@@ -11,9 +11,10 @@ import { MarketingPage } from './data/MarketingPage';
 import { ContractsPage } from './data/ContractsPage';
 import { PublicContractPage } from './data/PublicContractPage';
 import { CheckoutPage } from './data/CheckoutPage';
+import { UsersPage } from './data/UsersPage';
 
 type CompanyContext = { id: string; name: string; role: string };
-type Page = 'inicio' | 'locacoes' | 'clientes' | 'estoque' | 'financeiro' | 'ocorrencias' | 'mensagens' | 'marketing' | 'contratos';
+type Page = 'inicio' | 'locacoes' | 'clientes' | 'estoque' | 'financeiro' | 'ocorrencias' | 'mensagens' | 'marketing' | 'contratos' | 'usuarios';
 
 const pagePaths: Record<Page, string> = {
   inicio: 'inicio',
@@ -25,6 +26,7 @@ const pagePaths: Record<Page, string> = {
   ocorrencias: 'ocorrencias',
   mensagens: 'mensagens',
   marketing: 'marketing',
+  usuarios: 'usuarios',
 };
 
 function pageFromLocation(): Page {
@@ -69,6 +71,7 @@ const navigation: Array<{ id: Page; label: string; icon: string; admin?: boolean
   { id: 'mensagens', label: 'Mensagens', icon: '▰' },
   { id: 'ocorrencias', label: 'Ocorrências', icon: '⚠' },
   { id: 'marketing', label: 'Marketing e anúncios', icon: '✧', admin: true },
+  { id: 'usuarios', label: 'Usuários', icon: '♙', admin: true },
 ];
 
 export default function App() {
@@ -372,6 +375,7 @@ export default function App() {
         {page === 'ocorrencias' && <OccurrencesPage companyId={company.id} role={company.role} />}
         {page === 'mensagens' && <TeamChatPage companyId={company.id} />}
         {page === 'marketing' && isAdmin && <MarketingPage companyId={company.id} userId={session.user.id} />}
+        {page === 'usuarios' && isAdmin && <UsersPage companyId={company.id} viewerRole={company.role} />}
       </main>
       <footer className="legacy-footer">KIDSLOC APP <span>·</span> {company.name}</footer>
     </div>
