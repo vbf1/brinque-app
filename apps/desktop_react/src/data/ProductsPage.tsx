@@ -8,14 +8,27 @@ type Product = {
   inventory_mode: 'quantity' | 'individual';
   total_quantity: number;
   daily_price: number;
-  available: number;
+  available: number | null;
   units?: Array<{ id: string; asset_code: string | null; status: string }>;
 };
+
+const ACTIVE_RENTAL_STATUSES = new Set(['pending', 'confirmed', 'ongoing']);
+function localDateKey(date = new Date()): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+function rentalIsActiveToday(rental: any, today: string): boolean {
+  return ACTIVE_RENTAL_STATUSES.has(String(rental.status))
+    && String(rental.start_date ?? '') <= today
+    && String(rental.end_date ?? rental.start_date ?? '') >= today;
+}
 
 export function ProductsPage({ companyId }: { companyId: string }) {
   const repository = useMemo(() => createCompanyDataRepository(supabase, companyId), [companyId]);
   const [products, setProducts] = useState<Product[]>([]);
-  const [rentals, setRentals] = useState<any[]>([]);
+  const [rentals, setRentals] = useState<any[] | null>(null);
   const [updatingUnit, setUpdatingUnit] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -35,17 +48,33 @@ export function ProductsPage({ companyId }: { companyId: string }) {
       // não pode impedir que os brinquedos e o estoque sejam exibidos.
       const [rows, units] = await Promise.all([repository.fetchProducts(), repository.fetchProductUnits()]);
       let rentalWarning: string | null = null;
+      let rentalRows: any[] | null = null;
       try {
-        setRentals(await repository.fetchRentals());
+        rentalRows = await repository.fetchRentals();
+        setRentals(rentalRows);
       } catch (error) {
-        setRentals([]);
+        setRentals(null);
         rentalWarning = error instanceof Error ? error.message : 'Não foi possível carregar o histórico de locações.';
       }
+      const today = localDateKey();
+      const activeRentals = rentalRows?.filter(rental => rentalIsActiveToday(rental, today)) ?? [];
       setProducts(rows.map(row => {
         const productUnits = units.filter(unit => unit.product_id === row.id);
-        return { ...row, units: productUnits, available: row.inventory_mode === 'individual'
-          ? productUnits.filter(unit => unit.status === 'available').length
-          : row.total_quantity } as Product;
+        let available: number | null = null;
+        if (rentalRows !== null && row.inventory_mode === 'individual') {
+          const reservedUnitIds = new Set(activeRentals.flatMap(rental =>
+            (rental.rental_items ?? []).flatMap((item: any) => item.product_id === row.id
+              ? (item.rental_item_units ?? []).map((allocation: any) => allocation.product_unit_id)
+              : []),
+          ));
+          available = productUnits.filter(unit => unit.status === 'available' && !reservedUnitIds.has(unit.id)).length;
+        } else if (rentalRows !== null) {
+          const reservedQuantity = activeRentals.reduce((total, rental) => total +
+            (rental.rental_items ?? []).filter((item: any) => item.product_id === row.id)
+              .reduce((sum: number, item: any) => sum + Number(item.quantity ?? 0), 0), 0);
+          available = Math.max(0, Number(row.total_quantity) - reservedQuantity);
+        }
+        return { ...row, units: productUnits, available } as Product;
       }));
       setMessage(rentalWarning ? `Estoque carregado. Histórico de locações indisponível: ${rentalWarning}` : '');
       return rentalWarning;
@@ -118,21 +147,20 @@ export function ProductsPage({ companyId }: { companyId: string }) {
     {loading ? <p className="module-empty">Carregando estoque...</p> : visible.length === 0 ? <p className="module-empty">{search ? 'Nenhum brinquedo encontrado.' : 'Nenhum brinquedo cadastrado.'}</p> : (
       <div className="customer-list">{visible.map(product => <article className="customer-row" key={product.id}>
         <div className="customer-avatar">🎈</div>
-        <div className="customer-info"><strong>{product.name}</strong><span>{product.available} disponível(is) de {product.total_quantity} · R$ {Number(product.daily_price).toFixed(2)} / dia · {product.inventory_mode === 'individual' ? 'Unidades individuais' : 'Por quantidade'}</span></div>
+        <div className="customer-info"><strong>{product.name}</strong><span>{product.available === null ? 'Disponibilidade indisponível' : `${product.available} disponível(is)`} de {product.total_quantity} · R$ {Number(product.daily_price).toFixed(2)} / dia · {product.inventory_mode === 'individual' ? 'Unidades individuais' : 'Por quantidade'}</span></div>
         <button type="button" className="secondary-button" onClick={() => openForm(product)}>Editar</button>
         {product.inventory_mode === 'individual' && product.units?.length ? <div className="record-card-units">{product.units.map(unit => {
-          const history = rentals.filter(r => (r.rental_items ?? []).some((item: any) => (item.rental_item_units ?? []).some((allocation: any) => allocation.product_unit_id === unit.id))).sort((a, b) => String(b.start_date).localeCompare(String(a.start_date))).slice(0, 3);
-          const today = new Date().toISOString().slice(0, 10);
-          const reserved = rentals.some(r => ['pending','confirmed','ongoing'].includes(r.status) && r.start_date <= today && (r.end_date || r.start_date) >= today && (r.rental_items ?? []).some((item: any) => (item.rental_item_units ?? []).some((allocation: any) => allocation.product_unit_id === unit.id)));
+          const history = (rentals ?? []).filter(r => (r.rental_items ?? []).some((item: any) => (item.rental_item_units ?? []).some((allocation: any) => allocation.product_unit_id === unit.id))).sort((a, b) => String(b.start_date).localeCompare(String(a.start_date))).slice(0, 3);
+          const reserved = rentals !== null && rentals.some(r => rentalIsActiveToday(r, localDateKey()) && (r.rental_items ?? []).some((item: any) => (item.rental_item_units ?? []).some((allocation: any) => allocation.product_unit_id === unit.id)));
           return <div className="record-unit-row" key={unit.id}>
-            <span><strong>Unidade {unit.asset_code || '—'}</strong><small>{unit.status === 'maintenance' ? 'Em manutenção' : unit.status === 'inactive' ? 'Inativa' : reserved ? 'Reservada hoje' : 'Disponível'}</small></span>
+            <span><strong>Unidade {unit.asset_code || '—'}</strong><small>{unit.status === 'maintenance' ? 'Em manutenção' : unit.status === 'inactive' ? 'Inativa' : rentals === null ? 'Histórico indisponível' : reserved ? 'Reservada hoje' : 'Disponível'}</small></span>
             <button type="button" className="secondary-button" disabled={updatingUnit === unit.id || (unit.status !== 'maintenance' && unit.status !== 'available')} onClick={async () => {
               setUpdatingUnit(unit.id);
               try { await repository.setProductUnitStatus(unit.id, unit.status === 'maintenance' ? 'available' : 'maintenance'); await load(); }
               catch (error) { setMessage(error instanceof Error ? error.message : 'Não foi possível atualizar a unidade.'); }
               finally { setUpdatingUnit(null); }
             }}>{updatingUnit === unit.id ? 'Salvando…' : unit.status === 'maintenance' ? 'Liberar' : 'Manutenção'}</button>
-            <small className="record-unit-history">Histórico: {history.length ? history.map((r: any) => [r.customers?.name || 'Cliente', r.start_date, r.status].join(' · ')).join(' | ') : 'Sem locações registradas'}</small>
+            <small className="record-unit-history">Histórico: {rentals === null ? 'Histórico indisponível' : history.length ? history.map((r: any) => [r.customers?.name || 'Cliente', r.start_date, r.status].join(' · ')).join(' | ') : 'Sem locações registradas'}</small>
           </div>;
         })}</div> : null}
       </article>)}</div>
