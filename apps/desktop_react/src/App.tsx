@@ -5,6 +5,7 @@ import { CustomersPage } from './data/CustomersPage';
 import { ProductsPage } from './data/ProductsPage';
 import { RentalsPage } from './data/RentalsPage';
 import { AgendaPage } from './data/AgendaPage';
+import { StatisticsPage } from './data/StatisticsPage';
 import { FinancePage } from './data/FinancePage';
 import { OccurrencesPage } from './data/OccurrencesPage';
 import { TeamChatPage } from './data/TeamChatPage';
@@ -21,11 +22,12 @@ declare global {
 }
 
 type CompanyContext = { id: string; name: string; role: string };
-type Page = 'inicio' | 'agenda' | 'locacoes' | 'clientes' | 'estoque' | 'financeiro' | 'ocorrencias' | 'mensagens' | 'marketing' | 'contratos' | 'usuarios';
+type Page = 'inicio' | 'agenda' | 'estatisticas' | 'locacoes' | 'clientes' | 'estoque' | 'financeiro' | 'ocorrencias' | 'mensagens' | 'marketing' | 'contratos' | 'usuarios';
 
 const pagePaths: Record<Page, string> = {
   inicio: 'inicio',
   agenda: 'agenda',
+  estatisticas: 'estatisticas',
   locacoes: 'locacoes',
   contratos: 'contratos',
   clientes: 'clientes',
@@ -72,6 +74,7 @@ function friendlyError(error: unknown): string {
 const navigation: Array<{ id: Page; label: string; icon: string; admin?: boolean }> = [
   { id: 'inicio', label: 'Início', icon: '▦' },
   { id: 'agenda', label: 'Agenda', icon: '▦' },
+  { id: 'estatisticas', label: 'Estatísticas', icon: '▥' },
   { id: 'locacoes', label: 'Locações', icon: '▣' },
   { id: 'contratos', label: 'Contratos', icon: '✎' },
   { id: 'clientes', label: 'Clientes', icon: '♙' },
@@ -375,6 +378,7 @@ export default function App() {
             <div className="legacy-section-title">Resumo do negócio <span>Seus dados</span></div>
             <div className="legacy-dashboard-grid">
               <button className="legacy-dashboard-card" onClick={() => navigateTo('agenda')}><span className="legacy-card-icon">▦</span><strong>Agenda de reservas</strong><small>Visualize os agendamentos no calendário</small></button>
+              <button className="legacy-dashboard-card" onClick={() => navigateTo('estatisticas')}><span className="legacy-card-icon">▥</span><strong>Estatísticas</strong><small>Veja os brinquedos e clientes em destaque</small></button>
               <button className="legacy-dashboard-card" onClick={() => navigateTo('locacoes')}><span className="legacy-card-icon">▣</span><strong>Locações</strong><small>Gerencie reservas e entregas</small></button>
               <button className="legacy-dashboard-card" onClick={() => navigateTo('contratos')}><span className="legacy-card-icon">✎</span><strong>Contratos</strong><small>Gere e acompanhe assinaturas</small></button>
               <button className="legacy-dashboard-card" onClick={() => navigateTo('clientes')}><span className="legacy-card-icon">♙</span><strong>Clientes</strong><small>Consulte e cadastre clientes</small></button>
@@ -389,6 +393,7 @@ export default function App() {
         )}
         {page !== 'inicio' && <div className="legacy-page-heading"><div><span>GESTÃO DE LOCAÇÕES</span><h1>{pageTitle}</h1></div><button type="button" className="legacy-back-button" onClick={() => navigateTo('inicio')}>‹ Início</button></div>}
         {page === 'agenda' && <AgendaPage companyId={company.id} onOpenRentals={() => navigateTo('locacoes')} />}
+        {page === 'estatisticas' && <StatisticsPage companyId={company.id} />}
         {page === 'clientes' && <CustomersPage companyId={company.id} />}
         {page === 'estoque' && <ProductsPage companyId={company.id} />}
         {page === 'locacoes' && <RentalsPage companyId={company.id} />}
