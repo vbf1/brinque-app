@@ -102,7 +102,7 @@ begin
   loop
     execute format('drop policy if exists platform_owner_all on public.%I', item.table_name);
     execute format(
-      'create policy platform_owner_all on public.%I as permissive for all to authenticated using (private.is_platform_owner()) with check (private.is_platform_owner())',
+      'create policy platform_owner_all on public.%I as permissive for all to authenticated using (public.is_platform_owner()) with check (public.is_platform_owner())',
       item.table_name
     );
   end loop;
@@ -161,7 +161,7 @@ using (
   and bucket_id in ('company-branding', 'occurrence-photos', 'product-images', 'rental-contracts')
 )
 with check (
-  private.is_platform_owner()
+  public.is_platform_owner()
   and bucket_id in ('company-branding', 'occurrence-photos', 'product-images', 'rental-contracts')
 );
 
