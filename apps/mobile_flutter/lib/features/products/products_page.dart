@@ -35,21 +35,9 @@ class _ProductsPageState extends State<ProductsPage> {
       debugPrint('KidsLoc: não foi possível carregar o histórico de locações do estoque: $error');
     }
     final now = DateTime.now();
-    const activeStatuses = {'pending', 'confirmed', 'ongoing'};
-    final activeRentals = (rentals ?? []).where((rental) {
-      if (!activeStatuses.contains(rental['status'])) return false;
-      final start = rentalBoundary(
-        rental['start_date'],
-        rental['start_time'],
-        isEnd: false,
-      );
-      final end = rentalBoundary(
-        rental['end_date'] ?? rental['start_date'],
-        rental['end_time'],
-        isEnd: true,
-      );
-      return start != null && end != null && !now.isBefore(start) && now.isBefore(end);
-    }).toList();
+    final activeRentals = (rentals ?? [])
+        .where((rental) => rentalIsActiveAt(rental, now))
+        .toList();
     return products.map((product) {
       final productUnits = units.where((unit) => unit['product_id'] == product['id']).toList();
       final individual = product['inventory_mode'] == 'individual';
@@ -206,19 +194,10 @@ class _ProductsPageState extends State<ProductsPage> {
                     final recent = history.take(3).map((r) => '${(r['customers'] as Map?)?['name'] ?? 'Cliente'} · ${r['start_date']} · ${r['status']}').join(' | ');
                     final status = unit['status'] as String? ?? 'available';
                     final now = DateTime.now();
-                    final reservedNow = rentalsKnown && rentals.any((rental) {
-                      if (!['pending', 'confirmed', 'ongoing'].contains(rental['status'])) return false;
-                      final start = rentalBoundary(rental['start_date'], rental['start_time'], isEnd: false);
-                      final end = rentalBoundary(
-                        rental['end_date'] ?? rental['start_date'],
-                        rental['end_time'],
-                        isEnd: true,
-                      );
-                      final active = start != null && end != null &&
-                          !now.isBefore(start) && now.isBefore(end);
-                      return active && (rental['rental_items'] as List? ?? []).any((item) =>
-                        (item['rental_item_units'] as List? ?? []).any((allocation) => allocation['product_unit_id'] == unit['id']));
-                    });
+                    final reservedNow = rentalsKnown && rentals.any((rental) =>
+                      rentalIsActiveAt(rental, now) &&
+                      (rental['rental_items'] as List? ?? []).any((item) =>
+                        (item['rental_item_units'] as List? ?? []).any((allocation) => allocation['product_unit_id'] == unit['id'])));
                     final label = status == 'maintenance' ? 'Em manutenção' : status == 'inactive' ? 'Inativa' : !rentalsKnown ? 'Histórico indisponível' : reservedNow ? 'Reservada agora' : 'Disponível';
                     return ListTile(
                       title: Text('Unidade ${unit['asset_code'] ?? '—'}'),
