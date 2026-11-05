@@ -103,5 +103,10 @@ adaptive = '''<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/a
 for density in ("mdpi", "hdpi", "xhdpi", "xxhdpi", "xxxhdpi"):
     target = res / f"mipmap-{density}"
     target.mkdir(parents=True, exist_ok=True)
+    # Flutter's generated Android host already contains PNG launcher icons.
+    # Android treats PNG and WebP files with the same resource name as duplicates,
+    # so remove the generated PNG variants before installing the branded WebP icons.
+    for icon_name in ("ic_launcher", "ic_launcher_round"):
+        (target / f"{icon_name}.png").unlink(missing_ok=True)
     shutil.copyfile(source_icon, target / "ic_launcher.webp")
     shutil.copyfile(source_icon, target / "ic_launcher_round.webp")
