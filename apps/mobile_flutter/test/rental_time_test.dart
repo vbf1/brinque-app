@@ -31,6 +31,37 @@ void main() {
     });
   });
 
+  group('rentalIsActiveAt', () {
+    final rental = <String, dynamic>{
+      'status': 'confirmed',
+      'start_date': '2026-11-05',
+      'start_time': '09:00:00',
+      'end_date': '2026-11-05',
+      'end_time': '17:00:00',
+    };
+
+    test('includes the start and excludes the end boundary', () {
+      expect(rentalIsActiveAt(rental, DateTime(2026, 11, 5, 8, 59)), isFalse);
+      expect(rentalIsActiveAt(rental, DateTime(2026, 11, 5, 9, 0)), isTrue);
+      expect(rentalIsActiveAt(rental, DateTime(2026, 11, 5, 16, 59)), isTrue);
+      expect(rentalIsActiveAt(rental, DateTime(2026, 11, 5, 17, 0)), isFalse);
+    });
+
+    test('keeps legacy rentals active for the whole end date', () {
+      final legacy = <String, dynamic>{
+        'status': 'pending',
+        'start_date': '2026-11-05',
+        'end_date': '2026-11-05',
+      };
+      expect(rentalIsActiveAt(legacy, DateTime(2026, 11, 5, 23, 59)), isTrue);
+      expect(rentalIsActiveAt(legacy, DateTime(2026, 11, 6)), isFalse);
+    });
+
+    test('does not reserve units for cancelled rentals', () {
+      expect(rentalIsActiveAt({...rental, 'status': 'cancelled'}, DateTime(2026, 11, 5, 12)), isFalse);
+    });
+  });
+
   group('rental time range validation', () {
     test('requires a later end time on the same day', () {
       final date = DateTime(2026, 11, 5);
