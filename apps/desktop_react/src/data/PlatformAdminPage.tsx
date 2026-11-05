@@ -1,0 +1,220 @@
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
+import { supabase } from '../lib/supabase';
+
+type Company = { id: string; name: string };
+type Membership = { id: string; company_id: string; company: string; role: string };
+type PlatformUser = {
+  id: string; name: string; email: string; phone: string; role: string; company: string;
+  registered_at: string; last_sign_in_at: string | null; email_confirmed_at: string | null;
+  phone_confirmed_at: string | null; memberships: Membership[];
+};
+type Props = {
+  currentCompanyId: string;
+  companies: Company[];
+  onCompaniesChanged: (companies: Company[]) => void;
+  onSelectCompany: (company: Company) => void;
+};
+const roles = [
+  { value: 'staff', label: 'Funcionário' },
+  { value: 'manager', label: 'Gerente' },
+  { value: 'admin', label: 'Administrador' },
+  { value: 'owner', label: 'Proprietário da empresa' },
+];
+const roleLabel = (value: string) => roles.find(role => role.value === value)?.label || value;
+const dateLabel = (value?: string | null) => value
+  ? new Date(value).toLocaleDateString('pt-BR') : 'Nunca';
+
+export function PlatformAdminPage({ currentCompanyId, companies, onCompaniesChanged, onSelectCompany }: Props) {
+  const [tab, setTab] = useState<'companies' | 'users'>('companies');
+  const [companyName, setCompanyName] = useState('');
+  const [creatingCompany, setCreatingCompany] = useState(false);
+  const [savingCompany, setSavingCompany] = useState('');
+  const [companyError, setCompanyError] = useState('');
+  const [companyMessage, setCompanyMessage] = useState('');
+  const [users, setUsers] = useState<PlatformUser[]>([]);
+  const [usersLoading, setUsersLoading] = useState(false);
+  const [usersError, setUsersError] = useState('');
+  const [userSearch, setUserSearch] = useState('');
+  const [newMembershipUser, setNewMembershipUser] = useState('');
+  const [newMembershipCompany, setNewMembershipCompany] = useState(currentCompanyId);
+  const [newMembershipRole, setNewMembershipRole] = useState('staff');
+  const [membershipBusy, setMembershipBusy] = useState('');
+  const [membershipMessage, setMembershipMessage] = useState('');
+
+  const loadUsers = useCallback(async () => {
+    if (!currentCompanyId) return;
+    setUsersLoading(true);
+    setUsersError('');
+    try {
+      const { data, error } = await supabase.functions.invoke('manage-employees', {
+        body: { action: 'list_users', company_id: currentCompanyId },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      setUsers((data?.users ?? []) as PlatformUser[]);
+    } catch (error) {
+      setUsersError(error instanceof Error ? error.message : 'Não foi possível carregar as contas.');
+    } finally {
+      setUsersLoading(false);
+    }
+  }, [currentCompanyId]);
+
+  useEffect(() => { if (tab === 'users') void loadUsers(); }, [tab, loadUsers]);
+  useEffect(() => { setNewMembershipCompany(currentCompanyId); }, [currentCompanyId]);
+
+  const filteredUsers = useMemo(() => {
+    const term = userSearch.trim().toLocaleLowerCase('pt-BR');
+    if (!term) return users;
+    return users.filter(user => [user.name, user.email, user.phone, user.id]
+      .some(value => String(value || '').toLocaleLowerCase('pt-BR').includes(term)));
+  }, [users, userSearch]);
+
+  async function createCompany(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const name = companyName.trim();
+    if (!name) return;
+    setCreatingCompany(true); setCompanyError(''); setCompanyMessage('');
+    try {
+      const { data, error } = await supabase.from('companies')
+        .insert({ name, created_by: (await supabase.auth.getUser()).data.user?.id })
+        .select('id,name').single();
+      if (error) throw error;
+      const next = [...companies, data as Company].sort((a, b) => a.name.localeCompare(b.name));
+      onCompaniesChanged(next);
+      onSelectCompany(data as Company);
+      setCompanyName('');
+      setCompanyMessage('Empresa cadastrada com sucesso.');
+    } catch (error) {
+      setCompanyError(error instanceof Error ? error.message : 'Não foi possível cadastrar a empresa.');
+    } finally { setCreatingCompany(false); }
+  }
+
+  async function renameCompany(event: FormEvent<HTMLFormElement>, company: Company) {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const input = form.elements.namedItem('company-name') as HTMLInputElement | null;
+    const name = input?.value.trim() || '';
+    if (!name) return setCompanyError('Informe o nome da empresa.');
+    setSavingCompany(company.id); setCompanyError(''); setCompanyMessage('');
+    try {
+      const { error } = await supabase.from('companies')
+        .update({ name, updated_at: new Date().toISOString() }).eq('id', company.id);
+      if (error) throw error;
+      const next = companies.map(item => item.id === company.id ? { ...item, name } : item)
+        .sort((a, b) => a.name.localeCompare(b.name));
+      onCompaniesChanged(next);
+      if (currentCompanyId === company.id) onSelectCompany({ id: company.id, name });
+      setCompanyMessage('Nome da empresa atualizado.');
+    } catch (error) {
+      setCompanyError(error instanceof Error ? error.message : 'Não foi possível atualizar a empresa.');
+    } finally { setSavingCompany(''); }
+  }
+
+  async function membershipAction(action: string, payload: Record<string, string>, key: string) {
+    setMembershipBusy(key); setMembershipMessage('');
+    try {
+      const { data, error } = await supabase.functions.invoke('manage-employees', {
+        body: { action, company_id: currentCompanyId, ...payload },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      setMembershipMessage(data?.message || 'Alteração concluída.');
+      await loadUsers();
+    } catch (error) {
+      setMembershipMessage(error instanceof Error ? error.message : 'Não foi possível concluir a alteração.');
+    } finally { setMembershipBusy(''); }
+  }
+
+  async function addMembership(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!newMembershipUser || !newMembershipCompany) return;
+    await membershipAction('platform_add_membership', {
+      user_id: newMembershipUser, target_company_id: newMembershipCompany, role: newMembershipRole,
+    }, 'add');
+  }
+
+  return <section className="module-content platform-admin-page">
+    <div className="module-header">
+      <div><h2>Administração da plataforma</h2><p className="module-description">Gerencie as empresas cadastradas e os acessos das contas em toda a plataforma.</p></div>
+      <span className="users-role role-owner">Proprietário global</span>
+    </div>
+    <div className="users-filters" role="tablist" aria-label="Área administrativa">
+      <button type="button" className={tab === 'companies' ? 'primary-button' : 'secondary-button'} onClick={() => setTab('companies')}>Empresas ({companies.length})</button>
+      <button type="button" className={tab === 'users' ? 'primary-button' : 'secondary-button'} onClick={() => setTab('users')}>Usuários</button>
+    </div>
+
+    {tab === 'companies' && <>
+      <form className="customer-form" onSubmit={createCompany}>
+        <h3>Cadastrar empresa</h3>
+        <label>Nome da empresa<input value={companyName} onChange={event => setCompanyName(event.target.value)} maxLength={120} required placeholder="Nome da nova empresa" /></label>
+        <div className="form-actions"><button type="submit" disabled={creatingCompany}>{creatingCompany ? 'Cadastrando...' : 'Cadastrar empresa'}</button></div>
+      </form>
+      <div className="module-header"><div><h3>Empresas cadastradas</h3><p className="module-description">Selecione uma empresa para abrir sua operação ou altere seu nome.</p></div></div>
+      {!companies.length ? <p className="module-empty">Nenhuma empresa cadastrada.</p> : <div className="users-list">
+        {companies.map(company => <article className="users-card" key={company.id}>
+          <form onSubmit={event => void renameCompany(event, company)}>
+            <div className="users-card-top">
+              <div className="users-avatar">{company.name.trim().charAt(0).toUpperCase()}</div>
+              <div className="users-primary"><strong>{company.name}</strong><span>{company.id}</span></div>
+              {currentCompanyId === company.id && <span className="users-role role-owner">Em uso</span>}
+            </div>
+            <div className="users-details">
+              <label style={{ display: 'grid', gap: 6, flex: '1 1 240px' }}>Nome da empresa<input name="company-name" defaultValue={company.name} maxLength={120} required /></label>
+              <div className="form-actions">
+                <button type="submit" disabled={savingCompany === company.id}>{savingCompany === company.id ? 'Salvando...' : 'Salvar nome'}</button>
+                <button type="button" className="secondary-button" onClick={() => onSelectCompany(company)}>Abrir empresa</button>
+              </div>
+            </div>
+          </form>
+        </article>)}
+      </div>}
+      {companyError && <p className="module-feedback" role="alert" style={{ color: 'var(--red)' }}>{companyError}</p>}
+      {companyMessage && <p className="module-feedback" role="status">{companyMessage}</p>}
+    </>}
+
+    {tab === 'users' && <>
+      <div className="users-stats">
+        <article><span>Contas cadastradas</span><strong>{users.length}</strong></article>
+        <article><span>Com vínculo</span><strong>{users.filter(user => user.memberships?.length).length}</strong></article>
+        <article><span>Sem vínculo</span><strong>{users.filter(user => !user.memberships?.length).length}</strong></article>
+        <article><span>E-mail confirmado</span><strong>{users.filter(user => !!user.email_confirmed_at).length}</strong></article>
+      </div>
+      <form className="customer-form" onSubmit={addMembership}>
+        <h3>Vincular conta a uma empresa</h3>
+        <p className="module-description">Vincule uma conta já cadastrada e escolha o nível de acesso. Isso não cria uma nova conta nem envia convite.</p>
+        <label>Conta<select value={newMembershipUser} onChange={event => setNewMembershipUser(event.target.value)} required>
+          <option value="">Selecione uma conta</option>
+          {users.map(user => <option key={user.id} value={user.id}>{user.name || user.email} · {user.email}</option>)}
+        </select></label>
+        <label>Empresa<select value={newMembershipCompany} onChange={event => setNewMembershipCompany(event.target.value)} required>
+          <option value="">Selecione uma empresa</option>{companies.map(company => <option key={company.id} value={company.id}>{company.name}</option>)}
+        </select></label>
+        <label>Perfil<select value={newMembershipRole} onChange={event => setNewMembershipRole(event.target.value)}>{roles.map(role => <option key={role.value} value={role.value}>{role.label}</option>)}</select></label>
+        <div className="form-actions"><button type="submit" disabled={membershipBusy === 'add' || !newMembershipUser || !newMembershipCompany}>{membershipBusy === 'add' ? 'Vinculando...' : 'Vincular usuário'}</button></div>
+      </form>
+      <div className="users-filters"><input aria-label="Buscar conta" value={userSearch} onChange={event => setUserSearch(event.target.value)} placeholder="Buscar por nome, e-mail, telefone ou ID..." /><button type="button" className="secondary-button" onClick={() => void loadUsers()} disabled={usersLoading}>↻ Atualizar</button></div>
+      {usersError && <div className="users-error" role="alert">{usersError}<button type="button" onClick={() => void loadUsers()}>Tentar novamente</button></div>}
+      {usersLoading ? <p className="module-empty">Carregando contas...</p> : !filteredUsers.length ? <p className="module-empty">Nenhuma conta encontrada.</p> : <div className="users-list">
+        {filteredUsers.map(user => <article className="users-card" key={user.id}>
+          <div className="users-card-top"><div className="users-avatar">{(user.name || user.email || '?').trim().charAt(0).toUpperCase()}</div><div className="users-primary"><strong>{user.name || 'Nome não informado'}</strong><span>{user.email}</span></div><span className={user.email_confirmed_at ? 'users-role role-owner' : 'users-role role-none'}>{user.email_confirmed_at ? 'E-mail confirmado' : 'E-mail pendente'}</span></div>
+          <div className="users-details"><div><small>Telefone</small><strong>{user.phone || 'Não informado'}</strong></div><div><small>Cadastro</small><strong>{dateLabel(user.registered_at)}</strong></div><div><small>Último acesso</small><strong>{dateLabel(user.last_sign_in_at)}</strong></div><div className="users-id"><small>ID da conta</small><strong>{user.id}</strong></div></div>
+          <div className="users-memberships"><strong>Vínculos com empresas</strong>
+            {!user.memberships?.length ? <p className="module-empty">Esta conta não está vinculada a nenhuma empresa.</p> : user.memberships.map(membership => <div key={membership.id} className="users-details">
+              <div><small>Empresa</small><strong>{membership.company}</strong></div>
+              <label style={{ display: 'grid', gap: 6, minWidth: 180 }}>Perfil<select value={membership.role} onChange={event => void membershipAction('platform_change_membership', { membership_id: membership.id, role: event.target.value }, membership.id)} disabled={!!membershipBusy}>
+                {roles.map(role => <option key={role.value} value={role.value}>{role.label}</option>)}
+              </select></label>
+              <button type="button" className="secondary-button" disabled={!!membershipBusy || membership.role === 'owner'} onClick={() => {
+                if (window.confirm('Remover o vínculo desta conta com ' + membership.company + '? A conta continuará existindo.')) {
+                  void membershipAction('platform_remove_membership', { membership_id: membership.id }, membership.id);
+                }
+              }}>{membershipBusy === membership.id ? 'Processando...' : 'Remover vínculo'}</button>
+            </div>)}
+          </div>
+        </article>)}
+      </div>}
+      {membershipMessage && <p className="module-feedback" role="status">{membershipMessage}</p>}
+      <p className="users-count">Exibindo {filteredUsers.length} de {users.length} contas cadastradas.</p>
+    </>}
+  </section>;
+}
