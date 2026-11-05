@@ -22,7 +22,6 @@ class _CompanyHomePageState extends State<CompanyHomePage> {
   late final WebViewController _controller;
   bool _loading = true;
   bool _pageFailed = false;
-  bool _pushEnabled = false;
   bool _syncingSession = false;
   String? _lastSyncedUserId;
 
@@ -92,7 +91,10 @@ class _CompanyHomePageState extends State<CompanyHomePage> {
 
     _syncingSession = true;
     try {
-      final result = await Supabase.instance.client.auth.setSession(refreshToken);
+      final result = await Supabase.instance.client.auth.setSession(
+        refreshToken,
+        accessToken: accessToken,
+      );
       if (result.session == null) return;
       _lastSyncedUserId = result.session!.user.id;
       await _registerPushForUser(result.session!.user.id);
@@ -117,7 +119,6 @@ class _CompanyHomePageState extends State<CompanyHomePage> {
         userId: userId,
       );
       if (!mounted) return;
-      setState(() => _pushEnabled = enabled);
       if (!enabled) {
         appMessengerKey.currentState?.showSnackBar(
           SnackBar(
@@ -141,7 +142,6 @@ class _CompanyHomePageState extends State<CompanyHomePage> {
         companyId: companyId,
         userId: userId,
       );
-      if (mounted) setState(() => _pushEnabled = enabled);
       appMessengerKey.currentState?.showSnackBar(SnackBar(
         content: Text(enabled
             ? 'Notificações ativadas neste aparelho.'
