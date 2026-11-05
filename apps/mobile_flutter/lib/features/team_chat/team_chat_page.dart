@@ -35,15 +35,12 @@ class _TeamChatPageState extends State<TeamChatPage> {
       if (user == null) throw StateError('Sua sessão expirou. Entre novamente.');
       _viewerId = user.id;
       final groupId = await _client.rpc('ensure_team_group', params: {'p_company_id': widget.companyId});
-      final memberRows = await _client.from('company_members').select('user_id, role').eq('company_id', widget.companyId);
-      final members = List<Map<String, dynamic>>.from(memberRows);
-      final ids = members.map((row) => row['user_id'] as String).toList();
-      final profiles = ids.isEmpty ? <dynamic>[] : await _client.from('profiles').select('id, full_name').inFilter('id', ids);
-      final names = <String, String>{
-        for (final profile in profiles)
-          profile['id'] as String: (profile['full_name'] as String?)?.trim().isNotEmpty == true ? profile['full_name'] as String : 'Funcionário',
-      };
-      _members = members.map((row) => {...row, 'name': names[row['user_id']] ?? 'Funcionário'}).toList();
+      final directoryResponse = await _client.functions.invoke(
+        'team-chat-members',
+        body: {'company_id': widget.companyId},
+      );
+      final directoryData = directoryResponse.data as Map<String, dynamic>? ?? {};
+      _members = List<Map<String, dynamic>>.from(directoryData['members'] ?? []);
       final rows = await _client.from('team_conversations').select('id, conversation_type, title, created_at')
           .eq('company_id', widget.companyId).order('created_at', ascending: false);
       final conversations = List<Map<String, dynamic>>.from(rows);
@@ -80,8 +77,8 @@ class _TeamChatPageState extends State<TeamChatPage> {
   }
 
   String _memberName(String? id) {
-    for (final member in _members) { if (member['user_id'] == id) return member['name'] as String? ?? 'Funcionário'; }
-    return 'Membro da equipe';
+    for (final member in _members) { if (member['user_id'] == id) return member['name'] as String? ?? 'Usuário não identificado'; }
+    return 'Usuário não identificado';
   }
   String _conversationName(Map<String, dynamic> item) {
     if (item['conversation_type'] == 'team') return 'Grupo da equipe';
