@@ -51,7 +51,7 @@ class _NativeCompanyHomePageState extends State<NativeCompanyHomePage> {
   bool _isAdmin(_CompanyContext company) =>
       company.role == 'owner' || company.role == 'admin';
 
-  void _open(BuildContext context, _CompanyContext company, String page) {
+  void _open(BuildContext context, _CompanyContext company, String page, {bool closeDrawer = false}) {
     final Widget? destination = switch (page) {
       'agenda' => AgendaPage(companyId: company.id),
       'statistics' => StatisticsPage(companyId: company.id),
@@ -69,7 +69,7 @@ class _NativeCompanyHomePageState extends State<NativeCompanyHomePage> {
       _ => null,
     };
     if (destination == null) return;
-    Navigator.of(context).pop();
+    if (closeDrawer) Navigator.of(context).pop();
     Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => destination));
   }
 
@@ -186,7 +186,7 @@ class _NativeCompanyHomePageState extends State<NativeCompanyHomePage> {
                 final page = pages[index];
                 return InkWell(
                   borderRadius: BorderRadius.circular(17),
-                  onTap: () => _open(context, company, page.id),
+                  onTap: () => _open(context, company, page.id, closeDrawer: true),
                   child: Container(
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
@@ -249,7 +249,7 @@ class _NativeCompanyHomePageState extends State<NativeCompanyHomePage> {
               ListTile(
                 leading: const Icon(Icons.notifications_active_outlined, color: Color(0xFF3478E5)),
                 title: const Text('Lembretes'),
-                onTap: () => _open(context, company, 'reminders'),
+                onTap: () => _open(context, company, 'reminders', closeDrawer: true),
               ),
             const Divider(),
             ListTile(
