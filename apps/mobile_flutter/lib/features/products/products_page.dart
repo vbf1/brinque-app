@@ -184,7 +184,7 @@ class _ProductsPageState extends State<ProductsPage> {
                 ListTile(
                   leading: const CircleAvatar(child: Icon(Icons.toys_outlined)),
                   title: Text(p['name'] as String? ?? 'Brinquedo'),
-                  subtitle: Text('${p['available']} disponível(is) de ${p['total_quantity']} · R\$ ${p['daily_price']}/dia · ${individual ? 'Unidades individuais' : 'Por quantidade'}'),
+                  subtitle: Text('${p['available'] == null ? 'Disponibilidade indisponível' : '${p['available']} disponível(is)'} de ${p['total_quantity']} · R\$ ${p['daily_price']}/dia · ${individual ? 'Unidades individuais' : 'Por quantidade'}'),
                   trailing: IconButton(tooltip: 'Editar brinquedo', onPressed: () => _edit(p), icon: const Icon(Icons.edit_outlined)),
                   onTap: () => _edit(p),
                 ),
