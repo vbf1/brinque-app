@@ -459,3 +459,5 @@ select:focus-visible{outline:3px solid #3478e52b;outline-offset:1px}
 
 .quote-actions{display:flex;flex-wrap:wrap;gap:7px;margin-left:auto}
 @media(max-width:600px){.quote-actions{width:100%;margin-left:0}.quote-actions button{flex:1}}
+
+.legacy-company-switcher-label{display:flex;align-items:center;gap:8px;margin-top:8px;color:#c6d3e5;font-size:11px}.legacy-company-switcher{width:auto;max-width:min(100%,360px);min-height:34px;margin:0;padding:6px 30px 6px 9px;border:1px solid #ffffff45;border-radius:9px;background:#ffffff12;color:#fff;font-size:11px}.legacy-company-switcher option{color:#172b4d;background:#fff}
