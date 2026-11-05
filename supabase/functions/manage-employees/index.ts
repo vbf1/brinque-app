@@ -137,7 +137,7 @@ Deno.serve(async (req) => {
       if (companyResult.error) throw companyResult.error;
       const profileById = new Map((profileResult.data || []).map(profile => [profile.id, profile]));
       const companyById = new Map((companyResult.data || []).map(company => [company.id, company.name]));
-      return reply({ users: users.map(user => {
+      return reply({ management_version: 2, users: users.map(user => {
         const userMemberships = (memberships || []).filter(member => member.user_id === user.id);
         const selectedMembership = userMemberships.find(member => member.company_id === companyId);
         const profile = profileById.get(user.id);
