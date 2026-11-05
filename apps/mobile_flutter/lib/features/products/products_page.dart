@@ -206,15 +206,20 @@ class _ProductsPageState extends State<ProductsPage> {
                     final recent = history.take(3).map((r) => '${(r['customers'] as Map?)?['name'] ?? 'Cliente'} · ${r['start_date']} · ${r['status']}').join(' | ');
                     final status = unit['status'] as String? ?? 'available';
                     final now = DateTime.now();
-                    final today = '${now.year.toString().padLeft(4, '0')}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
-                    final reservedToday = rentalsKnown && rentals.any((rental) {
-                      final start = rental['start_date']?.toString() ?? '';
-                      final end = rental['end_date']?.toString() ?? start;
-                      final active = ['pending', 'confirmed', 'ongoing'].contains(rental['status']) && start.compareTo(today) <= 0 && end.compareTo(today) >= 0;
+                    final reservedNow = rentalsKnown && rentals.any((rental) {
+                      if (!['pending', 'confirmed', 'ongoing'].contains(rental['status'])) return false;
+                      final start = rentalBoundary(rental['start_date'], rental['start_time'], isEnd: false);
+                      final end = rentalBoundary(
+                        rental['end_date'] ?? rental['start_date'],
+                        rental['end_time'],
+                        isEnd: true,
+                      );
+                      final active = start != null && end != null &&
+                          !now.isBefore(start) && now.isBefore(end);
                       return active && (rental['rental_items'] as List? ?? []).any((item) =>
                         (item['rental_item_units'] as List? ?? []).any((allocation) => allocation['product_unit_id'] == unit['id']));
                     });
-                    final label = status == 'maintenance' ? 'Em manutenção' : status == 'inactive' ? 'Inativa' : !rentalsKnown ? 'Histórico indisponível' : reservedToday ? 'Reservada hoje' : 'Disponível';
+                    final label = status == 'maintenance' ? 'Em manutenção' : status == 'inactive' ? 'Inativa' : !rentalsKnown ? 'Histórico indisponível' : reservedNow ? 'Reservada agora' : 'Disponível';
                     return ListTile(
                       title: Text('Unidade ${unit['asset_code'] ?? '—'}'),
                       subtitle: Text('$label\nHistórico: ${!rentalsKnown ? 'Indisponível' : recent.isEmpty ? 'Sem locações registradas' : recent}'),
