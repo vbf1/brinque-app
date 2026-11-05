@@ -442,3 +442,14 @@ select:focus-visible{outline:3px solid #3478e52b;outline-offset:1px}
 .stats-bars small{color:var(--muted);font-size:10px;text-transform:capitalize}
 @media(max-width:760px){.stats-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.stats-panels{grid-template-columns:1fr}.stats-monthly{grid-column:auto}}
 @media(max-width:420px){.stats-kpis article{padding:11px}.stats-kpis strong{font-size:18px}.stats-kpis article:last-child{grid-column:1/-1}.stats-bars{gap:6px}.stats-bar-value{font-size:8px}}
+
+/* Catálogo de serviços e propostas comerciais. */
+.service-row{align-items:center}
+.service-thumb{width:54px;height:54px;flex:0 0 54px;object-fit:cover;border-radius:12px;background:var(--bg)}
+.service-row .customer-info{min-width:0;flex:1}
+.service-row .customer-info small{color:var(--muted);font-size:10px}
+.quote-total{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:12px;padding:13px;border:1px solid var(--line);border-radius:11px;background:var(--bg);font-size:12px}
+.quote-total strong{font-size:15px;color:var(--ink)}
+.quote-row{align-items:center}
+.quote-row>strong{white-space:nowrap;font-size:13px}
+@media(max-width:600px){.service-row{flex-wrap:wrap}.service-row .customer-info{flex-basis:calc(100% - 75px)}.service-row>button{flex:1}.quote-row{align-items:flex-start}.quote-row>strong{margin-left:auto}}
