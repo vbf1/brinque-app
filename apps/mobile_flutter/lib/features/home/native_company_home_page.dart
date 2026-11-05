@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../core/app_messenger.dart';
+import '../../core/native_push_service.dart';
+
 import '../../core/native_push_service.dart';
 
 import '../agenda/agenda_page.dart';
@@ -25,6 +28,8 @@ class NativeCompanyHomePage extends StatefulWidget {
 }
 
 class _NativeCompanyHomePageState extends State<NativeCompanyHomePage> {
+  final _pushService = NativePushService();
+  String? _registeredUserId;
   late Future<_CompanyContext> _future = _loadCompany();
 
   Future<_CompanyContext> _loadCompany() async {
@@ -80,12 +85,54 @@ class _NativeCompanyHomePageState extends State<NativeCompanyHomePage> {
     Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => destination));
   }
 
+  Future<void> _ensurePushRegistered(_CompanyContext company) async {
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null || _registeredUserId == user.id) return;
+    _registeredUserId = user.id;
+    try {
+      final enabled = await _pushService.registerIfAuthorized(
+        companyId: company.id,
+        userId: user.id,
+      );
+      if (!mounted || enabled) return;
+      appMessengerKey.currentState?.showSnackBar(SnackBar(
+        content: const Text('Ative as notificações para receber avisos do KidsLoc.'),
+        action: SnackBarAction(
+          label: 'Ativar',
+          onPressed: () => _requestPushPermission(company.id, user.id),
+        ),
+        duration: const Duration(seconds: 8),
+      ));
+    } catch (error) {
+      debugPrint('KidsLoc: falha ao preparar notificações nativas: $error');
+    }
+  }
+
+  Future<void> _requestPushPermission(String companyId, String userId) async {
+    try {
+      final enabled = await _pushService.requestAndRegister(
+        companyId: companyId,
+        userId: userId,
+      );
+      appMessengerKey.currentState?.showSnackBar(SnackBar(
+        content: Text(enabled
+            ? 'Notificações ativadas neste aparelho.'
+            : 'Permissão não concedida. Ative nas configurações do Android.'),
+      ));
+    } catch (error) {
+      appMessengerKey.currentState?.showSnackBar(
+        SnackBar(content: Text('Não foi possível ativar as notificações: $error')),
+      );
+    }
+  }
+
   Future<void> _signOut() async {
     try {
-      await NativePushService().unregisterCurrentDevice();
+      await _pushService.unregisterCurrentDevice();
     } catch (error) {
       debugPrint('KidsLoc: não foi possível remover o registro de notificações: $error');
     }
+    _registeredUserId = null;
     await Supabase.instance.client.auth.signOut(scope: SignOutScope.local);
   }
 
@@ -111,6 +158,7 @@ class _NativeCompanyHomePageState extends State<NativeCompanyHomePage> {
         );
       }
       final company = snapshot.data!;
+      WidgetsBinding.instance.addPostFrameCallback((_) => _ensurePushRegistered(company));
       final admin = _isAdmin(company);
       final pages = <_HomePage>[
         _HomePage('agenda', 'Agenda', 'Calendário e reservas por dia', Icons.calendar_month_outlined),
