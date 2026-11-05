@@ -12,6 +12,7 @@ import '../team_chat/team_chat_page.dart';
 import '../../core/native_push_service.dart';
 import '../reminders/reminder_settings_page.dart';
 import '../contracts/contracts_page.dart';
+import '../users/users_page.dart';
 
 class CompanyHomePage extends StatefulWidget {
   const CompanyHomePage({super.key});
@@ -336,6 +337,21 @@ class _CompanyHomePageState extends State<CompanyHomePage> {
                     label: const Text('Mensagens da equipe'),
                   ),
                 ),
+                if (data['role'] == 'owner' || data['role'] == 'admin') ...[
+                  const SizedBox(height: 10),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: () => Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) => UsersPage(companyId: data['id'] as String, viewerRole: data['role'] as String),
+                        ),
+                      ),
+                      icon: const Icon(Icons.manage_accounts_outlined),
+                      label: const Text('Usuários e funcionários'),
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 10),
                 SizedBox(
                   width: double.infinity,
