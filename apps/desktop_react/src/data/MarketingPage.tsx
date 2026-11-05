@@ -3,8 +3,8 @@ import { supabase } from '../lib/supabase';
 
 type Product = { id: string; name: string; description: string | null; daily_price: number };
 type Ad = { id: string; product_id: string | null; title: string; description: string; keywords: string[]; image_url: string | null; image_prompt: string; platforms: string[]; status: string; created_at: string };
-type Settings = { business_name: string; whatsapp: string; service_regions: string[]; default_description: string; default_call_to_action: string };
-const initialSettings: Settings = { business_name: '', whatsapp: '', service_regions: ['Contagem', 'Belo Horizonte'], default_description: '', default_call_to_action: 'Chame no WhatsApp para consultar disponibilidade' };
+type Settings = { business_name: string; whatsapp: string; service_regions: string[]; default_description: string; default_call_to_action: string; campaign_frequency: 'daily' | 'twice_weekly' | 'weekly' };
+const initialSettings: Settings = { business_name: '', whatsapp: '', service_regions: ['Contagem', 'Belo Horizonte'], default_description: '', default_call_to_action: 'Chame no WhatsApp para consultar disponibilidade', campaign_frequency: 'twice_weekly' };
 const channels = [{id:'facebook_marketplace',label:'Facebook Marketplace'},{id:'facebook_page',label:'Página do Facebook'},{id:'facebook_groups',label:'Grupos do Facebook'},{id:'instagram',label:'Instagram'}];
 const labels: Record<string,string> = {draft:'Rascunho',pending_approval:'Aguardando aprovação',approved:'Aprovado',published:'Status marcado como publicado (sem integração)',rejected:'Precisa de ajustes'};
 
@@ -37,7 +37,7 @@ export function MarketingPage({ companyId, userId }: { companyId: string; userId
    ]);
    if(s.error)throw s.error;if(p.error)throw p.error;if(a.error)throw a.error;
    const x=s.data;
-   const next=x?{business_name:x.business_name??'',whatsapp:x.whatsapp??'',service_regions:x.service_regions??[],default_description:x.default_description??'',default_call_to_action:x.default_call_to_action??initialSettings.default_call_to_action}:initialSettings;
+   const next=x?{business_name:x.business_name??'',whatsapp:x.whatsapp??'',service_regions:x.service_regions??[],default_description:x.default_description??'',default_call_to_action:x.default_call_to_action??initialSettings.default_call_to_action,campaign_frequency:x.campaign_frequency??initialSettings.campaign_frequency}:initialSettings;
    setSettings(next);setRegions(next.service_regions.join(', '));setProducts(p.data??[]);setAds(a.data??[]);setMessage('');
   }catch(e){setMessage(e instanceof Error?e.message:'Não foi possível carregar o módulo.');}
   finally{setLoading(false);}
@@ -111,6 +111,7 @@ export function MarketingPage({ companyId, userId }: { companyId: string; userId
    <label>Cidades e regiões atendidas<input value={regions} onChange={e=>setRegions(e.target.value)} placeholder="Contagem, Belo Horizonte, Betim..."/><small>Separe as regiões por vírgula.</small></label>
    <label>Descrição padrão<textarea rows={4} value={settings.default_description} onChange={e=>setSettings({...settings,default_description:e.target.value})} placeholder="Informações sobre a empresa, entrega, montagem e diferenciais."/></label>
    <label>Chamada para ação<input value={settings.default_call_to_action} onChange={e=>setSettings({...settings,default_call_to_action:e.target.value})}/></label>
+   <label>Frequência de preparação das campanhas<select value={settings.campaign_frequency} onChange={e=>setSettings({...settings,campaign_frequency:e.target.value as Settings['campaign_frequency']})}><option value="daily">Diariamente</option><option value="twice_weekly">Duas vezes por semana</option><option value="weekly">Semanalmente</option></select><small>Essa preferência será usada pela rotina automática. Toda campanha continuará aguardando sua aprovação antes de qualquer publicação.</small></label>
    <div className="form-actions"><button type="submit" disabled={saving}>{saving?'Salvando...':'Salvar configurações'}</button></div>
   </form>:<>
    <div className="marketing-summary"><div><strong>{ads.length}</strong><span>Total</span></div><div><strong>{ads.filter(a=>a.status==='draft').length}</strong><span>Rascunhos</span></div><div><strong>{ads.filter(a=>a.status==='pending_approval').length}</strong><span>Para revisar</span></div><div><strong>{ads.filter(a=>a.status==='approved').length}</strong><span>Aprovados</span></div></div>
