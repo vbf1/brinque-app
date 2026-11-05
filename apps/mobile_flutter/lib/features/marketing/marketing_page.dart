@@ -295,7 +295,7 @@ class _MarketingPageState extends State<MarketingPage> {
         _field(_title,'Título',validator:(v)=>(v?.trim().length??0)<5?'Informe um título com ao menos 5 caracteres.':null),
         _field(_description,'Descrição',lines:5,validator:(v)=>(v?.trim().length??0)<10?'Informe uma descrição mais completa.':null),
         _field(_keywords,'Palavras-chave (separadas por vírgula)'),
-        DropdownButtonFormField<String>(initialValue:_productImage,decoration:const InputDecoration(labelText:'Foto cadastrada no estoque'),items:[const DropdownMenuItem(value:null,child:Text('Não usar foto do estoque')),..._images.map((p)=>DropdownMenuItem(value:p['storage_path'] as String,child:Text(p['product_name'].toString())))],onChanged:(v)=>setState(()=>_productImage=v)),
+        DropdownButtonFormField<String>(initialValue:_productImage,decoration:const InputDecoration(labelText:'Foto cadastrada no estoque'),items:[const DropdownMenuItem(value:null,child:Text('Não usar foto do estoque')),..._images.map((p)=>DropdownMenuItem(value:p['storage_path'] as String,child:Text(p['product_name'].toString())))],onChanged:(v)=>setState((){_productImage=v;_imageFile=null;_imageUrl.clear();})),
         OutlinedButton.icon(onPressed:_pickImage,icon:const Icon(Icons.image_outlined),label:Text(_imageFile?.name??'Enviar imagem (PNG, JPG ou WebP · até 5 MB)')),
         _field(_imageUrl,'Link da imagem (opcional)'),_field(_imagePrompt,'Orientação para produzir a imagem',lines:3),
         const Text('Canais desejados',style:TextStyle(fontWeight:FontWeight.w700)),
