@@ -20,14 +20,19 @@ class _ProductsPageState extends State<ProductsPage> {
   String _search = '';
 
   Future<List<Map<String, dynamic>>> _load() async {
+    // O histórico é complementar e não deve bloquear a listagem do estoque.
     final results = await Future.wait([
       _repository.fetchProducts(),
       _repository.fetchProductUnits(),
-      _repository.fetchRentals(),
     ]);
     final products = results[0];
     final units = results[1];
-    final rentals = results[2];
+    List<Map<String, dynamic>> rentals = [];
+    try {
+      rentals = await _repository.fetchRentals();
+    } catch (error) {
+      debugPrint('KidsLoc: não foi possível carregar o histórico de locações do estoque: $error');
+    }
     return products.map((product) {
       final productUnits = units.where((unit) => unit['product_id'] == product['id']).toList();
       final individual = product['inventory_mode'] == 'individual';
@@ -43,7 +48,9 @@ class _ProductsPageState extends State<ProductsPage> {
   }
 
   Future<void> _reload() async {
-    setState(() => _future = _load());
+    final next = _load();
+    setState(() => _future = next);
+    await next;
   }
 
   Future<void> _setUnitStatus(Map<String, dynamic> unit) async {
@@ -112,7 +119,7 @@ class _ProductsPageState extends State<ProductsPage> {
           dailyPrice: double.parse(price.text.replaceAll(',', '.')),
         );
         await _reload();
-        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Brinquedo salvo com sucesso.')));
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Brinquedo salvo e lista atualizada.')));
       } catch (error) {
         if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Não foi possível salvar: $error')));
       }
