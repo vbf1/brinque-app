@@ -34,15 +34,15 @@ class _StatisticsPageState extends State<StatisticsPage> {
     body: FutureBuilder<List<Map<String, dynamic>>>(
       future: _future,
       builder: (context, snapshot) {
-        if (snapshot.connectionState != ConnectionState.done) return const Center(child: CircularProgressIndicator());
-        if (snapshot.hasError) return Center(child: Padding(
+        if (snapshot.connectionState != ConnectionState.done) { return const Center(child: CircularProgressIndicator()); }
+        if (snapshot.hasError) { return Center(child: Padding(
           padding: const EdgeInsets.all(24),
           child: Column(mainAxisSize: MainAxisSize.min, children: [
             Text('Não foi possível carregar as estatísticas. ${snapshot.error}', textAlign: TextAlign.center),
             const SizedBox(height: 12),
             OutlinedButton(onPressed: _reload, child: const Text('Tentar novamente')),
           ]),
-        ));
+        )); }
         final rentals = snapshot.data ?? [];
         final active = rentals.where((r) => ['pending', 'confirmed', 'ongoing'].contains(r['status'])).length;
         final completed = rentals.where((r) => r['status'] == 'completed').length;
