@@ -429,9 +429,9 @@ class _MarketingPageState extends State<MarketingPage> {
       const SizedBox(height:8),
       const Text('Prepare anúncios, revise o conteúdo e aprove antes de qualquer publicação. A divulgação nas redes continua manual.'),
       const SizedBox(height:12),
-      SegmentedButton<String>(segments:const [ButtonSegment(value:'ads',label:Text('Anúncios')),ButtonSegment(value:'settings',label:Text('Configurações'))],selected:{_tab},onSelectionChanged:(v)=>setState(()=>_tab=v.first)),
+      SegmentedButton<String>(segments:const [ButtonSegment(value:'ads',label:Text('Anúncios')),ButtonSegment(value:'settings',label:Text('Configurações')),ButtonSegment(value:'studio',label:Text('Estúdio IA'))],selected:{_tab},onSelectionChanged:(v)=>setState(()=>_tab=v.first)),
       if(_message.isNotEmpty)Padding(padding:const EdgeInsets.symmetric(vertical:10),child:Text(_message,style:const TextStyle(color:Color(0xFF3478E5)))),
-      if(_tab=='settings')_settings() else _adsList(),
+      if(_tab=='settings')_settings() else if(_tab=='studio')_studioPanel() else _adsList(),
     ])),
   );
 
@@ -456,7 +456,6 @@ class _MarketingPageState extends State<MarketingPage> {
     Text('Exibindo '+_visible.length.toString()+' de '+_ads.length.toString()+' anúncios'),
     if(_visible.isEmpty)const Padding(padding:EdgeInsets.all(24),child:Text('Nenhum anúncio corresponde aos filtros atuais.',textAlign:TextAlign.center)),
     for(final ad in _visible)_adCard(ad),
-    _studioPanel(),
   ]);
 
   Widget _adCard(Map<String,dynamic> ad){
