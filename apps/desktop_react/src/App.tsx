@@ -115,6 +115,8 @@ export default function App() {
   const [availableCompanies, setAvailableCompanies] = useState<Array<{ id: string; name: string }>>([]);
   const [companyLoading, setCompanyLoading] = useState(false);
   const [page, setPage] = useState<Page>(() => pageFromLocation());
+  const [tourOpen, setTourOpen] = useState(false);
+  const [tourStep, setTourStep] = useState(0);
 
   const navigateTo = useCallback((nextPage: Page) => {
     const nextPath = pathForPage(nextPage);
@@ -133,6 +135,14 @@ export default function App() {
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
   }, [company?.id]);
+  useEffect(() => {
+    if (!session || !company) { setTourOpen(false); return; }
+    if (session.user.user_metadata?.kidsloc_tour_completed !== true) {
+      setTourStep(0);
+      setTourOpen(true);
+    }
+  }, [session?.user.id, company?.id]);
+
   const [menuOpen, setMenuOpen] = useState(false);
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
     try { return localStorage.getItem('brq_theme') === 'dark' ? 'dark' : 'light'; } catch { return 'light'; }
@@ -343,6 +353,40 @@ export default function App() {
   const userLabel = session?.user.user_metadata?.full_name || session?.user.email?.split('@')[0] || 'Bem-vindo';
   const pageTitle = navigation.find(item => item.id === page)?.label ?? 'Início';
   const visibleNavigation = navigation.filter(item => item.platformOnly ? platformOwner : (!item.admin || isAdmin));
+
+  const tourSteps: TourStep[] = [TOUR_INTRO, ...visibleNavigation.map(item => ({
+    title: item.label,
+    description: TOUR_DESCRIPTIONS[item.id] ?? 'Conheça esta área e as ferramentas disponíveis de acordo com seu perfil.',
+    page: item.id,
+  }))];
+  const currentTourStep = tourSteps[Math.min(tourStep, tourSteps.length - 1)];
+  async function finishTour() {
+    setTourOpen(false);
+    try {
+      const { error } = await supabase.auth.updateUser({
+        data: { ...session?.user.user_metadata, kidsloc_tour_completed: true },
+      });
+      if (error) throw error;
+      const { data } = await supabase.auth.getUser();
+      if (data.user) setSession(current => current ? { ...current, user: data.user! } : current);
+    } catch {
+      feedback('Não foi possível salvar a conclusão do tutorial. Você pode abri-lo novamente pelo botão Ajuda.', true);
+    }
+  }
+  function advanceTour() {
+    if (tourStep >= tourSteps.length - 1) { void finishTour(); return; }
+    const next = tourStep + 1;
+    setTourStep(next);
+    navigateTo(tourSteps[next].page);
+    setMenuOpen(false);
+  }
+  function openTour() {
+    setTourStep(0);
+    setTourOpen(true);
+    navigateTo('inicio');
+    setMenuOpen(false);
+  }
+
   const publicContractToken = new URLSearchParams(window.location.search).get('contract');
   if (publicContractToken) return <PublicContractPage token={publicContractToken} />;
   const isPublicCheckout = new URLSearchParams(window.location.search).has('checkout') || window.location.pathname.split('/').filter(Boolean).at(-1) === 'checkout';
@@ -398,6 +442,7 @@ export default function App() {
           <div className="legacy-brand"><div className="legacy-logo"><img src={`${import.meta.env.BASE_URL}kidsloc-brand.webp`} alt="KidsLoc App" /></div><div><strong>KIDSLOC APP</strong><span>GESTÃO DE LOCAÇÕES</span></div></div>
           <div className="legacy-head-actions">
             <button type="button" className="legacy-theme-button" aria-label={theme === 'dark' ? 'Ativar tema claro' : 'Ativar tema escuro'} title={theme === 'dark' ? 'Tema claro' : 'Tema escuro'} onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>{theme === 'dark' ? '☾' : '☀'}</button>
+            <button type="button" className="legacy-help-button" title="Ver tutorial do aplicativo" onClick={openTour}>Ajuda</button>
             <button type="button" className="legacy-menu-trigger" aria-label="Abrir menu" aria-expanded={menuOpen} onClick={() => setMenuOpen(value => !value)}><span /><span /><span /></button>
           </div>
         </div>
@@ -448,6 +493,19 @@ export default function App() {
         {page === 'configuracoes' && isAdmin && <CompanySettingsPage companyId={company.id} companyName={company.name} theme={theme} onThemeChange={setTheme} onSaved={name => { setCompany(current => current ? { ...current, name } : current); setAvailableCompanies(current => current.map(item => item.id === company.id ? { ...item, name } : item)); }} />}
         {page === 'administracao' && platformOwner && <PlatformAdminPage currentCompanyId={company.id} companies={availableCompanies} onCompaniesChanged={setAvailableCompanies} onSelectCompany={selected => setCompany({ ...selected, role: 'owner' })} />}
       </main>
+      {tourOpen && currentTourStep && <div className="kidsloc-tour-backdrop" role="presentation">
+        <section className="kidsloc-tour-dialog" role="dialog" aria-modal="true" aria-labelledby="kidsloc-tour-title">
+          <div className="kidsloc-tour-top"><span>GUIA DO KIDSLOC</span><button type="button" className="kidsloc-tour-close" onClick={() => void finishTour()} aria-label="Fechar tutorial">×</button></div>
+          <div className="kidsloc-tour-progress"><span style={{ width: `${((tourStep + 1) / tourSteps.length) * 100}%` }} /></div>
+          <small className="kidsloc-tour-count">Etapa {tourStep + 1} de {tourSteps.length}</small>
+          <h2 id="kidsloc-tour-title">{currentTourStep.title}</h2>
+          <p>{currentTourStep.description}</p>
+          <div className="kidsloc-tour-actions">
+            <button type="button" className="kidsloc-tour-skip" onClick={() => void finishTour()}>Pular tutorial</button>
+            <button type="button" onClick={advanceTour}>{tourStep >= tourSteps.length - 1 ? 'Concluir' : 'Avançar'}</button>
+          </div>
+        </section>
+      </div>}
       <footer className="legacy-footer">KIDSLOC APP <span>·</span> {company.name}</footer>
     </div>
   );
