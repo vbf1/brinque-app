@@ -74,6 +74,7 @@ class _CompanyHomePageState extends State<CompanyHomePage> {
   Future<void> _syncExistingNativeSession() async {
     final session = Supabase.instance.client.auth.currentSession;
     if (session == null || session.user.id == _lastSyncedUserId) return;
+    _lastSyncedUserId = session.user.id;
     await _registerPushForUser(session.user.id);
   }
 
