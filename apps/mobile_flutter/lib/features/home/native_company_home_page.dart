@@ -4,8 +4,6 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/app_messenger.dart';
 import '../../core/native_push_service.dart';
 
-import '../../core/native_push_service.dart';
-
 import '../agenda/agenda_page.dart';
 import '../contracts/contracts_page.dart';
 import '../customers/customers_page.dart';
