@@ -453,3 +453,6 @@ select:focus-visible{outline:3px solid #3478e52b;outline-offset:1px}
 .quote-row{align-items:center}
 .quote-row>strong{white-space:nowrap;font-size:13px}
 @media(max-width:600px){.service-row{flex-wrap:wrap}.service-row .customer-info{flex-basis:calc(100% - 75px)}.service-row>button{flex:1}.quote-row{align-items:flex-start}.quote-row>strong{margin-left:auto}}
+
+.finance-heading-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+@media(max-width:560px){.finance-heading-actions{width:100%}.finance-heading-actions button{flex:1}}
