@@ -34,13 +34,21 @@ class _ProductsPageState extends State<ProductsPage> {
       debugPrint('KidsLoc: não foi possível carregar o histórico de locações do estoque: $error');
     }
     final now = DateTime.now();
-    final today = '${now.year.toString().padLeft(4, '0')}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
     const activeStatuses = {'pending', 'confirmed', 'ongoing'};
-    final activeRentals = (rentals ?? []).where((rental) =>
-      activeStatuses.contains(rental['status']) &&
-      (rental['start_date']?.toString() ?? '').compareTo(today) <= 0 &&
-      (rental['end_date']?.toString() ?? rental['start_date']?.toString() ?? '').compareTo(today) >= 0,
-    ).toList();
+    final activeRentals = (rentals ?? []).where((rental) {
+      if (!activeStatuses.contains(rental['status'])) return false;
+      final start = _rentalBoundary(
+        rental['start_date'],
+        rental['start_time'],
+        isEnd: false,
+      );
+      final end = _rentalBoundary(
+        rental['end_date'] ?? rental['start_date'],
+        rental['end_time'],
+        isEnd: true,
+      );
+      return start != null && end != null && !now.isBefore(start) && now.isBefore(end);
+    }).toList();
     return products.map((product) {
       final productUnits = units.where((unit) => unit['product_id'] == product['id']).toList();
       final individual = product['inventory_mode'] == 'individual';
@@ -67,6 +75,28 @@ class _ProductsPageState extends State<ProductsPage> {
         'available': available,
       };
     }).toList();
+  }
+
+  DateTime? _rentalBoundary(dynamic rawDate, dynamic rawTime, {required bool isEnd}) {
+    final date = DateTime.tryParse(rawDate?.toString() ?? '');
+    if (date == null) return null;
+    final time = rawTime?.toString();
+    if (time == null || time.isEmpty) {
+      return isEnd
+          ? DateTime(date.year, date.month, date.day).add(const Duration(days: 1))
+          : DateTime(date.year, date.month, date.day);
+    }
+    final parts = time.split(':');
+    final hour = int.tryParse(parts.first);
+    final minute = int.tryParse(parts.length > 1 ? parts[1] : '');
+    if (hour == null || minute == null || hour < 0 || hour > 24 ||
+        minute < 0 || minute > 59 || (hour == 24 && minute != 0)) {
+      return null;
+    }
+    final boundary = DateTime(date.year, date.month, date.day);
+    return hour == 24
+        ? boundary.add(const Duration(days: 1))
+        : boundary.add(Duration(hours: hour, minutes: minute));
   }
 
   Future<void> _reload() async {
