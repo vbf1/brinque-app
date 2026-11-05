@@ -1,3 +1,5 @@
+// ignore_for_file: prefer_interpolation_to_compose_strings, curly_braces_in_flow_control_structures
+
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
@@ -185,9 +187,10 @@ class _MarketingPageState extends State<MarketingPage> {
         final mime = _imageFile!.mimeType ?? 'image/jpeg';
         if (bytes.length > 5 * 1024 * 1024 || !['image/png','image/jpeg','image/webp'].contains(mime)) throw Exception('Use uma imagem PNG, JPG ou WebP de até 5 MB.');
         final ext = mime == 'image/png' ? 'png' : mime == 'image/webp' ? 'webp' : 'jpg';
-        uploadedPath = widget.companyId+'/marketing/'+DateTime.now().microsecondsSinceEpoch.toString()+'.'+ext;
-        await _db.storage.from('company-branding').uploadBinary(uploadedPath!, bytes, fileOptions: FileOptions(contentType: mime, upsert: false));
-        finalImage = _db.storage.from('company-branding').getPublicUrl(uploadedPath!);
+        final path = widget.companyId+'/marketing/'+DateTime.now().microsecondsSinceEpoch.toString()+'.'+ext;
+        uploadedPath = path;
+        await _db.storage.from('company-branding').uploadBinary(path, bytes, fileOptions: FileOptions(contentType: mime, upsert: false));
+        finalImage = _db.storage.from('company-branding').getPublicUrl(path);
       }
       final payload={
         'company_id':widget.companyId,'product_id':_productId,'title':_title.text.trim(),'description':_description.text.trim(),
@@ -211,7 +214,8 @@ class _MarketingPageState extends State<MarketingPage> {
       _clear(); await _load();
       if(mounted)setState(()=>_message=submit?'Anúncio enviado para revisão.':'Rascunho salvo.');
     }catch(e){
-      if(uploadedPath!=null){try{await _db.storage.from('company-branding').remove([uploadedPath!]);}catch(_){}}
+      final failedUploadPath = uploadedPath;
+      if(failedUploadPath!=null){try{await _db.storage.from('company-branding').remove([failedUploadPath]);}catch(_){}}
       if(mounted)setState(()=>_message='Falha ao salvar anúncio: $e');
     }
     finally{if(mounted)setState(()=>_saving=false);}
@@ -493,8 +497,8 @@ class _MarketingPageState extends State<MarketingPage> {
         const Text('Canais desejados',style:TextStyle(fontWeight:FontWeight.w700)),
         for(final entry in _channels.entries)CheckboxListTile(contentPadding:EdgeInsets.zero,dense:true,value:_platforms.contains(entry.key),title:Text(entry.value),onChanged:(v)=>setState(()=>v==true?_platforms.add(entry.key):_platforms.remove(entry.key))),
         const Text('A publicação é manual. O Marketplace pode não aceitar anúncios de locação.',style:TextStyle(fontSize:12,color:Colors.deepOrange)),
-        FilledButton(onPressed:_saving?null:()async{await _save(false);if(mounted&&_message=='Rascunho salvo.')Navigator.pop(ctx);},child:const Text('Salvar rascunho')),
-        OutlinedButton(onPressed:_saving?null:()async{await _save(true);if(mounted&&_message=='Anúncio enviado para revisão.')Navigator.pop(ctx);},child:const Text('Enviar para aprovação')),
+        FilledButton(onPressed:_saving?null:()async{await _save(false);if(ctx.mounted&&_message=='Rascunho salvo.')Navigator.pop(ctx);},child:const Text('Salvar rascunho')),
+        OutlinedButton(onPressed:_saving?null:()async{await _save(true);if(ctx.mounted&&_message=='Anúncio enviado para revisão.')Navigator.pop(ctx);},child:const Text('Enviar para aprovação')),
       ])),
     ));
   }
