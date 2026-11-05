@@ -56,13 +56,6 @@ class KidsLocApp extends StatelessWidget {
           focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Color(0xFF218653), width: 1.6)),
           labelStyle: const TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF64748B)),
         ),
-        dropdownButtonTheme: DropdownButtonThemeData(
-          dropdownColor: Colors.white,
-          borderRadius: BorderRadius.circular(18),
-          elevation: 12,
-          menuMaxHeight: 360,
-          style: const TextStyle(color: Color(0xFF172B4D), fontSize: 14, fontWeight: FontWeight.w600),
-        ),
         popupMenuTheme: PopupMenuThemeData(
           color: Colors.white,
           surfaceTintColor: Colors.transparent,
@@ -71,6 +64,16 @@ class KidsLocApp extends StatelessWidget {
           textStyle: const TextStyle(color: Color(0xFF172B4D), fontSize: 14, fontWeight: FontWeight.w600),
         ),
         listTileTheme: const ListTileThemeData(minVerticalPadding: 10),
+      ),
+      builder: (context, child) => DropdownButtonTheme(
+        data: DropdownButtonThemeData(
+          dropdownColor: Colors.white,
+          borderRadius: BorderRadius.circular(18),
+          elevation: 12,
+          menuMaxHeight: 360,
+          style: const TextStyle(color: Color(0xFF172B4D), fontSize: 14, fontWeight: FontWeight.w600),
+        ),
+        child: child ?? const SizedBox.shrink(),
       ),
       home: const AuthGate(),
     );
