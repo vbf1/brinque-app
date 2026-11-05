@@ -38,6 +38,12 @@ class _RentalsPageState extends State<RentalsPage> {
     final customerId = ValueNotifier<String?>(rental?['customer_id'] as String?);
     final start = ValueNotifier<DateTime>(_date(rental?['start_date']) ?? DateTime.now());
     final end = ValueNotifier<DateTime>(_date(rental?['end_date']) ?? DateTime.now().add(const Duration(days: 1)));
+    final startTime = ValueNotifier<String>(
+      rental == null ? '09:00' : (rental['start_time']?.toString().substring(0, 5) ?? '00:00'),
+    );
+    final endTime = ValueNotifier<String>(
+      rental == null ? '17:00' : (rental['end_time']?.toString().substring(0, 5) ?? '23:59'),
+    );
     final status = ValueNotifier<String>(rental?['status'] as String? ?? 'pending');
     final delivery = ValueNotifier<String>(rental?['delivery_method'] as String? ?? 'customer_pickup');
     final address = TextEditingController(text: rental?['delivery_address'] as String? ?? '');
@@ -100,6 +106,8 @@ class _RentalsPageState extends State<RentalsPage> {
       customerId.dispose();
       start.dispose();
       end.dispose();
+      startTime.dispose();
+      endTime.dispose();
       status.dispose();
       delivery.dispose();
       reminderMode.dispose();
@@ -131,6 +139,12 @@ class _RentalsPageState extends State<RentalsPage> {
                 Expanded(child: _dateField(context, 'Início', start, setDialogState)),
                 const SizedBox(width: 8),
                 Expanded(child: _dateField(context, 'Término', end, setDialogState)),
+              ]),
+              const SizedBox(height: 8),
+              Row(children: [
+                Expanded(child: _timeField(context, 'Horário de início', startTime, setDialogState)),
+                const SizedBox(width: 8),
+                Expanded(child: _timeField(context, 'Horário de término', endTime, setDialogState)),
               ]),
               DropdownButtonFormField<String>(
                 initialValue: status.value,
@@ -269,7 +283,14 @@ class _RentalsPageState extends State<RentalsPage> {
           actions: [
             TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('Cancelar')),
             FilledButton(onPressed: () {
-              if (end.value.isBefore(start.value)) return;
+              final sameDay = _iso(start.value) == _iso(end.value);
+              if (end.value.isBefore(start.value) ||
+                  (sameDay && _minutes(endTime.value) <= _minutes(startTime.value))) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('O término precisa ser posterior ao início.')),
+                );
+                return;
+              }
               if (formKey.currentState!.validate() && itemRows.every((i) => i.productId != null && i.quantity > 0 && i.price >= 0)) {
                 final ids = itemRows.map((i) => i.productId).toList();
                 if (ids.toSet().length != ids.length) {
@@ -295,6 +316,7 @@ class _RentalsPageState extends State<RentalsPage> {
         if (rental == null) {
           rentalId = await repo.createRentalWithItems(
             customerId: customerId.value!, startDate: _iso(start.value), endDate: _iso(end.value),
+            startTime: startTime.value, endTime: endTime.value,
             status: status.value, deliveryMethod: delivery.value, totalAmount: total,
             items: items, deliveryAddress: address.text, responsibleUserIds: responsibleIds,
           );
@@ -303,6 +325,7 @@ class _RentalsPageState extends State<RentalsPage> {
           await repo.updateRentalWithItems(
             rentalId: rentalId, customerId: customerId.value!,
             startDate: _iso(start.value), endDate: _iso(end.value),
+            startTime: startTime.value, endTime: endTime.value,
             status: status.value, deliveryMethod: delivery.value, totalAmount: total,
             items: items, deliveryAddress: address.text, responsibleUserIds: responsibleIds,
           );
@@ -337,7 +360,7 @@ class _RentalsPageState extends State<RentalsPage> {
         if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Não foi possível salvar: $error')));
       }
     }
-    customerId.dispose(); start.dispose(); end.dispose(); status.dispose(); delivery.dispose(); reminderMode.dispose(); reminderDays.dispose(); reminderFrequency.dispose(); address.dispose(); totalController.dispose();
+    customerId.dispose(); start.dispose(); end.dispose(); startTime.dispose(); endTime.dispose(); status.dispose(); delivery.dispose(); reminderMode.dispose(); reminderDays.dispose(); reminderFrequency.dispose(); address.dispose(); totalController.dispose();
   }
 
 
@@ -394,6 +417,38 @@ class _RentalsPageState extends State<RentalsPage> {
         child: Text('$label\n${dateFormat.format(date)}', textAlign: TextAlign.center),
       ),
     );
+  }
+
+  Widget _timeField(
+    BuildContext context,
+    String label,
+    ValueNotifier<String> value,
+    void Function(void Function()) refresh,
+  ) {
+    return ValueListenableBuilder<String>(
+      valueListenable: value,
+      builder: (context, time, _) => OutlinedButton(
+        onPressed: () async {
+          final parts = time.split(':');
+          final initial = TimeOfDay(
+            hour: int.tryParse(parts.first) ?? 9,
+            minute: int.tryParse(parts.length > 1 ? parts[1] : '') ?? 0,
+          );
+          final picked = await showTimePicker(context: context, initialTime: initial);
+          if (picked != null) {
+            final formatted = '${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}';
+            refresh(() => value.value = formatted);
+          }
+        },
+        child: Text('$label\\n$time', textAlign: TextAlign.center),
+      ),
+    );
+  }
+
+  int _minutes(String value) {
+    final parts = value.split(':');
+    return (int.tryParse(parts.first) ?? 0) * 60 +
+        (int.tryParse(parts.length > 1 ? parts[1] : '') ?? 0);
   }
 
   DateTime? _date(dynamic value) => value == null ? null : DateTime.tryParse(value.toString());
