@@ -17,6 +17,7 @@ import { UsersPage } from './data/UsersPage';
 import { ServicesPage } from './data/ServicesPage';
 import { QuotesPage } from './data/QuotesPage';
 import { CompanySettingsPage } from './data/CompanySettingsPage';
+import { CompanyManagementPage } from './data/CompanyManagementPage';
 
 declare global {
   interface Window {
@@ -25,7 +26,7 @@ declare global {
 }
 
 type CompanyContext = { id: string; name: string; role: string };
-type Page = 'inicio' | 'agenda' | 'estatisticas' | 'locacoes' | 'clientes' | 'estoque' | 'financeiro' | 'ocorrencias' | 'mensagens' | 'marketing' | 'contratos' | 'usuarios' | 'servicos' | 'orcamentos' | 'configuracoes';
+type Page = 'inicio' | 'agenda' | 'estatisticas' | 'locacoes' | 'clientes' | 'estoque' | 'financeiro' | 'ocorrencias' | 'mensagens' | 'marketing' | 'contratos' | 'usuarios' | 'servicos' | 'orcamentos' | 'configuracoes' | 'gerenciar-empresa';
 
 const pagePaths: Record<Page, string> = {
   inicio: 'inicio',
@@ -43,6 +44,7 @@ const pagePaths: Record<Page, string> = {
   servicos: 'servicos',
   orcamentos: 'orcamentos',
   configuracoes: 'configuracoes',
+  'gerenciar-empresa': 'gerenciar-empresa',
 };
 
 function pageFromLocation(): Page {
@@ -77,7 +79,7 @@ function friendlyError(error: unknown): string {
   return raw || 'Não foi possível concluir a operação. Tente novamente.';
 }
 
-const navigation: Array<{ id: Page; label: string; icon: string; admin?: boolean }> = [
+const navigation: Array<{ id: Page; label: string; icon: string; admin?: boolean; ownerOnly?: boolean }> = [
   { id: 'inicio', label: 'Início', icon: '▦' },
   { id: 'agenda', label: 'Agenda', icon: '▦' },
   { id: 'estatisticas', label: 'Estatísticas', icon: '▥' },
@@ -93,6 +95,7 @@ const navigation: Array<{ id: Page; label: string; icon: string; admin?: boolean
   { id: 'marketing', label: 'Marketing e anúncios', icon: '✧', admin: true },
   { id: 'usuarios', label: 'Usuários', icon: '♙', admin: true },
   { id: 'configuracoes', label: 'Configurações', icon: '⚙', admin: true },
+  { id: 'gerenciar-empresa', label: 'Gerenciar empresa e usuários', icon: '▣', ownerOnly: true },
 ];
 
 export default function App() {
@@ -257,7 +260,7 @@ export default function App() {
           setAvailableCompanies(companyList ?? []);
           if (!companyList?.length) {
             setCompany(null);
-            feedback('Nenhuma empresa cadastrada. Crie a primeira empresa nas configurações.', true);
+            feedback('Nenhuma empresa cadastrada. Acesse Gerenciar empresa e usuários para criar a primeira.', true);
             return;
           }
           setCompany({ id: companyList[0].id, name: companyList[0].name, role: 'owner' });
@@ -286,6 +289,10 @@ export default function App() {
       window.clearTimeout(timeoutId);
     };
   }, [session, feedback]);
+
+  useEffect(() => {
+    if (company && !platformOwner && page === 'gerenciar-empresa') navigateTo('inicio');
+  }, [company, platformOwner, page, navigateTo]);
 
   async function login(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -339,7 +346,7 @@ export default function App() {
   const isAdmin = platformOwner || company?.role === 'owner' || company?.role === 'admin';
   const userLabel = session?.user.user_metadata?.full_name || session?.user.email?.split('@')[0] || 'Bem-vindo';
   const pageTitle = navigation.find(item => item.id === page)?.label ?? 'Início';
-  const visibleNavigation = navigation.filter(item => !item.admin || isAdmin);
+  const visibleNavigation = navigation.filter(item => item.ownerOnly ? platformOwner : (!item.admin || isAdmin));
   const publicContractToken = new URLSearchParams(window.location.search).get('contract');
   if (publicContractToken) return <PublicContractPage token={publicContractToken} />;
   const isPublicCheckout = new URLSearchParams(window.location.search).has('checkout') || window.location.pathname.split('/').filter(Boolean).at(-1) === 'checkout';
@@ -385,7 +392,7 @@ export default function App() {
   );
 
   if (companyLoading) return <main className="legacy-auth-screen"><section className="legacy-auth-card"><div className="legacy-auth-brand"><img src={`${import.meta.env.BASE_URL}kidsloc-brand.webp`} alt="KidsLoc App" /><div className="legacy-auth-wordmark"><strong>KidsLoc <span>App</span></strong><small>GESTÃO DE LOCAÇÕES</small></div><div className="legacy-login-accent" /></div><div className="legacy-loading">Carregando os dados da empresa...</div></section></main>;
-  if (!company && platformOwner) return <main className="legacy-auth-screen"><section className="legacy-auth-card" style={{ width: 'min(620px, 100%)' }}><div className="legacy-auth-brand"><img src={`${import.meta.env.BASE_URL}kidsloc-brand.webp`} alt="KidsLoc App" /><div className="legacy-auth-wordmark"><strong>KidsLoc <span>App</span></strong><small>GESTÃO DE LOCAÇÕES</small></div><div className="legacy-login-accent" /></div><CompanySettingsPage companyId="" companyName="" platformOwner userId={session.user.id} onSaved={() => undefined} onCompanyCreated={created => { setAvailableCompanies([created]); setCompany({ ...created, role: 'owner' }); }} /><button onClick={logout} disabled={busy} className="legacy-secondary-button">Sair</button></section></main>;
+  if (!company && platformOwner) return <main className="legacy-auth-screen"><section className="legacy-auth-card" style={{ width: 'min(920px, 100%)' }}><div className="legacy-auth-brand"><img src={`${import.meta.env.BASE_URL}kidsloc-brand.webp`} alt="KidsLoc App" /><div className="legacy-auth-wordmark"><strong>KidsLoc <span>App</span></strong><small>GESTÃO DE LOCAÇÕES</small></div><div className="legacy-login-accent" /></div><CompanyManagementPage companies={availableCompanies} selectedCompanyId="" userId={session.user.id} onCompaniesChanged={setAvailableCompanies} onCompanySelected={created => setCompany({ ...created, role: 'owner' })} /><button onClick={logout} disabled={busy} className="legacy-secondary-button">Sair</button></section></main>;
   if (!company) return <main className="legacy-auth-screen"><section className="legacy-auth-card"><div className="legacy-auth-brand"><img src={`${import.meta.env.BASE_URL}kidsloc-brand.webp`} alt="KidsLoc App" /><div className="legacy-auth-wordmark"><strong>KidsLoc <span>App</span></strong><small>GESTÃO DE LOCAÇÕES</small></div><div className="legacy-login-accent" /></div><h1>Acesso sem empresa vinculada</h1><p className="legacy-intro">{message || 'Esta conta não está vinculada a uma empresa.'}</p><button onClick={logout} disabled={busy} className="legacy-primary-button">Sair</button></section></main>;
 
   return (
@@ -441,7 +448,8 @@ export default function App() {
         {page === 'mensagens' && <TeamChatPage companyId={company.id} />}
         {page === 'marketing' && isAdmin && <MarketingPage companyId={company.id} userId={session.user.id} />}
         {page === 'usuarios' && isAdmin && <UsersPage companyId={company.id} viewerRole={platformOwner ? 'owner' : company.role} />}
-        {page === 'configuracoes' && isAdmin && <CompanySettingsPage companyId={company.id} companyName={company.name} platformOwner={platformOwner} userId={session.user.id} onSaved={name => setCompany(current => current ? { ...current, name } : current)} onCompanyCreated={created => { setAvailableCompanies(current => [...current, created].sort((a, b) => a.name.localeCompare(b.name))); setCompany({ ...created, role: 'owner' }); setPage('inicio'); }} />}
+        {page === 'configuracoes' && isAdmin && <CompanySettingsPage companyId={company.id} companyName={company.name} platformOwner={false} userId={session.user.id} onSaved={name => setCompany(current => current ? { ...current, name } : current)} onCompanyCreated={() => undefined} />}
+        {page === 'gerenciar-empresa' && platformOwner && <CompanyManagementPage companies={availableCompanies} selectedCompanyId={company.id} userId={session.user.id} onCompaniesChanged={setAvailableCompanies} onCompanySelected={selected => { setCompany({ ...selected, role: 'owner' }); }} />}
       </main>
       <footer className="legacy-footer">KIDSLOC APP <span>·</span> {company.name}</footer>
     </div>
