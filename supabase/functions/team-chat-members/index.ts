@@ -24,7 +24,7 @@ Deno.serve(async (req) => {
       return reply({ error: "Configuração segura do servidor incompleta." }, 500);
     }
 
-    const token = (req.headers.get("Authorization") || "").replace(/^Bearer\\s+/i, "");
+    const token = (req.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "");
     if (!token) return reply({ error: "Sessão não identificada. Entre novamente." }, 401);
 
     const authClient = createClient(url, publishableKey, {
