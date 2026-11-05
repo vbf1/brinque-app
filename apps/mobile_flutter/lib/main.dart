@@ -19,7 +19,11 @@ Future<void> main() async {
       debugPrint('KidsLoc: Firebase Messaging ainda não está disponível: $error');
     }
   }
-  await Supabase.initialize(url: SupabaseConfig.url, publishableKey: SupabaseConfig.publishableKey);
+  await Supabase.initialize(
+    url: SupabaseConfig.url,
+    publishableKey: SupabaseConfig.publishableKey,
+    authOptions: const FlutterAuthClientOptions(autoRefreshToken: false),
+  );
   runApp(const KidsLocApp());
 }
 
