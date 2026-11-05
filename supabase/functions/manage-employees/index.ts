@@ -45,6 +45,60 @@ Deno.serve(async (req) => {
       return reply({ error: "Você não tem permissão para gerenciar funcionários." }, 403);
     }
 
+    if (action === "list_users") {
+      const { data: memberships, error: membershipsError } = isPlatformOwner
+        ? await admin.from("company_members").select("user_id,role,company_id,created_at")
+        : await admin.from("company_members").select("user_id,role,company_id,created_at").eq("company_id", companyId);
+      if (membershipsError) throw membershipsError;
+
+      const authUsers: Array<any> = [];
+      for (let page = 1; page <= 20; page += 1) {
+        const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 1000 });
+        if (error) throw error;
+        authUsers.push(...(data.users || []));
+        if (!data.users || data.users.length < 1000) break;
+      }
+      const users = isPlatformOwner
+        ? authUsers
+        : authUsers.filter(user => (memberships || []).some(member => member.user_id === user.id));
+      const userIds = users.map(user => user.id);
+      const companyIds = [...new Set((memberships || []).map(member => member.company_id))];
+      const profileResult = userIds.length
+        ? await admin.from("profiles").select("id,full_name,phone").in("id", userIds)
+        : { data: [], error: null };
+      const companyResult = companyIds.length
+        ? await admin.from("companies").select("id,name").in("id", companyIds)
+        : { data: [], error: null };
+      if (profileResult.error) throw profileResult.error;
+      if (companyResult.error) throw companyResult.error;
+      const profileById = new Map((profileResult.data || []).map(profile => [profile.id, profile]));
+      const companyById = new Map((companyResult.data || []).map(company => [company.id, company.name]));
+      return reply({ users: users.map(user => {
+        const userMemberships = (memberships || []).filter(member => member.user_id === user.id);
+        const selectedMembership = userMemberships.find(member => member.company_id === companyId);
+        const profile = profileById.get(user.id);
+        const isCurrentPlatformOwner = isPlatformOwner && user.id === authData.user.id;
+        return {
+          id: user.id,
+          name: profile?.full_name || user.user_metadata?.full_name || "",
+          email: user.email || "",
+          phone: profile?.phone || "",
+          role: isCurrentPlatformOwner ? "owner" : selectedMembership?.role || "none",
+          company: isCurrentPlatformOwner
+            ? "Proprietário global"
+            : userMemberships.map(member => companyById.get(member.company_id) || "Empresa").join(", "),
+          registered_at: user.created_at,
+          last_sign_in_at: user.last_sign_in_at || null,
+          email_confirmed_at: user.email_confirmed_at || null,
+          phone_confirmed_at: user.phone_confirmed_at || null,
+          memberships: userMemberships.map(member => ({
+            company: companyById.get(member.company_id) || "Empresa",
+            role: member.role,
+          })),
+        };
+      }) });
+    }
+
     if (action === "list") {
       const { data: members, error } = await admin.from("company_members")
         .select("id,user_id,role,created_at").eq("company_id", companyId).order("created_at", { ascending: true });
