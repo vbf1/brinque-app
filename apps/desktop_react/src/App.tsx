@@ -196,7 +196,13 @@ export default function App() {
   const pageTitle = navigation.find(item => item.id === page)?.label ?? 'Início';
   const visibleNavigation = navigation.filter(item => !item.admin || isAdmin);
 
-  if (loading) return <main className="legacy-auth-screen"><section className="legacy-auth-card"><div className="legacy-auth-brand">KIDSLOC APP</div></section></main>;
+  if (loading) return (
+    <main className="legacy-auth-screen"><section className="legacy-auth-card">
+      <div className="legacy-auth-brand-row"><div className="legacy-logo">✦</div><div><div className="legacy-auth-brand">KIDSLOC APP</div><p className="legacy-muted">Acesse sua empresa Sonho Kids Brinquedos</p></div></div>
+      <div className="legacy-login-accent" />
+      <div className="legacy-loading">Preparando seu acesso...</div>
+    </section></main>
+  );
 
   if (recovery && session) return (
     <main className="legacy-auth-screen"><section className="legacy-auth-card">
@@ -214,7 +220,7 @@ export default function App() {
 
   if (!session) return (
     <main className="legacy-auth-screen"><section className="legacy-auth-card">
-      <div className="legacy-auth-brand">KIDSLOC APP</div><p className="legacy-muted">Acesse sua empresa Sonho Kids Brinquedos</p>
+      <div className="legacy-auth-brand-row"><div className="legacy-logo">✦</div><div><div className="legacy-auth-brand">KIDSLOC APP</div><p className="legacy-muted">Acesse sua empresa Sonho Kids Brinquedos</p></div></div>
       <div className="legacy-login-accent" />
       <h1>{forgot ? 'Recuperar senha' : 'Bem-vindo de volta!'}</h1>
       <p className="legacy-intro">{forgot ? 'Informe o e-mail da conta para receber o link de recuperação.' : 'Entre com a conta já cadastrada no sistema.'}</p>
