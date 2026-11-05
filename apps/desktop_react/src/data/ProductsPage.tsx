@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
 import { supabase } from '../lib/supabase';
 import { createCompanyDataRepository } from './companyDataRepository';
+import { AppSelect } from '../components/AppSelect';
 
 type Product = {
   id: string;
@@ -91,7 +92,7 @@ export function ProductsPage({ companyId }: { companyId: string }) {
     {formOpen && <form className="customer-form" onSubmit={save}>
       <h3>{editing ? 'Editar brinquedo' : 'Cadastrar brinquedo'}</h3>
       <label>Nome do brinquedo *<input required value={name} onChange={e => setName(e.target.value)} /></label>
-      <label>Tipo de controle<select value={mode} disabled={!!editing} onChange={e => setMode(e.target.value as typeof mode)}><option value="quantity">Por quantidade</option><option value="individual">Unidades individuais</option></select></label>
+      <label>Tipo de controle<AppSelect value={mode} disabled={!!editing} onChange={value => setMode(value as typeof mode)} options={[{ value: 'quantity', label: 'Por quantidade' }, { value: 'individual', label: 'Unidades individuais' }]} /></label>
       {editing && <p className="module-description">O tipo de controle não pode ser alterado após o cadastro.</p>}
       <div className="form-grid">
         <label>Quantidade total<input type="number" min="1" step="1" required value={quantity} onChange={e => setQuantity(e.target.value)} /></label>
