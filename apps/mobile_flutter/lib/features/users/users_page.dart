@@ -53,7 +53,7 @@ class _UsersPageState extends State<UsersPage> {
     final confirmed = _users.where((u)=>u['email_confirmed_at']!=null).length;
     return Scaffold(appBar: AppBar(title: Text(_isOwner?'Todos os usuários':'Funcionários')),
       body: RefreshIndicator(onRefresh:_load, child:_loading
-        ? const ListView(children:[SizedBox(height:260,child:Center(child:CircularProgressIndicator()))])
+        ? ListView(children:const [SizedBox(height:260,child:Center(child:CircularProgressIndicator()))])
         : ListView(padding:const EdgeInsets.all(16),children:[
           Text(_isOwner?'Contas cadastradas no KidsLoc App':'Funcionários vinculados à sua empresa',
             style:Theme.of(context).textTheme.bodyMedium?.copyWith(color:Theme.of(context).colorScheme.onSurfaceVariant)),
