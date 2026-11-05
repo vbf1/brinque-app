@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../data/company_data_repository.dart';
+import '../../data/rental_time.dart';
 
 class AgendaPage extends StatefulWidget {
   const AgendaPage({super.key, required this.companyId});
@@ -21,7 +22,25 @@ class _AgendaPageState extends State<AgendaPage> {
   DateTime _month = DateTime(DateTime.now().year, DateTime.now().month);
   DateTime _selected = DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
 
+  static const _months = [
+    'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+    'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro',
+  ];
+  static const _weekdays = [
+    'segunda-feira', 'terça-feira', 'quarta-feira', 'quinta-feira',
+    'sexta-feira', 'sábado', 'domingo',
+  ];
+
   DateTime _day(DateTime value) => DateTime(value.year, value.month, value.day);
+
+  void _changeMonth(int offset) {
+    final next = DateTime(_month.year, _month.month + offset);
+    final lastDay = DateTime(next.year, next.month + 1, 0).day;
+    setState(() {
+      _month = next;
+      _selected = DateTime(next.year, next.month, _selected.day.clamp(1, lastDay));
+    });
+  }
   DateTime? _parseDate(dynamic value) => DateTime.tryParse(value?.toString() ?? '');
 
   bool _containsDay(Map<String, dynamic> rental, DateTime date) {
@@ -47,10 +66,10 @@ class _AgendaPageState extends State<AgendaPage> {
     final start = _parseDate(rental['start_date']);
     final end = _parseDate(rental['end_date']);
     if (start == null) return 'Período não informado';
-    final startTime = rental['start_time']?.toString();
-    final endTime = rental['end_time']?.toString();
-    return '${DateFormat('dd/MM/yyyy').format(start)} ${startTime == null ? '' : startTime.substring(0, 5)} a '
-        '${end == null ? '—' : DateFormat('dd/MM/yyyy').format(end)} ${endTime == null ? '' : endTime.substring(0, 5)}';
+    final startTime = normalizeRentalTime(rental['start_time'], '');
+    final endTime = normalizeRentalTime(rental['end_time'], '');
+    return '${DateFormat('dd/MM/yyyy').format(start)} ${startTime.isEmpty ? '' : startTime} a '
+        '${end == null ? '—' : DateFormat('dd/MM/yyyy').format(end)} ${endTime.isEmpty ? '' : end}';
   }
 
   String _status(String value) => switch (value) {
@@ -96,10 +115,10 @@ class _AgendaPageState extends State<AgendaPage> {
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
             children: [
               Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                Text(DateFormat('MMMM yyyy', 'pt_BR').format(_month), style: Theme.of(context).textTheme.titleLarge),
+                Text('${_months[_month.month - 1]} ${_month.year}', style: Theme.of(context).textTheme.titleLarge),
                 Row(children: [
-                  IconButton(onPressed: () => setState(() => _month = DateTime(_month.year, _month.month - 1)), icon: const Icon(Icons.chevron_left)),
-                  IconButton(onPressed: () => setState(() => _month = DateTime(_month.year, _month.month + 1)), icon: const Icon(Icons.chevron_right)),
+                  IconButton(onPressed: () => _changeMonth(-1), icon: const Icon(Icons.chevron_left)),
+                  IconButton(onPressed: () => _changeMonth(1), icon: const Icon(Icons.chevron_right)),
                 ]),
               ]),
               Card(child: Padding(
@@ -135,7 +154,7 @@ class _AgendaPageState extends State<AgendaPage> {
                 Expanded(child: _metric('Reservas no dia', selectedRentals.length.toString())),
               ]),
               const SizedBox(height: 18),
-              Text(DateFormat('EEEE, dd/MM/yyyy', 'pt_BR').format(_selected), style: Theme.of(context).textTheme.titleMedium),
+              Text('${_weekdays[_selected.weekday - 1]}, ${DateFormat('dd/MM/yyyy').format(_selected)}', style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: 8),
               if (selectedRentals.isEmpty)
                 const Padding(padding: EdgeInsets.all(22), child: Center(child: Text('Nenhuma reserva neste dia.')))
