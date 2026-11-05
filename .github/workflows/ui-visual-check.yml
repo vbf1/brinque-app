@@ -3,13 +3,13 @@ name: KidsLoc Visual Layout Checks
 on:
   pull_request:
     paths:
-      - 'index.html'
+      - 'apps/desktop_react/**'
       - 'tests/**'
       - '.github/workflows/ui-visual-check.yml'
   push:
-    branches: [main]
+    branches: [main, prototype/first-test-build]
     paths:
-      - 'index.html'
+      - 'apps/desktop_react/**'
       - 'tests/**'
       - '.github/workflows/ui-visual-check.yml'
   workflow_dispatch:
@@ -20,7 +20,7 @@ permissions:
 jobs:
   visual-layout:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -29,13 +29,35 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: npm
+          cache-dependency-path: apps/desktop_react/package-lock.json
 
-      - name: Install Playwright (free browser automation)
+      - name: Install React dependencies
+        working-directory: apps/desktop_react
+        run: npm ci --no-audit --no-fund
+
+      - name: Build the actual React application
+        working-directory: apps/desktop_react
+        run: npm run build
+
+      - name: Install Playwright
         run: |
           npm install --no-save --package-lock=false playwright@1.56.1
           npx playwright install --with-deps chromium
 
-      - name: Run responsive visual checks
+      - name: Start React preview
+        working-directory: apps/desktop_react
+        run: |
+          npm run preview -- --host 127.0.0.1 --port 4173 > /tmp/kidsloc-vite-preview.log 2>&1 &
+          for attempt in $(seq 1 30); do
+            if curl --silent --fail http://127.0.0.1:4173/kidsloc-app/ > /dev/null; then
+              break
+            fi
+            sleep 1
+          done
+          curl --silent --fail http://127.0.0.1:4173/kidsloc-app/ > /dev/null
+
+      - name: Run responsive checks against React
         run: |
           mkdir -p artifacts
           node tests/ui-visual-check.cjs
@@ -44,7 +66,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: kidsloc-visual-layout-screenshots
+          name: kidsloc-react-responsive-screenshots
           path: artifacts/*.png
           if-no-files-found: warn
           retention-days: 7
