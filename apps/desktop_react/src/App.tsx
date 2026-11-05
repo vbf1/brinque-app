@@ -17,6 +17,7 @@ import { UsersPage } from './data/UsersPage';
 import { ServicesPage } from './data/ServicesPage';
 import { QuotesPage } from './data/QuotesPage';
 import { CompanySettingsPage } from './data/CompanySettingsPage';
+import { PlatformAdminPage } from './data/PlatformAdminPage';
 
 declare global {
   interface Window {
@@ -25,7 +26,7 @@ declare global {
 }
 
 type CompanyContext = { id: string; name: string; role: string };
-type Page = 'inicio' | 'agenda' | 'estatisticas' | 'locacoes' | 'clientes' | 'estoque' | 'financeiro' | 'ocorrencias' | 'mensagens' | 'marketing' | 'contratos' | 'usuarios' | 'servicos' | 'orcamentos' | 'configuracoes';
+type Page = 'inicio' | 'agenda' | 'estatisticas' | 'locacoes' | 'clientes' | 'estoque' | 'financeiro' | 'ocorrencias' | 'mensagens' | 'marketing' | 'contratos' | 'usuarios' | 'servicos' | 'orcamentos' | 'configuracoes' | 'administracao';
 
 const pagePaths: Record<Page, string> = {
   inicio: 'inicio',
@@ -43,6 +44,7 @@ const pagePaths: Record<Page, string> = {
   servicos: 'servicos',
   orcamentos: 'orcamentos',
   configuracoes: 'configuracoes',
+  administracao: 'administracao',
 };
 
 function pageFromLocation(): Page {
@@ -77,7 +79,7 @@ function friendlyError(error: unknown): string {
   return raw || 'Não foi possível concluir a operação. Tente novamente.';
 }
 
-const navigation: Array<{ id: Page; label: string; icon: string; admin?: boolean }> = [
+const navigation: Array<{ id: Page; label: string; icon: string; admin?: boolean; platformOnly?: boolean }> = [
   { id: 'inicio', label: 'Início', icon: '▦' },
   { id: 'agenda', label: 'Agenda', icon: '▦' },
   { id: 'estatisticas', label: 'Estatísticas', icon: '▥' },
@@ -93,6 +95,7 @@ const navigation: Array<{ id: Page; label: string; icon: string; admin?: boolean
   { id: 'marketing', label: 'Marketing e anúncios', icon: '✧', admin: true },
   { id: 'usuarios', label: 'Usuários', icon: '♙', admin: true },
   { id: 'configuracoes', label: 'Configurações', icon: '⚙', admin: true },
+  { id: 'administracao', label: 'Administração da plataforma', icon: '⌘', platformOnly: true },
 ];
 
 export default function App() {
@@ -339,7 +342,7 @@ export default function App() {
   const isAdmin = platformOwner || company?.role === 'owner' || company?.role === 'admin';
   const userLabel = session?.user.user_metadata?.full_name || session?.user.email?.split('@')[0] || 'Bem-vindo';
   const pageTitle = navigation.find(item => item.id === page)?.label ?? 'Início';
-  const visibleNavigation = navigation.filter(item => !item.admin || isAdmin);
+  const visibleNavigation = navigation.filter(item => item.platformOnly ? platformOwner : (!item.admin || isAdmin));
   const publicContractToken = new URLSearchParams(window.location.search).get('contract');
   if (publicContractToken) return <PublicContractPage token={publicContractToken} />;
   const isPublicCheckout = new URLSearchParams(window.location.search).has('checkout') || window.location.pathname.split('/').filter(Boolean).at(-1) === 'checkout';
@@ -423,6 +426,7 @@ export default function App() {
               <button className="legacy-dashboard-card" onClick={() => navigateTo('mensagens')}><span className="legacy-card-icon">▰</span><strong>Mensagens da equipe</strong><small>Converse com os funcionários</small></button>
               <button className="legacy-dashboard-card" onClick={() => navigateTo('ocorrencias')}><span className="legacy-card-icon">⚠</span><strong>Ocorrências</strong><small>Registre e acompanhe relatos</small></button>
               {isAdmin && <button className="legacy-dashboard-card" onClick={() => navigateTo('marketing')}><span className="legacy-card-icon">✧</span><strong>Marketing e anúncios</strong><small>Crie, revise e organize divulgações</small></button>}
+              {platformOwner && <button className="legacy-dashboard-card" onClick={() => navigateTo('administracao')}><span className="legacy-card-icon">⌘</span><strong>Administração da plataforma</strong><small>Gerencie empresas e usuários globalmente</small></button>}
             </div>
             <section className="legacy-panel legacy-welcome-panel"><div><strong>Sessão ativa</strong><span>Conectado à empresa {company.name}</span></div><span className="legacy-status"><i /> {company.role === 'owner' ? 'Proprietário' : company.role === 'admin' ? 'Administrador' : 'Funcionário'}</span></section>
           </section>
@@ -441,7 +445,8 @@ export default function App() {
         {page === 'mensagens' && <TeamChatPage companyId={company.id} />}
         {page === 'marketing' && isAdmin && <MarketingPage companyId={company.id} userId={session.user.id} />}
         {page === 'usuarios' && isAdmin && <UsersPage companyId={company.id} viewerRole={platformOwner ? 'owner' : company.role} />}
-        {page === 'configuracoes' && isAdmin && <CompanySettingsPage companyId={company.id} companyName={company.name} platformOwner={platformOwner} userId={session.user.id} onSaved={name => setCompany(current => current ? { ...current, name } : current)} onCompanyCreated={created => { setAvailableCompanies(current => [...current, created].sort((a, b) => a.name.localeCompare(b.name))); setCompany({ ...created, role: 'owner' }); setPage('inicio'); }} />}
+        {page === 'configuracoes' && isAdmin && <CompanySettingsPage companyId={company.id} companyName={company.name} platformOwner={platformOwner} userId={session.user.id} onSaved={name => { setCompany(current => current ? { ...current, name } : current); setAvailableCompanies(current => current.map(item => item.id === company.id ? { ...item, name } : item)); }} onCompanyCreated={created => { setAvailableCompanies(current => [...current, created].sort((a, b) => a.name.localeCompare(b.name))); setCompany({ ...created, role: 'owner' }); setPage('inicio'); }} />}
+        {page === 'administracao' && platformOwner && <PlatformAdminPage currentCompanyId={company.id} companies={availableCompanies} onCompaniesChanged={setAvailableCompanies} onSelectCompany={selected => setCompany({ ...selected, role: 'owner' })} />}
       </main>
       <footer className="legacy-footer">KIDSLOC APP <span>·</span> {company.name}</footer>
     </div>
