@@ -181,7 +181,7 @@ export default function App() {
       if (!active) return;
       setSession(nextSession);
       if (window.KidsLocNative) {
-        if (nextSession && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED')) {
+        if (nextSession && (event === 'INITIAL_SESSION' || event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED')) {
           window.KidsLocNative.postMessage(JSON.stringify({
             type: 'session',
             access_token: nextSession.access_token,
