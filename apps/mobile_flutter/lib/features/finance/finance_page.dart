@@ -132,31 +132,41 @@ class _FinancePageState extends State<FinancePage> {
       return;
     }
     setState(() => _busy = true);
+    String paymentId;
     try {
-      final paymentId = await _repository.registerRentalPayment(
+      paymentId = await _repository.registerRentalPayment(
         rentalId: _paymentRentalId!,
         amount: amount,
         paymentMethod: _paymentMethod,
         notes: _paymentNotes.text,
       );
-      final payment = await _repository.fetchRentalPayment(paymentId);
-      await _reload();
-      if (!mounted) return;
-      setState(() {
-        _paymentOpen = false;
-        _paymentRentalId = null;
-        _paymentAmount.clear();
-        _paymentNotes.clear();
-        _paymentMethod = 'pix';
-      });
-      try {
-        await _printReceipt(payment);
-        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Pagamento registrado e recibo gerado.')));
-      } catch (printError) {
-        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Pagamento registrado, mas não foi possível abrir a impressão do recibo: $printError')));
-      }
     } catch (error) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Não foi possível registrar o pagamento: $error')));
+      if (mounted) setState(() => _busy = false);
+      return;
+    }
+
+    if (!mounted) return;
+    setState(() {
+      _paymentOpen = false;
+      _paymentRentalId = null;
+      _paymentAmount.clear();
+      _paymentNotes.clear();
+      _paymentMethod = 'pix';
+    });
+
+    try {
+      await _reload();
+    } catch (refreshError) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Pagamento registrado. Não foi possível atualizar a lista: $refreshError')));
+    }
+
+    try {
+      final payment = await _repository.fetchRentalPayment(paymentId);
+      await _printReceipt(payment);
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Pagamento registrado e recibo gerado.')));
+    } catch (receiptError) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Pagamento registrado, mas não foi possível gerar o recibo: $receiptError')));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
