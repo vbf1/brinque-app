@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../data/company_data_repository.dart';
+import '../../data/rental_time.dart';
 
 class ProductsPage extends StatefulWidget {
   const ProductsPage({super.key, required this.companyId});
@@ -37,12 +38,12 @@ class _ProductsPageState extends State<ProductsPage> {
     const activeStatuses = {'pending', 'confirmed', 'ongoing'};
     final activeRentals = (rentals ?? []).where((rental) {
       if (!activeStatuses.contains(rental['status'])) return false;
-      final start = _rentalBoundary(
+      final start = rentalBoundary(
         rental['start_date'],
         rental['start_time'],
         isEnd: false,
       );
-      final end = _rentalBoundary(
+      final end = rentalBoundary(
         rental['end_date'] ?? rental['start_date'],
         rental['end_time'],
         isEnd: true,
@@ -75,28 +76,6 @@ class _ProductsPageState extends State<ProductsPage> {
         'available': available,
       };
     }).toList();
-  }
-
-  DateTime? _rentalBoundary(dynamic rawDate, dynamic rawTime, {required bool isEnd}) {
-    final date = DateTime.tryParse(rawDate?.toString() ?? '');
-    if (date == null) return null;
-    final time = rawTime?.toString();
-    if (time == null || time.isEmpty) {
-      return isEnd
-          ? DateTime(date.year, date.month, date.day).add(const Duration(days: 1))
-          : DateTime(date.year, date.month, date.day);
-    }
-    final parts = time.split(':');
-    final hour = int.tryParse(parts.first);
-    final minute = int.tryParse(parts.length > 1 ? parts[1] : '');
-    if (hour == null || minute == null || hour < 0 || hour > 24 ||
-        minute < 0 || minute > 59 || (hour == 24 && minute != 0)) {
-      return null;
-    }
-    final boundary = DateTime(date.year, date.month, date.day);
-    return hour == 24
-        ? boundary.add(const Duration(days: 1))
-        : boundary.add(Duration(hours: hour, minutes: minute));
   }
 
   Future<void> _reload() async {
