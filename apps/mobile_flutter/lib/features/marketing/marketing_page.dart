@@ -318,6 +318,69 @@ class _MarketingPageState extends State<MarketingPage> {
     if(mounted)setState(()=>_message=instagram?'Legenda copiada. Anexe a imagem e revise antes de publicar.':'Texto copiado. Anexe a imagem e revise antes de publicar.');
   }
 
+
+  void _duplicateAd(Map<String, dynamic> ad) {
+    _editingId = null;
+    _productId = ad['product_id']?.toString();
+    _title.text = ((ad['title']?.toString() ?? '') + ' (cópia)');
+    if (_title.text.length > 180) _title.text = _title.text.substring(0, 180);
+    _description.text = ad['description']?.toString() ?? '';
+    _keywords.text = ((ad['keywords'] as List?) ?? []).join(', ');
+    _imagePrompt.text = ad['image_prompt']?.toString() ?? '';
+    _platforms = List<String>.from(ad['platforms'] ?? []);
+    final url = ad['image_url'] as String?;
+    if (url != null && url.startsWith('product-image:')) {
+      _productImage = url.substring(14);
+      _imageUrl.clear();
+    } else {
+      _productImage = null;
+      _imageUrl.text = url ?? '';
+    }
+    _imageFile = null;
+    setState(() => _message = 'Cópia preparada como novo rascunho. Revise antes de salvar.');
+    _editor();
+  }
+
+  Future<void> _exportAd(Map<String, dynamic> ad) async {
+    final channels = List<String>.from(ad['platforms'] ?? []).map((v) => _channels[v] ?? v).join(', ');
+    final content = [
+      'MATERIAL DE DIVULGAÇÃO', '=====================',
+      '', 'TÍTULO', ad['title']?.toString() ?? '',
+      '', 'DESCRIÇÃO', ad['description']?.toString() ?? '',
+      '', 'PALAVRAS-CHAVE', ((ad['keywords'] as List?) ?? []).join(', '),
+      '', 'CANAIS', channels,
+      '', 'IMAGEM', ad['image_url']?.toString() ?? 'Não informada',
+      '', 'ORIENTAÇÃO PARA A IMAGEM', ad['image_prompt']?.toString() ?? 'Não informada',
+      '', 'CHAMADA PARA AÇÃO', _cta.text.trim(),
+      'WHATSAPP', _whatsapp.text.trim(),
+      '', 'STATUS', _statuses[ad['status']] ?? ad['status'].toString(),
+      '', 'A publicação deve ser feita manualmente na plataforma escolhida.',
+    ].join('\n');
+    await Clipboard.setData(ClipboardData(text: content));
+    if (mounted) setState(() => _message = 'Material copiado. Cole em um documento para salvar.');
+  }
+
+  Future<void> _exportVisibleAds() async {
+    if (_visible.isEmpty) {
+      setState(() => _message = 'Não há anúncios para exportar com os filtros atuais.');
+      return;
+    }
+    final content = _visible.asMap().entries.map((entry) {
+      final ad = entry.value;
+      return [
+        'ANÚNCIO ' + (entry.key + 1).toString(),
+        ad['title']?.toString() ?? '',
+        ad['description']?.toString() ?? '',
+        'Palavras-chave: ' + ((ad['keywords'] as List?) ?? []).join(', '),
+        'Canais: ' + List<String>.from(ad['platforms'] ?? []).map((v) => _channels[v] ?? v).join(', '),
+        'Imagem: ' + (ad['image_url']?.toString() ?? 'Não informada'),
+        'Status: ' + (_statuses[ad['status']] ?? ad['status'].toString()),
+      ].join('\n');
+    }).join('\n\n---\n\n');
+    await Clipboard.setData(ClipboardData(text: content));
+    if (mounted) setState(() => _message = 'Lista filtrada copiada para a área de transferência.');
+  }
+
   Future<void> _delete(Map<String,dynamic> ad) async {
     final yes=await showDialog<bool>(context:context,builder:(ctx)=>AlertDialog(title:const Text('Excluir anúncio?'),content:Text('Deseja excluir '+ad['title'].toString()+'?'),actions:[TextButton(onPressed:()=>Navigator.pop(ctx,false),child:const Text('Cancelar')),FilledButton(onPressed:()=>Navigator.pop(ctx,true),child:const Text('Excluir'))]));
     if(yes!=true)return;
@@ -365,6 +428,7 @@ class _MarketingPageState extends State<MarketingPage> {
     DropdownButtonFormField<String>(initialValue:_filter,decoration:const InputDecoration(labelText:'Status'),items:[const DropdownMenuItem(value:'all',child:Text('Todos os status')),..._statuses.entries.map((e)=>DropdownMenuItem(value:e.key,child:Text(e.value)))],onChanged:(v)=>setState(()=>_filter=v??'all')),
     DropdownButtonFormField<String>(initialValue:_channel,decoration:const InputDecoration(labelText:'Canal'),items:[const DropdownMenuItem(value:'all',child:Text('Todos os canais')),..._channels.entries.map((e)=>DropdownMenuItem(value:e.key,child:Text(e.value)))],onChanged:(v)=>setState(()=>_channel=v??'all')),
     OutlinedButton(onPressed:()=>setState((){_search='';_filter='all';_channel='all';}),child:const Text('Limpar filtros')),
+    OutlinedButton.icon(onPressed:_exportVisibleAds,icon:const Icon(Icons.download_outlined),label:const Text('Baixar lista filtrada')),
     Text('Exibindo '+_visible.length.toString()+' de '+_ads.length.toString()+' anúncios'),
     if(_visible.isEmpty)const Padding(padding:EdgeInsets.all(24),child:Text('Nenhum anúncio corresponde aos filtros atuais.',textAlign:TextAlign.center)),
     for(final ad in _visible)_adCard(ad),
@@ -381,6 +445,9 @@ class _MarketingPageState extends State<MarketingPage> {
       Wrap(spacing:4,children:[
         if(status=='approved'&&channels.contains('instagram'))TextButton(onPressed:()=>_copy(ad,true),child:const Text('Copiar para Instagram')),
         if(status=='approved'&&channels.any((v)=>v.startsWith('facebook')))TextButton(onPressed:()=>_copy(ad,false),child:const Text('Preparar Facebook')),
+        if(status=='approved'&&channels.any((v)=>v.startsWith('facebook')))TextButton(onPressed:()=>launchUrl(Uri.parse('https://www.facebook.com/'),mode:LaunchMode.externalApplication),child:const Text('Abrir Facebook')),
+        TextButton(onPressed:()=>_exportAd(ad),child:const Text('Baixar material')),
+        TextButton(onPressed:()=>_duplicateAd(ad),child:const Text('Duplicar')),
         TextButton(onPressed:()=>_edit(ad),child:const Text('Editar')),
         if(status=='draft'||status=='rejected')TextButton(onPressed:()=>_status(ad,'pending_approval'),child:const Text('Enviar para revisão')),
         if(status=='pending_approval')TextButton(onPressed:()=>_status(ad,'approved'),child:const Text('Aprovar')),
