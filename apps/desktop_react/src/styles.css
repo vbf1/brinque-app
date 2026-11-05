@@ -192,3 +192,9 @@ button:focus-visible{outline:3px solid #3478e566;outline-offset:2px}
 .legacy-primary-button{margin-top:5px}
 .legacy-secondary-button{margin-top:7px}
 @media(max-width:390px){.legacy-auth-card{padding:18px 16px 16px}.legacy-auth-brand{margin-bottom:10px}}
+
+/* Identidade visual restaurada no topo da tela de login. */
+.legacy-auth-card .legacy-muted{margin:3px 0 10px}
+.legacy-auth-card .legacy-login-accent{margin:12px 0 12px}
+.legacy-auth-card .legacy-intro{margin:0 0 12px}
+.legacy-auth-card h1{font-size:24px}
