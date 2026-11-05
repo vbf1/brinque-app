@@ -160,6 +160,16 @@ class _MarketingPageState extends State<MarketingPage> {
     finally{if(mounted)setState(()=>_saving=false);}
   }
 
+
+  String? _managedBrandingPath(String? url) {
+    if (url == null) return null;
+    const marker = '/storage/v1/object/public/company-branding/';
+    final index = url.indexOf(marker);
+    if (index < 0) return null;
+    final path = Uri.decodeComponent(url.substring(index + marker.length).split('?').first);
+    return path.startsWith(widget.companyId + '/marketing/') ? path : null;
+  }
+
   Future<void> _save(bool submit) async {
     if(!_formKey.currentState!.validate())return;
     if(_platforms.isEmpty){setState(()=>_message='Selecione pelo menos um canal.');return;}
@@ -167,6 +177,7 @@ class _MarketingPageState extends State<MarketingPage> {
     if(image.isNotEmpty && !['http','https'].contains(Uri.tryParse(image)?.scheme)){setState(()=>_message='Informe uma URL http ou https válida.');return;}
     setState(()=>_saving=true);
     String? uploadedPath;
+    final previousImageUrl = _editingId == null ? null : _ads.where((ad) => ad['id'] == _editingId).map((ad) => ad['image_url'] as String?).firstOrNull;
     try {
       String? finalImage = _productImage == null ? (image.isEmpty ? null : image) : 'product-image:'+_productImage!;
       if (_imageFile != null) {
@@ -192,6 +203,10 @@ class _MarketingPageState extends State<MarketingPage> {
           'platforms':payload['platforms'],'status':payload['status'],'approved_by':null,'approved_at':null,
           'approval_note':null,'published_at':null,
         }).eq('id',_editingId!).eq('company_id',widget.companyId);
+      }
+      final previousPath = _managedBrandingPath(previousImageUrl);
+      if (previousPath != null && previousPath != uploadedPath && previousImageUrl != finalImage) {
+        try { await _db.storage.from('company-branding').remove([previousPath]); } catch (_) {}
       }
       _clear(); await _load();
       if(mounted)setState(()=>_message=submit?'Anúncio enviado para revisão.':'Rascunho salvo.');
@@ -384,7 +399,12 @@ class _MarketingPageState extends State<MarketingPage> {
   Future<void> _delete(Map<String,dynamic> ad) async {
     final yes=await showDialog<bool>(context:context,builder:(ctx)=>AlertDialog(title:const Text('Excluir anúncio?'),content:Text('Deseja excluir '+ad['title'].toString()+'?'),actions:[TextButton(onPressed:()=>Navigator.pop(ctx,false),child:const Text('Cancelar')),FilledButton(onPressed:()=>Navigator.pop(ctx,true),child:const Text('Excluir'))]));
     if(yes!=true)return;
-    try{await _db.from('marketing_ads').delete().eq('id',ad['id']).eq('company_id',widget.companyId);await _load();if(mounted)setState(()=>_message='Anúncio excluído.');}
+    try{
+      await _db.from('marketing_ads').delete().eq('id',ad['id']).eq('company_id',widget.companyId);
+      final path = _managedBrandingPath(ad['image_url'] as String?);
+      if (path != null) { try { await _db.storage.from('company-branding').remove([path]); } catch (_) {} }
+      await _load();if(mounted)setState(()=>_message='Anúncio excluído.');
+    }
     catch(e){if(mounted)setState(()=>_message='Falha ao excluir: $e');}
   }
 
