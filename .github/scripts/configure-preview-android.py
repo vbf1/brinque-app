@@ -99,7 +99,7 @@ def set_launcher_resources(match):
     return "<application" + attrs + ">"
 
 manifest_text, application_count = re.subn(
-    r"<application\\b([^>]*)>",
+    r"<application\b([^>]*)>",
     set_launcher_resources,
     manifest_text,
     count=1,
