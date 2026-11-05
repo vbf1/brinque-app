@@ -461,3 +461,94 @@ select:focus-visible{outline:3px solid #3478e52b;outline-offset:1px}
 @media(max-width:600px){.quote-actions{width:100%;margin-left:0}.quote-actions button{flex:1}}
 
 .legacy-company-switcher-label{display:flex;align-items:center;gap:8px;margin-top:8px;color:#c6d3e5;font-size:11px}.legacy-company-switcher{width:auto;max-width:min(100%,360px);min-height:34px;margin:0;padding:6px 30px 6px 9px;border:1px solid #ffffff45;border-radius:9px;background:#ffffff12;color:#fff;font-size:11px}.legacy-company-switcher option{color:#172b4d;background:#fff}
+
+/* Seletor compartilhado: menu leve, ancorado ao campo e sem modal de tela cheia. */
+.app-select{position:relative;display:block;width:100%;min-width:0;margin:0 0 12px;isolation:isolate}
+.app-select-trigger{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;min-height:48px;margin:0;padding:11px 14px;border:1px solid var(--line);border-radius:13px;background:var(--surface);color:var(--ink);box-shadow:0 2px 7px #172b4d08;font-size:13px;font-weight:600;text-align:left;transition:border-color .16s,box-shadow .16s,background .16s}
+.app-select-trigger:hover{border-color:#9bb6e4;background:var(--surface);filter:none}
+.app-select-trigger:focus-visible{outline:3px solid #3478e533;outline-offset:2px;border-color:var(--blue)}
+.app-select.is-open{z-index:30}
+.app-select.is-open .app-select-trigger{border-color:var(--blue);box-shadow:0 0 0 3px #3478e51c}
+.app-select-value{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.app-select-placeholder{overflow:hidden;color:var(--muted);font-weight:500;text-overflow:ellipsis;white-space:nowrap}
+.app-select-chevron{flex:0 0 auto;color:var(--muted);font-size:20px;line-height:1;transition:transform .16s}
+.app-select.is-open .app-select-chevron{transform:rotate(180deg);color:var(--blue)}
+.app-select-menu{position:absolute;top:calc(100% + 7px);left:0;right:0;z-index:60;display:grid;gap:3px;max-height:min(290px,45vh);overflow-y:auto;padding:7px;border:1px solid var(--line);border-radius:15px;background:var(--surface);box-shadow:0 14px 34px #10213d24;animation:app-select-in .14s ease-out}
+.app-select-option{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;min-height:42px;padding:10px 11px;border:1px solid transparent;border-radius:10px;background:transparent;color:var(--ink);font-size:13px;font-weight:550;text-align:left;transition:background .14s,border-color .14s,color .14s}
+.app-select-option:hover{background:var(--bg);border-color:var(--line);filter:none}
+.app-select-option.selected{background:#eaf1ff;border-color:#d5e2fb;color:#245fbe;font-weight:750}
+[data-theme=dark] .app-select-option.selected{background:#263b5d;border-color:#3b5780;color:#a9c9ff}
+.app-select-option:focus-visible{outline:2px solid var(--blue);outline-offset:-2px}
+.app-select-check{display:grid;place-items:center;flex:0 0 21px;width:21px;height:21px;border-radius:50%;background:var(--blue);color:#fff;font-size:12px}
+.app-select-empty{padding:12px;color:var(--muted);font-size:12px;text-align:center}
+@keyframes app-select-in{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+.marketing-toolbar .app-select,.data-toolbar .app-select{flex:1;max-width:260px;margin:0}
+.marketing-toolbar .app-select-trigger,.data-toolbar .app-select-trigger{min-height:44px}
+@media(max-width:640px){.marketing-toolbar .app-select,.data-toolbar .app-select{max-width:none}.app-select-menu{max-height:min(260px,40vh)}}
+@media(prefers-reduced-motion:reduce){.app-select-menu{animation:none}.app-select-trigger,.app-select-chevron,.app-select-option{transition:none}}
+
+
+/* Modal premium dos selects: a experiência aberta recebe o redesign completo */
+.app-select-overlay{
+  position:fixed;inset:0;z-index:9999;display:grid;place-items:center;
+  padding:22px;background:rgba(10,19,34,.58);
+  backdrop-filter:blur(8px) saturate(120%);-webkit-backdrop-filter:blur(8px) saturate(120%);
+  animation:app-select-overlay-in .18s ease-out
+}
+.app-select-dialog{
+  display:flex;flex-direction:column;width:min(100%,490px);max-height:min( min(720px, calc(100dvh - 44px)), 92dvh);
+  padding:24px;border:1px solid rgba(255,255,255,.8);border-radius:25px;
+  background:var(--surface);color:var(--ink);
+  box-shadow:0 28px 90px rgba(5,14,29,.32),0 4px 16px rgba(5,14,29,.12);
+  animation:app-select-dialog-in .22s cubic-bezier(.2,.8,.2,1)
+}
+.app-select-dialog-header{position:relative;display:flex;align-items:flex-start;gap:14px;padding:1px 42px 19px 0;border-bottom:1px solid var(--line)}
+.app-select-dialog-mark{display:grid;place-items:center;flex:0 0 48px;width:48px;height:48px;border-radius:16px;background:linear-gradient(145deg,#fff0b9,#ffdc68);color:#24344c;font-size:28px;font-weight:800;box-shadow:inset 0 1px 0 #fff9,0 5px 14px #d5a52a26}
+.app-select-dialog-heading{min-width:0}
+.app-select-dialog-eyebrow{display:block;margin:1px 0 5px;color:var(--blue);font-size:9px;font-weight:850;letter-spacing:1.35px}
+.app-select-dialog-heading h2{margin:0;color:var(--ink);font-size:20px;font-weight:850;line-height:1.25;letter-spacing:-.4px}
+.app-select-dialog-heading p{margin:5px 0 0;color:var(--muted);font-size:12px;line-height:1.45}
+.app-select-dialog-close{position:absolute;top:0;right:0;display:grid;place-items:center;width:36px;height:36px;min-height:36px;padding:0;border:1px solid var(--line);border-radius:12px;background:var(--bg);color:var(--muted);font-size:24px;font-weight:400;line-height:1}
+.app-select-dialog-close:hover{background:var(--line);filter:none}
+.app-select-dialog .app-select-menu{
+  position:static;display:grid;gap:8px;max-height:min(52vh,440px);overflow-y:auto;
+  margin:15px -4px 0;padding:3px 4px 5px;border:0;border-radius:0;background:transparent;
+  box-shadow:none;animation:none
+}
+.app-select-dialog .app-select-option{
+  position:relative;display:flex;align-items:center;justify-content:space-between;gap:13px;
+  width:100%;min-height:62px;padding:13px 14px;border:1px solid var(--line);border-radius:15px;
+  background:var(--bg);color:var(--ink);font-size:13px;font-weight:650;line-height:1.4;text-align:left;
+  box-shadow:0 2px 7px rgba(23,43,77,.035);
+  transition:border-color .16s,background .16s,box-shadow .16s,transform .16s
+}
+.app-select-dialog .app-select-option>span:first-child{flex:1;min-width:0;overflow-wrap:anywhere}
+.app-select-dialog .app-select-option:hover{
+  border-color:#b6c9e8;background:color-mix(in srgb,var(--blue) 5%,var(--surface));
+  box-shadow:0 6px 16px rgba(23,43,77,.08);filter:none;transform:translateY(-1px)
+}
+.app-select-dialog .app-select-option.selected{
+  border-color:#8eafe8;background:linear-gradient(105deg,#eaf1ff,#f7faff);
+  color:#245fbe;font-weight:800;box-shadow:inset 0 0 0 1px #3478e512,0 5px 14px #3478e51a
+}
+[data-theme=dark] .app-select-dialog .app-select-option.selected{
+  border-color:#5278ad;background:linear-gradient(105deg,#263b5d,#202f46);color:#b8d2ff
+}
+.app-select-dialog .app-select-check{flex:0 0 27px;width:27px;height:27px;border:0;border-radius:9px;background:var(--blue);color:#fff;font-size:13px;box-shadow:0 3px 8px #3478e533}
+.app-select-dialog .app-select-empty{padding:24px 12px;border:1px dashed var(--line);border-radius:14px;color:var(--muted);font-size:12px}
+.app-select-dialog-footer{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:14px;padding-top:13px;border-top:1px solid var(--line)}
+.app-select-dialog-footer>span{color:var(--muted);font-size:10px;font-weight:650}
+.app-select-dialog-footer button{min-height:37px;padding:8px 16px;border:1px solid var(--line);border-radius:11px;background:var(--bg);color:var(--ink);font-size:11px;font-weight:750}
+.app-select-dialog-footer button:hover{border-color:#b6c9e8;background:#eaf1ff;color:#245fbe;filter:none}
+@keyframes app-select-overlay-in{from{opacity:0}to{opacity:1}}
+@keyframes app-select-dialog-in{from{opacity:0;transform:translateY(10px) scale(.985)}to{opacity:1;transform:translateY(0) scale(1)}}
+@media(max-width:640px){
+  .app-select-overlay{align-items:end;padding:10px;background:rgba(8,17,31,.62)}
+  .app-select-dialog{width:100%;max-height:min(84dvh,700px);padding:20px 16px 14px;border-radius:24px 24px 19px 19px}
+  .app-select-dialog-header{gap:11px;padding-bottom:15px}
+  .app-select-dialog-mark{flex-basis:43px;width:43px;height:43px;border-radius:14px}
+  .app-select-dialog-heading h2{font-size:18px}
+  .app-select-dialog .app-select-menu{max-height:min(55vh,470px);margin-top:12px}
+  .app-select-dialog .app-select-option{min-height:58px;padding:12px;border-radius:13px;font-size:12px}
+}
+@media(prefers-reduced-motion:reduce){.app-select-overlay,.app-select-dialog,.app-select-dialog .app-select-option{animation:none;transition:none}}
