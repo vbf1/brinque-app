@@ -13,7 +13,8 @@ begin
   from public.company_members cm
   join public.companies c on c.id = cm.company_id
   where c.name = 'Sonho Kids Brinquedos'
-    and cm.role = 'owner';
+    and cm.role = 'owner'
+    and cm.user_id = c.created_by;
 
   if v_owner_candidates = 0 then
     select count(*) into v_platform_owner_rows from private.platform_owners;
@@ -32,7 +33,8 @@ begin
   from public.company_members cm
   join public.companies c on c.id = cm.company_id
   where c.name = 'Sonho Kids Brinquedos'
-    and cm.role = 'owner';
+    and cm.role = 'owner'
+    and cm.user_id = c.created_by;
 
   select count(*) into v_membership_rows
   from public.company_members
