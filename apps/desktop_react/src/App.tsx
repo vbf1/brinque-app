@@ -98,6 +98,31 @@ const navigation: Array<{ id: Page; label: string; icon: string; admin?: boolean
   { id: 'administracao', label: 'Administração da plataforma', icon: '⌘', platformOnly: true },
 ];
 
+type TourStep = { title: string; description: string; page: Page };
+const TOUR_INTRO: TourStep = {
+  title: 'Bem-vindo ao KidsLoc App!',
+  description: 'Vamos conhecer as principais áreas do sistema. Este guia acompanha seu perfil de acesso e mostra somente as funções disponíveis para você. Use Avançar para visitar cada área.',
+  page: 'inicio',
+};
+const TOUR_DESCRIPTIONS: Partial<Record<Page, string>> = {
+  inicio: 'Seu painel inicial reúne atalhos para as áreas mais usadas e um resumo da empresa. Você pode voltar para cá pelo botão Início.',
+  agenda: 'Consulte o calendário de reservas, confira os compromissos por dia e abra as locações relacionadas.',
+  estatisticas: 'Acompanhe indicadores e históricos para entender o movimento das locações, clientes e brinquedos.',
+  locacoes: 'Cadastre e acompanhe reservas, selecione clientes e brinquedos, informe datas, horários, entrega, valores e responsáveis.',
+  contratos: 'Gere e acompanhe contratos vinculados às locações e veja o andamento das assinaturas.',
+  clientes: 'Mantenha os dados dos clientes organizados para reutilizá-los em locações e orçamentos.',
+  estoque: 'Cadastre brinquedos, defina quantidades ou controle unidades individuais, preços diários e disponibilidade.',
+  servicos: 'Cadastre serviços adicionais e seus valores para utilizar nas propostas comerciais.',
+  orcamentos: 'Monte propostas para seus clientes reunindo itens e serviços antes de confirmar uma locação.',
+  financeiro: 'Consulte e organize entradas e saídas financeiras da empresa. Esta área é restrita à administração.',
+  mensagens: 'Troque mensagens com os demais integrantes da equipe dentro do aplicativo.',
+  ocorrencias: 'Registre situações e problemas, incluindo informações e acompanhamento dos relatos.',
+  marketing: 'Organize conteúdos e materiais de divulgação da empresa. O acesso é restrito à administração.',
+  usuarios: 'Gerencie os acessos dos integrantes da empresa e suas permissões, conforme seu nível de acesso.',
+  configuracoes: 'Ajuste as preferências disponíveis e as informações da empresa.',
+  administracao: 'Área do administrador da plataforma para gerenciar empresas e vínculos de usuários.',
+};
+
 export default function App() {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
