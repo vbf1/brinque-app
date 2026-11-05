@@ -44,10 +44,10 @@ class _AgendaPageState extends State<AgendaPage> {
   DateTime? _parseDate(dynamic value) => DateTime.tryParse(value?.toString() ?? '');
 
   bool _containsDay(Map<String, dynamic> rental, DateTime date) {
-    if (rental['status'] == 'cancelled') return false;
+    if (rental['status'] == 'cancelled') { return false; }
     final start = _parseDate(rental['start_date']);
     final end = _parseDate(rental['end_date']) ?? start;
-    if (start == null || end == null) return false;
+    if (start == null || end == null) { return false; }
     final selected = _day(date);
     return !selected.isBefore(_day(start)) && !selected.isAfter(_day(end));
   }
@@ -65,7 +65,7 @@ class _AgendaPageState extends State<AgendaPage> {
   String _dateRange(Map<String, dynamic> rental) {
     final start = _parseDate(rental['start_date']);
     final end = _parseDate(rental['end_date']);
-    if (start == null) return 'Período não informado';
+    if (start == null) { return 'Período não informado'; }
     final startTime = normalizeRentalTime(rental['start_time'], '');
     final endTime = normalizeRentalTime(rental['end_time'], '');
     return '${DateFormat('dd/MM/yyyy').format(start)} ${startTime.isEmpty ? '' : startTime} a '
@@ -89,7 +89,7 @@ class _AgendaPageState extends State<AgendaPage> {
     body: FutureBuilder<List<Map<String, dynamic>>>(
       future: _future,
       builder: (context, snapshot) {
-        if (snapshot.connectionState != ConnectionState.done) return const Center(child: CircularProgressIndicator());
+        if (snapshot.connectionState != ConnectionState.done) { return const Center(child: CircularProgressIndicator()); }
         if (snapshot.hasError) return Center(child: Padding(
           padding: const EdgeInsets.all(24),
           child: Column(mainAxisSize: MainAxisSize.min, children: [
@@ -104,7 +104,7 @@ class _AgendaPageState extends State<AgendaPage> {
         final monthRentals = active.where((r) {
           final start = _parseDate(r['start_date']);
           final end = _parseDate(r['end_date']) ?? start;
-          if (start == null || end == null) return false;
+          if (start == null || end == null) { return false; }
           final first = DateTime(_month.year, _month.month, 1);
           final last = DateTime(_month.year, _month.month + 1, 0);
           return !end.isBefore(first) && !start.isAfter(last);
