@@ -16,7 +16,7 @@ type CompanyContext = { id: string; name: string; role: string };
 type Page = 'inicio' | 'locacoes' | 'clientes' | 'estoque' | 'financeiro' | 'ocorrencias' | 'mensagens' | 'marketing' | 'contratos';
 
 const pagePaths: Record<Page, string> = {
-  inicio: '',
+  inicio: 'inicio',
   locacoes: 'locacoes',
   contratos: 'contratos',
   clientes: 'clientes',
