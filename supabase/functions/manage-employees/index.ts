@@ -22,7 +22,10 @@ Deno.serve(async (req) => {
 
     const token = (req.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "");
     if (!token) return reply({ error: "Sessão não identificada. Entre novamente." }, 401);
-    const authClient = createClient(url, anonKey, { auth: { persistSession: false, autoRefreshToken: false } });
+    const authClient = createClient(url, anonKey, {
+      global: { headers: { Authorization: `Bearer ${token}` } },
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
     const { data: authData, error: authError } = await authClient.auth.getUser(token);
     if (authError || !authData.user) return reply({ error: "Sua sessão expirou. Entre novamente." }, 401);
 
