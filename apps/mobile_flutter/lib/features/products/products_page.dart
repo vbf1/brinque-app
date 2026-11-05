@@ -196,7 +196,16 @@ class _ProductsPageState extends State<ProductsPage> {
                       .toList()..sort((a, b) => (b['start_date'] ?? '').toString().compareTo((a['start_date'] ?? '').toString()));
                     final recent = history.take(3).map((r) => '${(r['customers'] as Map?)?['name'] ?? 'Cliente'} · ${r['start_date']} · ${r['status']}').join(' | ');
                     final status = unit['status'] as String? ?? 'available';
-                    final label = status == 'maintenance' ? 'Em manutenção' : status == 'inactive' ? 'Inativa' : !rentalsKnown ? 'Histórico indisponível' : 'Disponível';
+                    final now = DateTime.now();
+                    final today = '${now.year.toString().padLeft(4, '0')}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+                    final reservedToday = rentalsKnown && rentals.any((rental) {
+                      final start = rental['start_date']?.toString() ?? '';
+                      final end = rental['end_date']?.toString() ?? start;
+                      final active = ['pending', 'confirmed', 'ongoing'].contains(rental['status']) && start.compareTo(today) <= 0 && end.compareTo(today) >= 0;
+                      return active && (rental['rental_items'] as List? ?? []).any((item) =>
+                        (item['rental_item_units'] as List? ?? []).any((allocation) => allocation['product_unit_id'] == unit['id']));
+                    });
+                    final label = status == 'maintenance' ? 'Em manutenção' : status == 'inactive' ? 'Inativa' : !rentalsKnown ? 'Histórico indisponível' : reservedToday ? 'Reservada hoje' : 'Disponível';
                     return ListTile(
                       title: Text('Unidade ${unit['asset_code'] ?? '—'}'),
                       subtitle: Text('$label\nHistórico: ${!rentalsKnown ? 'Indisponível' : recent.isEmpty ? 'Sem locações registradas' : recent}'),
