@@ -141,8 +141,9 @@ class _QuotesPageState extends State<QuotesPage> {
                             )).toList(),
                             onChanged: (value) => setDialogState(() {
                               item.selectedId = value;
-                              final selected = data.products.where((p) => p['id'] == value).firstOrNull;
-                              if (selected != null) {
+                              final matches = data.products.where((p) => p['id'] == value);
+                              if (matches.isNotEmpty) {
+                                final selected = matches.first;
                                 item.description.text = selected['name']?.toString() ?? 'Brinquedo';
                                 item.unitPrice = (selected['daily_price'] as num? ?? 0).toDouble();
                               }
@@ -158,8 +159,9 @@ class _QuotesPageState extends State<QuotesPage> {
                             )).toList(),
                             onChanged: (value) => setDialogState(() {
                               item.selectedId = value;
-                              final selected = data.services.where((s) => s['id'] == value).firstOrNull;
-                              if (selected != null) {
+                              final matches = data.services.where((s) => s['id'] == value);
+                              if (matches.isNotEmpty) {
+                                final selected = matches.first;
                                 item.description.text = selected['name']?.toString() ?? 'Serviço';
                                 item.unitPrice = (selected['price'] as num? ?? 0).toDouble();
                               }
@@ -180,6 +182,7 @@ class _QuotesPageState extends State<QuotesPage> {
                           )),
                           const SizedBox(width: 10),
                           Expanded(child: TextFormField(
+                            key: ValueKey('quote-price-$index-${item.selectedId ?? item.kind}'),
                             initialValue: item.unitPrice.toStringAsFixed(2),
                             decoration: const InputDecoration(labelText: 'Preço unitário (R\$)'),
                             keyboardType: const TextInputType.numberWithOptions(decimal: true),
