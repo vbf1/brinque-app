@@ -176,30 +176,82 @@ export function MarketingPage({ companyId, userId }: { companyId: string; userId
    if(sourceFile.size>MAX_IMAGE_BYTES||!['image/png','image/jpeg','image/webp'].includes(sourceFile.type))throw new Error('Use uma foto PNG, JPG ou WebP de até 5 MB.');
    const dataUrl=await new Promise<string>((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>typeof reader.result==='string'?resolve(reader.result):reject(new Error('Não foi possível ler a foto.'));reader.onerror=()=>reject(new Error('Não foi possível ler a foto.'));reader.readAsDataURL(sourceFile!);});
    const sourceImage=dataUrl.split(',')[1];
-   const scenes:Record<string,string>={festa:'em um ambiente de festa infantil elegante e alegre, com decoração suave ao fundo',externo:'em uma área externa bem cuidada, com jardim e luz natural',estudio:'em um estúdio fotográfico profissional, fundo claro e iluminação suave',neutro:'em um cenário clean e minimalista, fundo neutro e iluminação de catálogo'};
-   const prompt='Fotografia comercial realista do MESMO brinquedo da imagem de referência. Preserve rigorosamente o modelo, formato, cores, proporções, estrutura, peças, acessórios e detalhes reais do brinquedo. Não invente, remova ou substitua componentes. Mude apenas o ambiente e a composição fotográfica: '+scenes[studioScene]+'. Produto inteiro visível, foco nítido, iluminação natural, sem pessoas em destaque, sem texto, sem logotipos e sem marcas d’água.';
-   setStudioProgress('Enviando solicitação gratuita para a fila de geração...');
-   const submitted=await fetch(HORDE_API+'/generate/async',{method:'POST',headers:{'Content-Type':'application/json','apikey':'0000000000','Client-Agent':'KidsLocApp:1.0'},body:JSON.stringify({prompt,params:{n:studioCount,width:512,height:512,steps:20,cfg_scale:7,denoising_strength:0.3},nsfw:false,censor_nsfw:true,r2:true,shared:false,source_image:sourceImage,source_processing:'img2img'})});
-   const submitData=await submitted.json();if(!submitted.ok||!submitData.id)throw new Error(submitData.message||submitData.errors?.[0]?.message||'O serviço gratuito não aceitou a solicitação. Tente novamente mais tarde.');
-   setStudioProgress('Solicitação recebida. Aguardando voluntários processarem '+studioCount+' imagens...');
-   let finished=false;
-   for(let attempt=0;attempt<120;attempt++){
+   const scenes:Record<string,string[]> = {
+    festa:[
+     'em um salão de festa infantil com balões em tons pastel ao fundo, decoração discreta e luz natural',
+     'em uma festa infantil ao ar livre, com mesas decoradas e bandeirolas desfocadas ao fundo',
+     'em um espaço de recreação infantil colorido, com decoração alegre e organizada ao fundo',
+     'em um salão de eventos elegante, com painel decorativo suave e iluminação acolhedora'
+    ],
+    externo:[
+     'em um gramado amplo e bem cuidado, com árvores ao fundo e luz suave da manhã',
+     'em um quintal espaçoso de casa, com jardim e cerca viva ao fundo',
+     'em uma área externa de espaço para eventos, com piso limpo e paisagismo discreto',
+     'em um parque arborizado, com fundo verde desfocado e luz natural de fim de tarde'
+    ],
+    estudio:[
+     'em estúdio fotográfico com fundo branco infinito e iluminação lateral suave',
+     'em estúdio fotográfico com fundo bege claro, sombras naturais e composição de catálogo',
+     'em estúdio fotográfico com fundo cinza muito claro e iluminação profissional uniforme',
+     'em estúdio fotográfico com fundo creme, luz suave de janela e sombra realista no chão'
+    ],
+    neutro:[
+     'em cenário minimalista com fundo branco fosco e piso branco, estilo catálogo de produtos',
+     'em cenário minimalista com fundo areia claro e iluminação natural suave',
+     'em cenário clean com fundo cinza pérola e sombra discreta no piso',
+     'em cenário minimalista com fundo off-white e luz difusa, fotografia comercial'
+    ]
+   };
+   const variants=scenes[studioScene]??scenes.festa;
+   const jobs=await Promise.all(Array.from({length:studioCount},async(_,index)=>{
+    const prompt='Crie uma fotografia publicitária REALISTA usando a foto enviada como referência obrigatória. O objeto principal deve continuar sendo EXATAMENTE o mesmo brinquedo físico da foto: preserve modelo, estrutura, formato, cores, proporções, quantidade e posição das peças, acessórios, costuras, entradas, escorregadores, redes e todos os detalhes visíveis. NÃO redesenhe, NÃO estilize, NÃO acrescente nem remova partes. Não espelhe o produto. Mantenha o brinquedo inteiro visível, no mesmo ângulo geral da foto de referência, com perspectiva e proporções naturais. Produza uma fotografia diferente das outras variações, mudando somente o cenário e a composição ao redor. Variação '+(index+1)+': '+variants[index%variants.length]+'. Enquadramento comercial '+(index%2===0?'horizontal mais aberto, com espaço ao redor do brinquedo':'vertical mais aproximado, mantendo o brinquedo inteiro no quadro'))+'. Sem pessoas, sem texto, sem logotipos e sem marcas d’água.';
+    const randomSeed=crypto.getRandomValues(new Uint32Array(1))[0];
+    const submitted=await fetch(HORDE_API+'/generate/async',{method:'POST',headers:{'Content-Type':'application/json','apikey':'0000000000','Client-Agent':'KidsLocApp:1.0'},body:JSON.stringify({prompt,params:{n:1,width:512,height:512,steps:25,cfg_scale:8,denoising_strength:0.45,seed:String(randomSeed)},nsfw:false,censor_nsfw:true,r2:true,shared:false,source_image:sourceImage,source_processing:'img2img'})});
+    const data=await submitted.json();if(!submitted.ok||!data.id)throw new Error(data.message||data.errors?.[0]?.message||'O serviço gratuito não aceitou uma das solicitações.');
+    return {id:data.id,index,done:false};
+   }));
+   setStudioProgress('Foram enviadas '+jobs.length+' solicitações independentes, cada uma com cenário, instrução e semente diferentes. Aguardando a fila gratuita...');
+   const results:StudioImage[]=[];
+   for(let attempt=0;attempt<120&&jobs.some(job=>!job.done);attempt++){
     await new Promise(resolve=>window.setTimeout(resolve,5000));
-    const checkResponse=await fetch(HORDE_API+'/generate/check/'+submitData.id,{headers:{'apikey':'0000000000','Client-Agent':'KidsLocApp:1.0'}});
-    if(!checkResponse.ok)throw new Error('Não foi possível consultar a fila de geração.');
-    const check=await checkResponse.json();
-    setStudioProgress('Na fila gratuita: '+(check.waiting??0)+' aguardando · '+(check.processing??0)+' em processamento · '+(check.finished??0)+'/'+studioCount+' concluídas.');
-    if(check.done||(Number(check.finished)>=studioCount)){finished=true;break;}
+    await Promise.all(jobs.filter(job=>!job.done).map(async job=>{
+     const checkResponse=await fetch(HORDE_API+'/generate/check/'+job.id,{headers:{'apikey':'0000000000','Client-Agent':'KidsLocApp:1.0'}});
+     if(!checkResponse.ok)throw new Error('Não foi possível consultar uma das solicitações de geração.');
+     const check=await checkResponse.json();
+     if(check.done||Number(check.finished)>=1){
+      job.done=true;
+      const response=await fetch(HORDE_API+'/generate/status/'+job.id,{headers:{'apikey':'0000000000','Client-Agent':'KidsLocApp:1.0'}});
+      if(!response.ok)throw new Error('Uma imagem foi processada, mas não foi possível recuperar o resultado.');
+      const result=await response.json();
+      const generation=(result.generations??[]).find((item:any)=>typeof item.img==='string'&&item.img.startsWith('https://'));
+      if(generation)results.push({url:generation.img,seed:generation.seed});
+     }
+    }));
+    setStudioProgress('Imagens concluídas: '+results.length+'/'+studioCount+' · solicitações independentes em processamento: '+jobs.filter(job=>!job.done).length+'.');
+    if(results.length===studioCount)break;
    }
-   if(!finished)throw new Error('A geração está demorando mais que o esperado. Você pode tentar novamente mais tarde.');
-   const resultResponse=await fetch(HORDE_API+'/generate/status/'+submitData.id,{headers:{'apikey':'0000000000','Client-Agent':'KidsLocApp:1.0'}});
-   if(!resultResponse.ok)throw new Error('As imagens foram processadas, mas não foi possível recuperar os resultados.');
-   const result=await resultResponse.json();
-   const images:StudioImage[]=(result.generations??[]).map((item:any)=>({url:item.img,seed:item.seed})).filter((item:StudioImage)=>typeof item.url==='string'&&item.url.startsWith('https://'));
-   if(!images.length)throw new Error('O serviço terminou sem retornar imagens. Tente outra foto ou cenário.');
-   setStudioImages(images);setStudioProgress(images.length+' imagens geradas. Confira se o brinquedo continua fiel à foto original.');
+   setStudioImages(results);
+   if(!results.length)throw new Error('A fila terminou sem retornar imagens. Tente novamente mais tarde.');
+   setStudioProgress(results.length+' de '+studioCount+' imagens recebidas. Cada variação foi solicitada separadamente; confira se o brinquedo continua fiel à foto original.');
+   if(results.length<studioCount)setMessage('O serviço gratuito retornou apenas '+results.length+' de '+studioCount+' imagens dentro do tempo limite. Você pode baixar as que chegaram.');
   }catch(error){setMessage(error instanceof Error?error.message:'Não foi possível gerar as imagens.');setStudioProgress('');}
   finally{setStudioBusy(false);}
+ }
+
+ async function downloadStudioImage(item:StudioImage,index:number){
+  try{
+   const response=await fetch(item.url);
+   if(!response.ok)throw new Error('O servidor não disponibilizou o arquivo para download.');
+   const blob=await response.blob();
+   const objectUrl=URL.createObjectURL(blob);
+   const link=document.createElement('a');
+   link.href=objectUrl;link.download='kidsloc-brinquedo-variacao-'+(index+1)+'.'+(blob.type.includes('png')?'png':'jpg');
+   document.body.appendChild(link);link.click();link.remove();
+   window.setTimeout(()=>URL.revokeObjectURL(objectUrl),1000);
+   setMessage('Download da variação '+(index+1)+' iniciado.');
+  }catch(error){
+   setMessage(error instanceof Error?'Não foi possível baixar diretamente: '+error.message+' Use “Abrir imagem” e salve pelo navegador.':'Não foi possível baixar a imagem.');
+  }
  }
 
  async function saveSettings(e:FormEvent<HTMLFormElement>){
@@ -264,7 +316,7 @@ export function MarketingPage({ companyId, userId }: { companyId: string; userId
  return <section className="module-shell marketing-module">
   <header className="module-header"><div><p className="eyebrow">DIVULGAÇÃO DA EMPRESA</p><h2>Marketing e anúncios</h2><p className="module-description">Prepare anúncios, revise o conteúdo e aprove antes de qualquer publicação.</p><p className="marketing-manual-note">Prepare o anúncio uma vez e reutilize o conteúdo na divulgação. Para locação de brinquedos, prefira a Página ou grupos que permitam esse tipo de oferta: o Marketplace pode não aceitar anúncios de serviços.</p></div><button type="button" onClick={()=>{clearForm();setTab('ads');}}>＋ Novo anúncio</button></header>
   <div className="marketing-tabs"><button type="button" className={tab==='ads'?'active':''} onClick={()=>setTab('ads')}>Anúncios</button><button type="button" className={tab==='settings'?'active':''} onClick={()=>setTab('settings')}>Configurações fixas</button><button type="button" className={studioOpen?'active':''} onClick={()=>{setStudioOpen(value=>!value);setTab('ads');}}>Estúdio de imagens IA</button></div>
-  {studioOpen&&<section className="marketing-ai-studio" aria-label="Estúdio de imagens com IA"><div className="marketing-ai-heading"><div><p className="eyebrow">FERRAMENTA GRATUITA</p><h3>Estúdio de imagens com IA</h3><p>Envie uma foto real do brinquedo e gere várias versões com novos cenários e composições.</p></div><span>4 imagens por padrão</span></div><div className="marketing-ai-controls"><label>Foto cadastrada no estoque<select value={studioSourcePath} onChange={e=>{setStudioSourcePath(e.target.value);setStudioSourceFile(null);setStudioImages([]);}}><option value="">Escolher foto do estoque...</option>{productImages.map(item=><option key={item.id} value={item.storage_path}>{item.product_name}{item.caption?' · '+item.caption:''}</option>)}</select></label><label>Ou enviar uma foto<input ref={studioInputRef} type="file" accept="image/png,image/jpeg,image/webp" onChange={e=>{setStudioSourceFile(e.target.files?.[0]??null);setStudioSourcePath('');setStudioImages([]);}}/><small>PNG, JPG ou WebP · até 5 MB</small></label><label>Quantidade de imagens<select value={studioCount} onChange={e=>setStudioCount(Number(e.target.value))}><option value={4}>4 imagens</option><option value={6}>6 imagens</option><option value={8}>8 imagens</option></select></label><label>Cenário das variações<select value={studioScene} onChange={e=>setStudioScene(e.target.value)}><option value="festa">Festa infantil</option><option value="externo">Área externa / jardim</option><option value="estudio">Estúdio profissional</option><option value="neutro">Fundo clean de catálogo</option></select></label></div><label className="marketing-ai-consent"><input type="checkbox" checked={studioConsent} onChange={e=>setStudioConsent(e.target.checked)}/> Entendi que a foto será enviada à rede AI Horde, processada por computadores de voluntários e que solicitações anônimas podem ser compartilhadas para aprimoramento de modelos.</label><button type="button" disabled={studioBusy||!studioConsent||(!studioSourceFile&&!studioSourcePath)} onClick={()=>void generateStudioImages()}>{studioBusy?'Gerando imagens...':'Gerar '+studioCount+' imagens gratuitamente'}</button>{studioProgress&&<p className="marketing-ai-progress" role="status">{studioProgress}</p>}{studioBusy&&<p className="marketing-ai-note">A fila é comunitária e pode demorar. Não feche esta tela enquanto a geração estiver em andamento.</p>}{studioImages.length>0&&<div className="marketing-ai-results"><h4>Resultados ({studioImages.length})</h4><div className="marketing-ai-grid">{studioImages.map((item,index)=><article key={item.url}><img src={item.url} alt={'Variação '+(index+1)+' do brinquedo'}/><div><span>Variação {index+1}</span><a href={item.url} target="_blank" rel="noreferrer">Abrir imagem</a><button type="button" className="secondary-button" onClick={()=>{setImageUrl(item.url);setImageFile(null);setSelectedProductImagePath('');setImageLoadError(false);setStudioOpen(false);setMessage('Imagem selecionada para o anúncio. Salve o rascunho para utilizá-la.');}}>Usar no anúncio</button></div></article>)}</div><p className="marketing-ai-note">Revise cada imagem: modelos de IA podem alterar detalhes do brinquedo. Use somente imagens que representem fielmente o item real.</p></div>}</section>}
+  {studioOpen&&<section className="marketing-ai-studio" aria-label="Estúdio de imagens com IA"><div className="marketing-ai-heading"><div><p className="eyebrow">FERRAMENTA GRATUITA</p><h3>Estúdio de imagens com IA</h3><p>Envie uma foto real do brinquedo e gere várias versões com novos cenários e composições.</p></div><span>4 imagens por padrão</span></div><div className="marketing-ai-controls"><label>Foto cadastrada no estoque<select value={studioSourcePath} onChange={e=>{setStudioSourcePath(e.target.value);setStudioSourceFile(null);setStudioImages([]);}}><option value="">Escolher foto do estoque...</option>{productImages.map(item=><option key={item.id} value={item.storage_path}>{item.product_name}{item.caption?' · '+item.caption:''}</option>)}</select></label><label>Ou enviar uma foto<input ref={studioInputRef} type="file" accept="image/png,image/jpeg,image/webp" onChange={e=>{setStudioSourceFile(e.target.files?.[0]??null);setStudioSourcePath('');setStudioImages([]);}}/><small>PNG, JPG ou WebP · até 5 MB</small></label><label>Quantidade de imagens<select value={studioCount} onChange={e=>setStudioCount(Number(e.target.value))}><option value={4}>4 imagens</option><option value={6}>6 imagens</option><option value={8}>8 imagens</option></select></label><label>Cenário das variações<select value={studioScene} onChange={e=>setStudioScene(e.target.value)}><option value="festa">Festa infantil</option><option value="externo">Área externa / jardim</option><option value="estudio">Estúdio profissional</option><option value="neutro">Fundo clean de catálogo</option></select></label></div><label className="marketing-ai-consent"><input type="checkbox" checked={studioConsent} onChange={e=>setStudioConsent(e.target.checked)}/> Entendi que a foto será enviada à rede AI Horde, processada por computadores de voluntários e que solicitações anônimas podem ser compartilhadas para aprimoramento de modelos.</label><button type="button" disabled={studioBusy||!studioConsent||(!studioSourceFile&&!studioSourcePath)} onClick={()=>void generateStudioImages()}>{studioBusy?'Gerando imagens...':'Gerar '+studioCount+' imagens gratuitamente'}</button>{studioProgress&&<p className="marketing-ai-progress" role="status">{studioProgress}</p>}{studioBusy&&<p className="marketing-ai-note">A fila é comunitária e pode demorar. Não feche esta tela enquanto a geração estiver em andamento.</p>}{studioImages.length>0&&<div className="marketing-ai-results"><h4>Resultados ({studioImages.length})</h4><div className="marketing-ai-grid">{studioImages.map((item,index)=><article key={item.url}><img src={item.url} alt={'Variação '+(index+1)+' do brinquedo'}/><div><span>Variação {index+1}</span><button type="button" className="secondary-button" onClick={()=>void downloadStudioImage(item,index)}>Baixar imagem</button><a href={item.url} target="_blank" rel="noreferrer">Abrir imagem</a><button type="button" className="secondary-button" onClick={()=>{setImageUrl(item.url);setImageFile(null);setSelectedProductImagePath('');setImageLoadError(false);setStudioOpen(false);setMessage('Imagem selecionada para o anúncio. Salve o rascunho para utilizá-la.');}}>Usar no anúncio</button></div></article>)}</div><p className="marketing-ai-note">Revise cada imagem: modelos de IA podem alterar detalhes do brinquedo. Use somente imagens que representem fielmente o item real.</p></div>}</section>}
   {message&&<p className="module-feedback" role="status">{message}</p>}
   {tab==='settings'?<form className="customer-form marketing-settings" onSubmit={saveSettings}>
    <h3>Informações padrão da empresa</h3><p className="module-description">Essas informações serão reaproveitadas na preparação de novos anúncios.</p>
