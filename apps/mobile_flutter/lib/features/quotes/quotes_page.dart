@@ -342,7 +342,18 @@ class _QuotesPageState extends State<QuotesPage> {
       IconButton(tooltip: 'Atualizar', onPressed: _reload, icon: const Icon(Icons.refresh)),
     ]),
     floatingActionButton: FloatingActionButton.extended(
-      onPressed: _busy ? null : () => _future.then(_newQuote),
+      onPressed: _busy ? null : () async {
+        try {
+          final data = await _future;
+          if (mounted) await _newQuote(data);
+        } catch (error) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Não foi possível abrir o formulário de orçamento: $error')),
+            );
+          }
+        }
+      },
       icon: const Icon(Icons.add),
       label: const Text('Novo orçamento'),
     ),
