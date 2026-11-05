@@ -453,7 +453,7 @@ class _RentalsPageState extends State<RentalsPage> {
 
   String _timeValue(dynamic value, String fallback) {
     final raw = value?.toString() ?? '';
-    return raw.length >= 5 && RegExp(r'^\\d{2}:\\d{2}').hasMatch(raw)
+    return raw.length >= 5 && RegExp(r'^\d{2}:\d{2}').hasMatch(raw)
         ? raw.substring(0, 5)
         : fallback;
   }
