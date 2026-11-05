@@ -329,3 +329,13 @@ select:focus-visible{outline:3px solid #3478e52b;outline-offset:1px}
 .users-details{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px 14px;margin-top:15px;padding-top:13px;border-top:1px solid var(--line)}.users-details>div{display:grid;gap:3px;min-width:0}.users-details small{color:var(--muted);font-size:10px}.users-details strong{font-size:11px;overflow-wrap:anywhere}.users-details .users-memberships,.users-details .users-id{grid-column:1/-1}.users-details .users-id strong{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;color:var(--muted)}
 .users-good{color:var(--green)}.users-pending{color:#b7791f}.users-error{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px;border:1px solid #efcaca;border-radius:12px;background:#fff5f5;color:#a33;font-size:12px}.users-error button{min-height:34px;padding:7px 10px;font-size:11px}.users-count{margin:0;color:var(--muted);font-size:11px;text-align:right}
 @media(max-width:640px){.users-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.users-filters{grid-template-columns:1fr}.users-details{grid-template-columns:repeat(2,minmax(0,1fr))}.users-card-top{align-items:flex-start;flex-wrap:wrap}.users-role{margin-left:53px}.users-toolbar{align-items:flex-start}.users-toolbar .secondary-button{flex-shrink:0}}
+
+
+/* Preparação assistida de divulgação no Facebook — isolada no Marketing. */
+.marketing-facebook-assist{display:grid;gap:10px;margin-top:12px;padding:13px;border:1px solid var(--line);border-radius:12px;background:var(--bg)}
+.marketing-facebook-assist>div:first-child{display:grid;gap:4px}
+.marketing-facebook-assist>div:first-child strong{font-size:13px}
+.marketing-facebook-assist p,.marketing-facebook-assist small{margin:0;color:var(--muted);font-size:11px;line-height:1.5}
+.marketing-facebook-copy-actions{display:flex;flex-wrap:wrap;gap:7px}
+.marketing-facebook-assist>button{justify-self:start}
+.marketing-marketplace-warning{margin:8px 0;padding:10px 12px;border:1px solid #e5c98d;border-radius:9px;background:#fff8e8;color:#765515;font-size:12px;line-height:1.5}
