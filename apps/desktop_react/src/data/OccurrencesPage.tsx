@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { supabase } from '../lib/supabase';
+import { AppSelect } from '../components/AppSelect';
 
 type Photo = { id: string; storage_path: string; url: string };
 type Occurrence = {
@@ -176,8 +177,8 @@ export function OccurrencesPage({ companyId, role }: { companyId: string; role: 
       <form className="data-form" onSubmit={save}>
         <h2>{editing ? 'Detalhes da ocorrência' : 'Novo relato de ocorrência'}</h2>
         <label>Título<input disabled={!!editing && !canManage(editing)} maxLength={140} value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} required /></label>
-        <label>Categoria<select disabled={!!editing && !canManage(editing)} value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>{CATEGORIES.map((value) => <option key={value}>{value}</option>)}</select></label>
-        <label>Gravidade<select disabled={!!editing && !canManage(editing)} value={form.severity} onChange={(e) => setForm({ ...form, severity: e.target.value })}>{SEVERITIES.map((value) => <option key={value.value} value={value.value}>{value.label}</option>)}</select></label>
+        <label>Categoria<AppSelect disabled={!!editing && !canManage(editing)} value={form.category} onChange={value => setForm({ ...form, category: value })} options={CATEGORIES.map(value => ({ value, label: value }))} /></label>
+        <label>Gravidade<AppSelect disabled={!!editing && !canManage(editing)} value={form.severity} onChange={value => setForm({ ...form, severity: value })} options={SEVERITIES} /></label>
         <label>Data e horário<input disabled={!!editing && !canManage(editing)} type="datetime-local" value={form.occurred_at} onChange={(e) => setForm({ ...form, occurred_at: e.target.value })} required /></label>
         <label>Local<input disabled={!!editing && !canManage(editing)} maxLength={240} value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} required /></label>
         <label>Descrição<textarea disabled={!!editing && !canManage(editing)} rows={5} maxLength={6000} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} required /></label>
@@ -190,8 +191,8 @@ export function OccurrencesPage({ companyId, role }: { companyId: string; role: 
       </form>
     ) : null}
     <div className="data-toolbar"><input aria-label="Buscar ocorrências" placeholder="Buscar título, local ou responsável..." value={search} onChange={(e) => setSearch(e.target.value)} />
-      <select aria-label="Filtrar categoria" value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}><option value="">Todas as categorias</option>{CATEGORIES.map((value) => <option key={value}>{value}</option>)}</select>
-      <select aria-label="Filtrar gravidade" value={severityFilter} onChange={(e) => setSeverityFilter(e.target.value)}><option value="">Todas as gravidades</option>{SEVERITIES.map((value) => <option key={value.value} value={value.value}>{value.label}</option>)}</select></div>
+      <AppSelect aria-label="Filtrar categoria" value={categoryFilter} onChange={setCategoryFilter} placeholder="Todas as categorias" options={[{ value: '', label: 'Todas as categorias' }, ...CATEGORIES.map(value => ({ value, label: value }))]} />
+      <AppSelect aria-label="Filtrar gravidade" value={severityFilter} onChange={setSeverityFilter} placeholder="Todas as gravidades" options={[{ value: '', label: 'Todas as gravidades' }, ...SEVERITIES]} /></div>
     {loading ? <p>Carregando ocorrências...</p> : visible.length ? <div className="data-list">{visible.map((item) => <article className="data-list-row occurrence-row" key={item.id}>
       <div><strong>{item.title}</strong><span>{dateLabel(item.occurred_at)} · {item.location}</span><span>{item.category} · {SEVERITIES.find((value) => value.value === item.severity)?.label ?? 'Moderada'} · Relatado por {item.created_by_name}</span>
         {Number(item.loss_amount) > 0 && <span>Prejuízo estimado: {money(item.loss_amount)}</span>}<span>{item.description}</span><span>{item.photos.length} foto(s) anexada(s)</span></div>
