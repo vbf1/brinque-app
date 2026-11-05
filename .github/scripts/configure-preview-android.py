@@ -1,4 +1,5 @@
 from pathlib import Path
+import re
 import shutil
 import sys
 
@@ -74,12 +75,37 @@ class MainActivity : FlutterActivity() {
 }
 """)
 
-# KidsLoc App launcher identity: use the same branded management logo as the web and in-app login.
+# KidsLoc App launcher identity: use the exact same branded logo file as the web login.
 manifest_text = manifest.read_text()
 manifest_text = manifest_text.replace('android:label="kidsloc"', 'android:label="KidsLoc App"')
 manifest_text = manifest_text.replace('android:label="Flutter"', 'android:label="KidsLoc App"')
 if 'android:label="KidsLoc App"' not in manifest_text:
     manifest_text = manifest_text.replace("<application", '<application android:label="KidsLoc App"', 1)
+
+# Explicitly bind both launcher entry points to the branded resources. Do not rely
+# on Flutter's generated template defaults, which may vary between Flutter versions.
+def set_launcher_resources(match):
+    attrs = match.group(1)
+    for name, value in (
+        ("icon", "@mipmap/ic_launcher"),
+        ("roundIcon", "@mipmap/ic_launcher_round"),
+    ):
+        pattern = rf'android:{name}="[^"]*"'
+        replacement = f'android:{name}="{value}"'
+        if re.search(pattern, attrs):
+            attrs = re.sub(pattern, replacement, attrs, count=1)
+        else:
+            attrs += f' {replacement}'
+    return "<application" + attrs + ">"
+
+manifest_text, application_count = re.subn(
+    r"<application\\b([^>]*)>",
+    set_launcher_resources,
+    manifest_text,
+    count=1,
+)
+if application_count != 1:
+    raise SystemExit("Could not explicitly configure the Android launcher icon in AndroidManifest.xml")
 manifest.write_text(manifest_text)
 
 source_icon = Path("apps/mobile_flutter/assets/kidsloc-brand.webp")
