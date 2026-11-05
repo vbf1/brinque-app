@@ -16,6 +16,7 @@ import { CheckoutPage } from './data/CheckoutPage';
 import { UsersPage } from './data/UsersPage';
 import { ServicesPage } from './data/ServicesPage';
 import { QuotesPage } from './data/QuotesPage';
+import { CompanySettingsPage } from './data/CompanySettingsPage';
 
 declare global {
   interface Window {
@@ -24,7 +25,7 @@ declare global {
 }
 
 type CompanyContext = { id: string; name: string; role: string };
-type Page = 'inicio' | 'agenda' | 'estatisticas' | 'locacoes' | 'clientes' | 'estoque' | 'financeiro' | 'ocorrencias' | 'mensagens' | 'marketing' | 'contratos' | 'usuarios' | 'servicos' | 'orcamentos';
+type Page = 'inicio' | 'agenda' | 'estatisticas' | 'locacoes' | 'clientes' | 'estoque' | 'financeiro' | 'ocorrencias' | 'mensagens' | 'marketing' | 'contratos' | 'usuarios' | 'servicos' | 'orcamentos' | 'configuracoes';
 
 const pagePaths: Record<Page, string> = {
   inicio: 'inicio',
@@ -41,6 +42,7 @@ const pagePaths: Record<Page, string> = {
   usuarios: 'usuarios',
   servicos: 'servicos',
   orcamentos: 'orcamentos',
+  configuracoes: 'configuracoes',
 };
 
 function pageFromLocation(): Page {
@@ -90,6 +92,7 @@ const navigation: Array<{ id: Page; label: string; icon: string; admin?: boolean
   { id: 'ocorrencias', label: 'Ocorrências', icon: '⚠' },
   { id: 'marketing', label: 'Marketing e anúncios', icon: '✧', admin: true },
   { id: 'usuarios', label: 'Usuários', icon: '♙', admin: true },
+  { id: 'configuracoes', label: 'Configurações', icon: '⚙', admin: true },
 ];
 
 export default function App() {
@@ -105,6 +108,8 @@ export default function App() {
   const [message, setMessage] = useState('');
   const [isError, setIsError] = useState(false);
   const [company, setCompany] = useState<CompanyContext | null>(null);
+  const [platformOwner, setPlatformOwner] = useState(false);
+  const [availableCompanies, setAvailableCompanies] = useState<Array<{ id: string; name: string }>>([]);
   const [companyLoading, setCompanyLoading] = useState(false);
   const [page, setPage] = useState<Page>(() => pageFromLocation());
 
@@ -227,6 +232,8 @@ export default function App() {
     let active = true;
     if (!session) {
       setCompany(null);
+      setPlatformOwner(false);
+      setAvailableCompanies([]);
       setCompanyLoading(false);
       return;
     }
@@ -239,6 +246,26 @@ export default function App() {
     }, 15000);
     void (async () => {
       try {
+        const { data: isGlobalOwner, error: ownerCheckError } = await supabase.rpc('is_platform_owner');
+        if (ownerCheckError) throw ownerCheckError;
+        if (isGlobalOwner) {
+          const { data: companyList, error: companiesError } = await supabase.from('companies')
+            .select('id, name').order('name', { ascending: true });
+          if (companiesError) throw companiesError;
+          if (!active) return;
+          setPlatformOwner(true);
+          setAvailableCompanies(companyList ?? []);
+          if (!companyList?.length) {
+            setCompany(null);
+            feedback('Nenhuma empresa cadastrada. Crie a primeira empresa nas configurações.', true);
+            return;
+          }
+          setCompany({ id: companyList[0].id, name: companyList[0].name, role: 'owner' });
+          feedback('');
+          return;
+        }
+        setPlatformOwner(false);
+        setAvailableCompanies([]);
         const { data: member, error: memberError } = await supabase.from('company_members')
           .select('company_id, role').eq('user_id', session.user.id).limit(1).maybeSingle();
         if (memberError) throw memberError;
@@ -309,7 +336,7 @@ export default function App() {
     finally { setBusy(false); }
   }
 
-  const isAdmin = company?.role === 'owner' || company?.role === 'admin';
+  const isAdmin = platformOwner || company?.role === 'owner' || company?.role === 'admin';
   const userLabel = session?.user.user_metadata?.full_name || session?.user.email?.split('@')[0] || 'Bem-vindo';
   const pageTitle = navigation.find(item => item.id === page)?.label ?? 'Início';
   const visibleNavigation = navigation.filter(item => !item.admin || isAdmin);
@@ -370,7 +397,7 @@ export default function App() {
             <button type="button" className="legacy-menu-trigger" aria-label="Abrir menu" aria-expanded={menuOpen} onClick={() => setMenuOpen(value => !value)}><span /><span /><span /></button>
           </div>
         </div>
-        <div className="legacy-greeting">Olá, {userLabel} 👋<small>{company.name} · Gestão de locações sincronizada.</small></div>
+        <div className="legacy-greeting">Olá, {userLabel} 👋<small>{company.name} · Gestão de locações sincronizada.</small>{platformOwner && <label className="legacy-company-switcher-label">Empresa selecionada<select className="legacy-company-switcher" value={company.id} onChange={event => { const selected = availableCompanies.find(item => item.id === event.target.value); if (selected) { setCompany({ ...selected, role: 'owner' }); setPage('inicio'); } }}>{availableCompanies.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>}</div>
       </header>
       {menuOpen && <button className="legacy-menu-backdrop" aria-label="Fechar menu" onClick={() => setMenuOpen(false)} />}
       <nav className={menuOpen ? 'legacy-menu-panel open' : 'legacy-menu-panel'} aria-label="Menus de navegação">
@@ -412,7 +439,8 @@ export default function App() {
         {page === 'ocorrencias' && <OccurrencesPage companyId={company.id} role={company.role} />}
         {page === 'mensagens' && <TeamChatPage companyId={company.id} />}
         {page === 'marketing' && isAdmin && <MarketingPage companyId={company.id} userId={session.user.id} />}
-        {page === 'usuarios' && isAdmin && <UsersPage companyId={company.id} viewerRole={company.role} />}
+        {page === 'usuarios' && isAdmin && <UsersPage companyId={company.id} viewerRole={platformOwner ? 'owner' : company.role} />}
+        {page === 'configuracoes' && isAdmin && <CompanySettingsPage companyId={company.id} companyName={company.name} platformOwner={platformOwner} userId={session.user.id} onSaved={name => setCompany(current => current ? { ...current, name } : current)} onCompanyCreated={created => { setAvailableCompanies(current => [...current, created].sort((a, b) => a.name.localeCompare(b.name))); setCompany({ ...created, role: 'owner' }); setPage('inicio'); }} />}
       </main>
       <footer className="legacy-footer">KIDSLOC APP <span>·</span> {company.name}</footer>
     </div>
