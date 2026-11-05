@@ -28,20 +28,31 @@ export function ProductsPage({ companyId }: { companyId: string }) {
   const [price, setPrice] = useState('0');
   const [message, setMessage] = useState('');
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (): Promise<string | null> => {
     setLoading(true);
     try {
-      const [rows, units, rentalRows] = await Promise.all([repository.fetchProducts(), repository.fetchProductUnits(), repository.fetchRentals()]);
-      setRentals(rentalRows);
+      // A consulta do histórico de locações é complementar: uma falha nela
+      // não pode impedir que os brinquedos e o estoque sejam exibidos.
+      const [rows, units] = await Promise.all([repository.fetchProducts(), repository.fetchProductUnits()]);
+      let rentalWarning: string | null = null;
+      try {
+        setRentals(await repository.fetchRentals());
+      } catch (error) {
+        setRentals([]);
+        rentalWarning = error instanceof Error ? error.message : 'Não foi possível carregar o histórico de locações.';
+      }
       setProducts(rows.map(row => {
         const productUnits = units.filter(unit => unit.product_id === row.id);
         return { ...row, units: productUnits, available: row.inventory_mode === 'individual'
           ? productUnits.filter(unit => unit.status === 'available').length
           : row.total_quantity } as Product;
       }));
-      setMessage('');
+      setMessage(rentalWarning ? `Estoque carregado. Histórico de locações indisponível: ${rentalWarning}` : '');
+      return rentalWarning;
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Não foi possível carregar o estoque.');
+      const detail = error instanceof Error ? error.message : 'Não foi possível carregar o estoque.';
+      setMessage(detail);
+      return detail;
     } finally { setLoading(false); }
   }, [repository]);
 
@@ -69,8 +80,10 @@ export function ProductsPage({ companyId }: { companyId: string }) {
     try {
       await repository.saveProduct({ id: editing?.id, name, inventoryMode: mode, quantity: qty, dailyPrice });
       setFormOpen(false);
-      await load();
-      setMessage('Brinquedo salvo com sucesso.');
+      const refreshWarning = await load();
+      setMessage(refreshWarning
+        ? `Brinquedo salvo, mas houve um problema ao atualizar a tela: ${refreshWarning}`
+        : 'Brinquedo salvo com sucesso.');
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Não foi possível salvar o brinquedo.');
     } finally { setSaving(false); }
