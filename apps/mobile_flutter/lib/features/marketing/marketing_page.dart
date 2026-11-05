@@ -368,8 +368,7 @@ class _MarketingPageState extends State<MarketingPage> {
     Text('Exibindo '+_visible.length.toString()+' de '+_ads.length.toString()+' anúncios'),
     if(_visible.isEmpty)const Padding(padding:EdgeInsets.all(24),child:Text('Nenhum anúncio corresponde aos filtros atuais.',textAlign:TextAlign.center)),
     for(final ad in _visible)_adCard(ad),
-    const SizedBox(height:12),const Text('Estúdio de imagens com IA',style:TextStyle(fontSize:17,fontWeight:FontWeight.w800)),
-    const Text('A integração gratuita com AI Horde ainda está pendente nesta versão Flutter. Ela permanece disponível no Web.'),
+    _studioPanel(),
   ]);
 
   Widget _adCard(Map<String,dynamic> ad){
@@ -412,6 +411,76 @@ class _MarketingPageState extends State<MarketingPage> {
       ])),
     ));
   }
+
+
+  Widget _studioPanel() => Card(
+    margin: const EdgeInsets.only(top: 18),
+    child: Padding(
+      padding: const EdgeInsets.all(14),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        const Text('Estúdio de imagens com IA', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
+        const SizedBox(height: 6),
+        const Text('Envie uma foto real do brinquedo e gere variações com novos cenários usando a fila gratuita do AI Horde.'),
+        const SizedBox(height: 10),
+        DropdownButtonFormField<String>(
+          initialValue: _studioSourcePath,
+          decoration: const InputDecoration(labelText: 'Foto cadastrada no estoque'),
+          items: [
+            const DropdownMenuItem<String>(value: null, child: Text('Escolher foto do estoque...')),
+            ..._images.map((item) => DropdownMenuItem<String>(value: item['storage_path'] as String, child: Text(item['product_name'].toString()))),
+          ],
+          onChanged: _studioBusy ? null : (value) => setState(() { _studioSourcePath = value; _studioSourceFile = null; _studioResults = []; }),
+        ),
+        OutlinedButton.icon(onPressed: _studioBusy ? null : _chooseStudioFile, icon: const Icon(Icons.upload_file), label: Text(_studioSourceFile?.name ?? 'Ou enviar uma foto (PNG, JPG ou WebP · até 5 MB)')),
+        DropdownButtonFormField<int>(
+          initialValue: _studioCount,
+          decoration: const InputDecoration(labelText: 'Quantidade de imagens'),
+          items: const [DropdownMenuItem(value: 4, child: Text('4 imagens')), DropdownMenuItem(value: 6, child: Text('6 imagens')), DropdownMenuItem(value: 8, child: Text('8 imagens'))],
+          onChanged: _studioBusy ? null : (value) => setState(() => _studioCount = value ?? 4),
+        ),
+        DropdownButtonFormField<String>(
+          initialValue: _studioScene,
+          decoration: const InputDecoration(labelText: 'Cenário das variações'),
+          items: const [
+            DropdownMenuItem(value: 'festa', child: Text('Festa infantil')),
+            DropdownMenuItem(value: 'externo', child: Text('Área externa / jardim')),
+            DropdownMenuItem(value: 'estudio', child: Text('Estúdio profissional')),
+            DropdownMenuItem(value: 'neutro', child: Text('Fundo clean de catálogo')),
+          ],
+          onChanged: _studioBusy ? null : (value) => setState(() => _studioScene = value ?? 'festa'),
+        ),
+        CheckboxListTile(
+          contentPadding: EdgeInsets.zero,
+          value: _studioConsent,
+          onChanged: _studioBusy ? null : (value) => setState(() => _studioConsent = value ?? false),
+          title: const Text('Entendi que a foto será enviada à rede AI Horde, processada por computadores de voluntários e que solicitações anônimas podem ser compartilhadas para aprimoramento de modelos.', style: TextStyle(fontSize: 12)),
+          controlAffinity: ListTileControlAffinity.leading,
+        ),
+        FilledButton.icon(
+          onPressed: _studioBusy || !_studioConsent || (_studioSourceFile == null && (_studioSourcePath == null || _studioSourcePath!.isEmpty)) ? null : _generateStudioImages,
+          icon: _studioBusy ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.auto_awesome),
+          label: Text(_studioBusy ? 'Gerando imagens...' : 'Gerar ' + _studioCount.toString() + ' imagens gratuitamente'),
+        ),
+        if (_studioProgress.isNotEmpty) Padding(padding: const EdgeInsets.only(top: 10), child: Text(_studioProgress, style: const TextStyle(fontSize: 12))),
+        if (_studioBusy) const Padding(padding: EdgeInsets.only(top: 6), child: Text('A fila é comunitária e pode demorar. Não feche esta tela enquanto a geração estiver em andamento.', style: TextStyle(fontSize: 12, color: Colors.deepOrange))),
+        if (_studioResults.isNotEmpty) ...[
+          const SizedBox(height: 14),
+          Text('Resultados (' + _studioResults.length.toString() + ')', style: const TextStyle(fontWeight: FontWeight.w800)),
+          for (var i = 0; i < _studioResults.length; i++) Card(
+            child: Padding(padding: const EdgeInsets.all(8), child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+              ClipRRect(borderRadius: BorderRadius.circular(8), child: Image.network(_studioResults[i]['url'] as String, height: 190, fit: BoxFit.contain, errorBuilder: (_, __, ___) => const SizedBox(height: 90, child: Center(child: Text('Imagem indisponível'))))),
+              Text('Variação ' + (i + 1).toString()),
+              Wrap(spacing: 8, children: [
+                TextButton(onPressed: () => launchUrl(Uri.parse(_studioResults[i]['url'] as String), mode: LaunchMode.externalApplication), child: const Text('Abrir imagem')),
+                TextButton(onPressed: () => _useStudioImage(_studioResults[i]['url'] as String), child: const Text('Usar no anúncio')),
+              ]),
+            ])),
+          ),
+          const Text('Revise cada imagem: modelos de IA podem alterar detalhes do brinquedo. Use somente imagens que representem fielmente o item real.', style: TextStyle(fontSize: 12, color: Colors.deepOrange)),
+        ],
+      ]),
+    ),
+  );
 
   Widget _field(TextEditingController c,String label,{int lines=1,String? Function(String?)? validator})=>Padding(padding:const EdgeInsets.only(top:8),child:TextFormField(controller:c,maxLines:lines,validator:validator,decoration:InputDecoration(labelText:label,border:const OutlineInputBorder())));
   Widget _metric(String label,int value)=>SizedBox(width:145,child:Card(child:Padding(padding:const EdgeInsets.all(12),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text(value.toString(),style:const TextStyle(fontSize:22,fontWeight:FontWeight.w800)),Text(label,style:const TextStyle(fontSize:12))]))));
