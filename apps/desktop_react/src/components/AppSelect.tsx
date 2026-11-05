@@ -62,7 +62,18 @@ export function AppSelect({
         <span className="app-select-chevron" aria-hidden="true">⌄</span>
       </button>
       {open && (
-        <div className="app-select-menu" role="listbox" aria-label={ariaLabel}>
+        <div className="app-select-overlay">
+          <section className="app-select-dialog" role="dialog" aria-modal="true" aria-label={ariaLabel || placeholder}>
+            <header className="app-select-dialog-header">
+              <div className="app-select-dialog-mark" aria-hidden="true">⌄</div>
+              <div className="app-select-dialog-heading">
+                <span className="app-select-dialog-eyebrow">KIDSLOC · SELEÇÃO</span>
+                <h2>{placeholder}</h2>
+                <p>Escolha uma das opções abaixo</p>
+              </div>
+              <button type="button" className="app-select-dialog-close" aria-label="Fechar opções" onClick={() => setOpen(false)}>×</button>
+            </header>
+            <div className="app-select-menu" role="listbox" aria-label={ariaLabel}>
           {options.map(option => (
             <button
               type="button"
@@ -79,7 +90,13 @@ export function AppSelect({
               {option.value === value && <span className="app-select-check" aria-hidden="true">✓</span>}
             </button>
           ))}
-          {!options.length && <span className="app-select-empty">Nenhuma opção disponível</span>}
+              {!options.length && <span className="app-select-empty">Nenhuma opção disponível</span>}
+            </div>
+            <footer className="app-select-dialog-footer">
+              <span>{options.length} {options.length === 1 ? 'opção disponível' : 'opções disponíveis'}</span>
+              <button type="button" onClick={() => setOpen(false)}>Fechar</button>
+            </footer>
+          </section>
         </div>
       )}
     </div>
