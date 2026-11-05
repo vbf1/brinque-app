@@ -39,10 +39,10 @@ class _RentalsPageState extends State<RentalsPage> {
     final start = ValueNotifier<DateTime>(_date(rental?['start_date']) ?? DateTime.now());
     final end = ValueNotifier<DateTime>(_date(rental?['end_date']) ?? DateTime.now().add(const Duration(days: 1)));
     final startTime = ValueNotifier<String>(
-      rental == null ? '09:00' : (rental['start_time']?.toString().substring(0, 5) ?? '00:00'),
+      rental == null ? '09:00' : _timeValue(rental['start_time'], '00:00'),
     );
     final endTime = ValueNotifier<String>(
-      rental == null ? '17:00' : (rental['end_time']?.toString().substring(0, 5) ?? '23:59'),
+      rental == null ? '17:00' : _timeValue(rental['end_time'], '23:59'),
     );
     final status = ValueNotifier<String>(rental?['status'] as String? ?? 'pending');
     final delivery = ValueNotifier<String>(rental?['delivery_method'] as String? ?? 'customer_pickup');
@@ -440,7 +440,7 @@ class _RentalsPageState extends State<RentalsPage> {
             refresh(() => value.value = formatted);
           }
         },
-        child: Text('$label\\n$time', textAlign: TextAlign.center),
+        child: Text('$label\n$time', textAlign: TextAlign.center),
       ),
     );
   }
@@ -449,6 +449,13 @@ class _RentalsPageState extends State<RentalsPage> {
     final parts = value.split(':');
     return (int.tryParse(parts.first) ?? 0) * 60 +
         (int.tryParse(parts.length > 1 ? parts[1] : '') ?? 0);
+  }
+
+  String _timeValue(dynamic value, String fallback) {
+    final raw = value?.toString() ?? '';
+    return raw.length >= 5 && RegExp(r'^\\d{2}:\\d{2}').hasMatch(raw)
+        ? raw.substring(0, 5)
+        : fallback;
   }
 
   DateTime? _date(dynamic value) => value == null ? null : DateTime.tryParse(value.toString());
