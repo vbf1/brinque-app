@@ -126,7 +126,18 @@ class _LoginPageState extends State<LoginPage> {
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Image.asset('assets/kidsloc-brand.webp', width: 168, height: 168, fit: BoxFit.contain),
+                        Image.asset('assets/kidsloc-brand.webp', width: 116, height: 116, fit: BoxFit.contain),
+                        const SizedBox(height: 8),
+                        RichText(textAlign: TextAlign.center, text: TextSpan(
+                          style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900, letterSpacing: -0.8),
+                          children: const [TextSpan(text: 'KidsLoc '), TextSpan(text: 'App', style: TextStyle(color: Color(0xFF3478E5)))],
+                        )),
+                        const SizedBox(height: 5),
+                        Text('GESTÃO DE LOCAÇÕES', textAlign: TextAlign.center,
+                          style: Theme.of(context).textTheme.labelSmall?.copyWith(letterSpacing: 2, fontWeight: FontWeight.w800, color: const Color(0xFF718096))),
+                        const SizedBox(height: 13),
+                        Center(child: Container(width: 52, height: 5, decoration: BoxDecoration(color: const Color(0xFFFFD34E), borderRadius: BorderRadius.circular(8)))),
+                        const SizedBox(height: 10),
                         if (recovery || _forgot) ...[
                           const SizedBox(height: 8),
                           Text(recovery ? 'Definir nova senha' : 'Recuperar senha',
