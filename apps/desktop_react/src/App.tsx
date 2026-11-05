@@ -13,6 +13,12 @@ import { PublicContractPage } from './data/PublicContractPage';
 import { CheckoutPage } from './data/CheckoutPage';
 import { UsersPage } from './data/UsersPage';
 
+declare global {
+  interface Window {
+    KidsLocNative?: { postMessage: (message: string) => void };
+  }
+}
+
 type CompanyContext = { id: string; name: string; role: string };
 type Page = 'inicio' | 'locacoes' | 'clientes' | 'estoque' | 'financeiro' | 'ocorrencias' | 'mensagens' | 'marketing' | 'contratos' | 'usuarios';
 
@@ -174,6 +180,17 @@ export default function App() {
     const { data } = supabase.auth.onAuthStateChange((event, nextSession) => {
       if (!active) return;
       setSession(nextSession);
+      if (window.KidsLocNative) {
+        if (nextSession && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED')) {
+          window.KidsLocNative.postMessage(JSON.stringify({
+            type: 'session',
+            access_token: nextSession.access_token,
+            refresh_token: nextSession.refresh_token,
+          }));
+        } else if (event === 'SIGNED_OUT') {
+          window.KidsLocNative.postMessage(JSON.stringify({ type: 'signed_out' }));
+        }
+      }
       if (event === 'PASSWORD_RECOVERY') setRecovery(true);
       if (event === 'SIGNED_OUT') {
         setCompany(null);
