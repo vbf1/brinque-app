@@ -79,7 +79,6 @@ class _QuotesPageState extends State<QuotesPage> {
                     child: Text(c['name'] as String? ?? 'Cliente', overflow: TextOverflow.ellipsis),
                   )).toList(),
                   onChanged: (value) => setDialogState(() => customerId.value = value),
-                  validator: (value) => value == null ? 'Selecione um cliente.' : null,
                 ),
                 const SizedBox(height: 8),
                 ValueListenableBuilder<DateTime?>(
@@ -246,7 +245,7 @@ class _QuotesPageState extends State<QuotesPage> {
         final rpcItems = items.map((item) => {
           'product_id': item.kind == 'product' ? item.selectedId : null,
           'service_id': item.kind == 'service' ? item.selectedId : null,
-          'description': item.description.text.trim(),
+          'description': item.kind == 'custom' ? item.description.text.trim() : null,
           'quantity': item.quantity,
           'unit_price': item.unitPrice,
         }).toList();
