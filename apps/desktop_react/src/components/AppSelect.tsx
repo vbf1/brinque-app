@@ -52,6 +52,7 @@ export function AppSelect({
         aria-label={ariaLabel}
         aria-haspopup="listbox"
         aria-expanded={open}
+        aria-required={required || undefined}
         disabled={disabled}
         onClick={() => setOpen(current => !current)}
       >
@@ -62,7 +63,6 @@ export function AppSelect({
       </button>
       {open && (
         <div className="app-select-menu" role="listbox" aria-label={ariaLabel}>
-          {required && <span className="app-select-required" aria-hidden="true" />}
           {options.map(option => (
             <button
               type="button"
