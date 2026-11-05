@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../core/native_push_service.dart';
+
 import '../agenda/agenda_page.dart';
 import '../contracts/contracts_page.dart';
 import '../customers/customers_page.dart';
@@ -74,6 +76,11 @@ class _NativeCompanyHomePageState extends State<NativeCompanyHomePage> {
   }
 
   Future<void> _signOut() async {
+    try {
+      await NativePushService().unregisterCurrentDevice();
+    } catch (error) {
+      debugPrint('KidsLoc: não foi possível remover o registro de notificações: $error');
+    }
     await Supabase.instance.client.auth.signOut(scope: SignOutScope.local);
   }
 
@@ -243,7 +250,7 @@ class _NativeCompanyHomePageState extends State<NativeCompanyHomePage> {
                 leading: Icon(page.icon, color: const Color(0xFF3478E5)),
                 title: Text(page.title),
                 subtitle: Text(page.description, maxLines: 1, overflow: TextOverflow.ellipsis),
-                onTap: () => _open(context, company, page.id),
+                onTap: () => _open(context, company, page.id, closeDrawer: true),
               ),
             if (_isAdmin(company))
               ListTile(
