@@ -180,3 +180,15 @@ button:focus-visible{outline:3px solid #3478e566;outline-offset:2px}
 @media(max-width:640px){.marketing-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.marketing-ad-card{grid-template-columns:1fr}.marketing-ad-card>img,.marketing-image-placeholder{height:190px}.marketing-actions button{flex:1 1 auto}.marketing-toolbar select{max-width:none;flex:1}.marketing-summary strong{font-size:21px}}
 
 .marketing-manual-note{margin:8px 0 14px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--muted);font-size:12px;line-height:1.5}
+
+
+/* Ajuste pontual da tela de autenticação: marca visível e formulário mais compacto. */
+.legacy-auth-screen{padding:12px}
+.legacy-auth-card{padding:20px 22px 18px}
+.legacy-auth-brand{display:block!important;visibility:visible!important;opacity:1!important;color:var(--ink)!important;font-size:21px;line-height:1.2;text-align:center;margin:0 0 12px}
+.legacy-form{gap:0}
+.legacy-form label{margin:4px 0 2px}
+.legacy-form input{margin-bottom:8px}
+.legacy-primary-button{margin-top:5px}
+.legacy-secondary-button{margin-top:7px}
+@media(max-width:390px){.legacy-auth-card{padding:18px 16px 16px}.legacy-auth-brand{margin-bottom:10px}}
