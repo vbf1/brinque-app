@@ -30,7 +30,7 @@ const pagePaths: Record<Page, string> = {
 function pageFromLocation(): Page {
   const base = import.meta.env.BASE_URL;
   const pathname = window.location.pathname;
-  const relativePath = pathname.startsWith(base) ? pathname.slice(base.length) : pathname.replace(/^\\/+/, '');
+  const relativePath = pathname.startsWith(base) ? pathname.slice(base.length) : pathname.replace(/^\/+/, '');
   const segment = relativePath.split('/').filter(Boolean)[0] ?? '';
   return (Object.keys(pagePaths) as Page[]).find(page => pagePaths[page] === segment) ?? 'inicio';
 }
