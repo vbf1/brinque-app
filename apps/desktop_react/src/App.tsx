@@ -518,19 +518,19 @@ export default function App() {
         {page === 'configuracoes' && isAdmin && <CompanySettingsPage companyId={company.id} companyName={company.name} theme={theme} onThemeChange={setTheme} onSaved={name => { setCompany(current => current ? { ...current, name } : current); setAvailableCompanies(current => current.map(item => item.id === company.id ? { ...item, name } : item)); }} />}
         {page === 'administracao' && platformOwner && <PlatformAdminPage currentCompanyId={company.id} companies={availableCompanies} onCompaniesChanged={setAvailableCompanies} onSelectCompany={selected => setCompany({ ...selected, role: 'owner' })} />}
       </main>
-      {tourOpen && currentTourStep && <div className="kidsloc-tour-backdrop" role="presentation">
-        <section className="kidsloc-tour-dialog" role="dialog" aria-modal="true" aria-labelledby="kidsloc-tour-title">
-          <div className="kidsloc-tour-top"><span>GUIA DO KIDSLOC</span><button type="button" className="kidsloc-tour-close" onClick={() => void finishTour()} aria-label="Fechar tutorial">×</button></div>
-          <div className="kidsloc-tour-progress"><span style={{ width: `${((tourStep + 1) / tourSteps.length) * 100}%` }} /></div>
+      {tourOpen && currentTourStep && <aside className="kidsloc-tour-coach" role="region" aria-labelledby="kidsloc-tour-title">
+        <div className="kidsloc-tour-top"><span><i /> GUIA DO KIDSLOC</span><button type="button" className="kidsloc-tour-close" onClick={() => void finishTour()} aria-label="Fechar tutorial">×</button></div>
+        <div className="kidsloc-tour-progress"><span style={{ width: `${((tourStep + 1) / tourSteps.length) * 100}%` }} /></div>
+        <div className="kidsloc-tour-content">
           <small className="kidsloc-tour-count">Etapa {tourStep + 1} de {tourSteps.length}</small>
           <h2 id="kidsloc-tour-title">{currentTourStep.title}</h2>
           <p>{currentTourStep.description}</p>
-          <div className="kidsloc-tour-actions">
-            <button type="button" className="kidsloc-tour-skip" onClick={() => void finishTour()}>Pular tutorial</button>
-            <button type="button" onClick={advanceTour}>{tourStep >= tourSteps.length - 1 ? 'Concluir' : 'Avançar'}</button>
-          </div>
-        </section>
-      </div>}
+        </div>
+        <div className="kidsloc-tour-actions">
+          <button type="button" className="kidsloc-tour-skip" onClick={() => void finishTour()}>Pular</button>
+          <button type="button" onClick={advanceTour}>{tourStep >= tourSteps.length - 1 ? 'Concluir' : 'Próxima área →'}</button>
+        </div>
+      </aside>}
       <footer className="legacy-footer">KIDSLOC APP <span>·</span> {company.name}</footer>
     </div>
   );
