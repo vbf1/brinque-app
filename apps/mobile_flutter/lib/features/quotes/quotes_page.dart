@@ -290,7 +290,7 @@ class _QuotesPageState extends State<QuotesPage> {
         pw.Text('Emissão: ${_date(quote['issue_date'])}'),
         pw.Text('Validade: ${_date(quote['valid_until'])}'),
         pw.SizedBox(height: 18),
-        pw.Table.fromTextArray(
+        pw.TableHelper.fromTextArray(
           headers: ['Descrição', 'Qtd.', 'Unitário', 'Subtotal'],
           data: items.map((item) => [
             item['description']?.toString() ?? '',
@@ -350,14 +350,14 @@ class _QuotesPageState extends State<QuotesPage> {
     body: FutureBuilder<_QuoteData>(
       future: _future,
       builder: (context, snapshot) {
-        if (snapshot.connectionState != ConnectionState.done) return const Center(child: CircularProgressIndicator());
-        if (snapshot.hasError) return Center(child: Padding(
+        if (snapshot.connectionState != ConnectionState.done) { return const Center(child: CircularProgressIndicator()); }
+        if (snapshot.hasError) { return Center(child: Padding(
           padding: const EdgeInsets.all(24),
           child: Column(mainAxisSize: MainAxisSize.min, children: [
             Text('Não foi possível carregar os orçamentos. ${snapshot.error}', textAlign: TextAlign.center),
             OutlinedButton(onPressed: _reload, child: const Text('Tentar novamente')),
           ]),
-        ));
+        )); }
         final data = snapshot.data!;
         if (data.quotes.isEmpty) return const Center(child: Text('Nenhum orçamento cadastrado.'));
         return RefreshIndicator(
