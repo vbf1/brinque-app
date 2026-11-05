@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class MarketingPage extends StatefulWidget {
@@ -26,6 +27,8 @@ class _MarketingPageState extends State<MarketingPage> {
   bool _loading = true, _saving = false;
   String _tab = 'ads', _filter = 'all', _channel = 'all', _search = '', _message = '';
   String? _editingId, _productId, _productImage;
+  XFile? _imageFile;
+  final _picker = ImagePicker();
   List<Map<String, dynamic>> _products = [], _images = [], _ads = [];
   List<String> _platforms = ['facebook_marketplace'];
   static const _channels = {
@@ -88,7 +91,7 @@ class _MarketingPageState extends State<MarketingPage> {
   }
 
   void _clear() {
-    _editingId=null; _productId=null; _productImage=null; _platforms=['facebook_marketplace'];
+    _editingId=null; _productId=null; _productImage=null; _imageFile=null; _platforms=['facebook_marketplace'];
     _title.clear(); _description.clear(); _keywords.clear(); _imageUrl.clear(); _imagePrompt.clear();
   }
 
@@ -119,13 +122,18 @@ class _MarketingPageState extends State<MarketingPage> {
     setState(() {
       _editingId=ad['id']; _productId=ad['product_id']; _title.text=ad['title']??'';
       _description.text=ad['description']??''; _keywords.text=((ad['keywords'] as List?)??[]).join(', ');
-      _imagePrompt.text=ad['image_prompt']??''; _platforms=List<String>.from(ad['platforms']??[]);
+      _imagePrompt.text=ad['image_prompt']??''; _platforms=List<String>.from(ad['platforms']??[]); _imageFile=null;
       final url=ad['image_url'] as String?;
       if(url?.startsWith('product-image:')==true){_productImage=url!.substring(14);_imageUrl.clear();}
       else{_productImage=null;_imageUrl.text=url??'';}
       _tab='ads';
     });
     _editor();
+  }
+
+  Future<void> _pickImage() async {
+    final picked = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 90);
+    if (picked != null && mounted) setState(() { _imageFile = picked; _productImage = null; _imageUrl.clear(); });
   }
 
   Future<void> _settingsSave() async {
@@ -147,11 +155,22 @@ class _MarketingPageState extends State<MarketingPage> {
     final image=_imageUrl.text.trim();
     if(image.isNotEmpty && !['http','https'].contains(Uri.tryParse(image)?.scheme)){setState(()=>_message='Informe uma URL http ou https válida.');return;}
     setState(()=>_saving=true);
+    String? uploadedPath;
     try {
+      String? finalImage = _productImage == null ? (image.isEmpty ? null : image) : 'product-image:'+_productImage!;
+      if (_imageFile != null) {
+        final bytes = await _imageFile!.readAsBytes();
+        final mime = _imageFile!.mimeType ?? 'image/jpeg';
+        if (bytes.length > 5 * 1024 * 1024 || !['image/png','image/jpeg','image/webp'].contains(mime)) throw Exception('Use uma imagem PNG, JPG ou WebP de até 5 MB.');
+        final ext = mime == 'image/png' ? 'png' : mime == 'image/webp' ? 'webp' : 'jpg';
+        uploadedPath = widget.companyId+'/marketing/'+DateTime.now().microsecondsSinceEpoch.toString()+'.'+ext;
+        await _db.storage.from('company-branding').uploadBinary(uploadedPath!, bytes, fileOptions: FileOptions(contentType: mime, upsert: false));
+        finalImage = _db.storage.from('company-branding').getPublicUrl(uploadedPath!);
+      }
       final payload={
         'company_id':widget.companyId,'product_id':_productId,'title':_title.text.trim(),'description':_description.text.trim(),
         'keywords':_keywords.text.split(',').map((v)=>v.trim()).where((v)=>v.isNotEmpty).toList(),
-        'image_url':_productImage==null?(image.isEmpty?null:image):'product-image:'+_productImage!,
+        'image_url':finalImage,
         'image_prompt':_imagePrompt.text.trim(),'platforms':_platforms,'status':submit?'pending_approval':'draft','created_by':widget.userId,
       };
       if(_editingId==null){await _db.from('marketing_ads').insert(payload);}
@@ -165,7 +184,10 @@ class _MarketingPageState extends State<MarketingPage> {
       }
       _clear(); await _load();
       if(mounted)setState(()=>_message=submit?'Anúncio enviado para revisão.':'Rascunho salvo.');
-    }catch(e){if(mounted)setState(()=>_message='Falha ao salvar anúncio: $e');}
+    }catch(e){
+      if(uploadedPath!=null){try{await _db.storage.from('company-branding').remove([uploadedPath!]);}catch(_){}}
+      if(mounted)setState(()=>_message='Falha ao salvar anúncio: $e');
+    }
     finally{if(mounted)setState(()=>_saving=false);}
   }
 
@@ -274,6 +296,7 @@ class _MarketingPageState extends State<MarketingPage> {
         _field(_description,'Descrição',lines:5,validator:(v)=>(v?.trim().length??0)<10?'Informe uma descrição mais completa.':null),
         _field(_keywords,'Palavras-chave (separadas por vírgula)'),
         DropdownButtonFormField<String>(initialValue:_productImage,decoration:const InputDecoration(labelText:'Foto cadastrada no estoque'),items:[const DropdownMenuItem(value:null,child:Text('Não usar foto do estoque')),..._images.map((p)=>DropdownMenuItem(value:p['storage_path'] as String,child:Text(p['product_name'].toString())))],onChanged:(v)=>setState(()=>_productImage=v)),
+        OutlinedButton.icon(onPressed:_pickImage,icon:const Icon(Icons.image_outlined),label:Text(_imageFile?.name??'Enviar imagem (PNG, JPG ou WebP · até 5 MB)')),
         _field(_imageUrl,'Link da imagem (opcional)'),_field(_imagePrompt,'Orientação para produzir a imagem',lines:3),
         const Text('Canais desejados',style:TextStyle(fontWeight:FontWeight.w700)),
         for(final entry in _channels.entries)CheckboxListTile(contentPadding:EdgeInsets.zero,dense:true,value:_platforms.contains(entry.key),title:Text(entry.value),onChanged:(v)=>setState(()=>v==true?_platforms.add(entry.key):_platforms.remove(entry.key))),
