@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, useRef, type FormEvent } from 'react';
+import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { supabase } from './lib/supabase';
 import { CustomersPage } from './data/CustomersPage';
@@ -14,6 +14,30 @@ import { CheckoutPage } from './data/CheckoutPage';
 
 type CompanyContext = { id: string; name: string; role: string };
 type Page = 'inicio' | 'locacoes' | 'clientes' | 'estoque' | 'financeiro' | 'ocorrencias' | 'mensagens' | 'marketing' | 'contratos';
+
+const pagePaths: Record<Page, string> = {
+  inicio: '',
+  locacoes: 'locacoes',
+  contratos: 'contratos',
+  clientes: 'clientes',
+  estoque: 'estoque',
+  financeiro: 'financeiro',
+  ocorrencias: 'ocorrencias',
+  mensagens: 'mensagens',
+  marketing: 'marketing',
+};
+
+function pageFromLocation(): Page {
+  const base = import.meta.env.BASE_URL;
+  const pathname = window.location.pathname;
+  const relativePath = pathname.startsWith(base) ? pathname.slice(base.length) : pathname.replace(/^\\/+/, '');
+  const segment = relativePath.split('/').filter(Boolean)[0] ?? '';
+  return (Object.keys(pagePaths) as Page[]).find(page => pagePaths[page] === segment) ?? 'inicio';
+}
+
+function pathForPage(page: Page): string {
+  return import.meta.env.BASE_URL + pagePaths[page];
+}
 const PASSWORD_RESET_REDIRECT = 'https://vbf1.github.io/kidsloc-app/';
 
 function withTimeout<T>(promise: Promise<T>, milliseconds: number, message: string): Promise<T> {
@@ -61,33 +85,24 @@ export default function App() {
   const [isError, setIsError] = useState(false);
   const [company, setCompany] = useState<CompanyContext | null>(null);
   const [companyLoading, setCompanyLoading] = useState(false);
-  const [page, setPage] = useState<Page>('inicio');
-  const pageHistoryRef = useRef<Page[]>(['inicio']);
+  const [page, setPage] = useState<Page>(() => pageFromLocation());
 
   const navigateTo = useCallback((nextPage: Page) => {
-    if (nextPage === pageHistoryRef.current[pageHistoryRef.current.length - 1]) return;
-    pageHistoryRef.current.push(nextPage);
-    window.history.pushState({ kidsLocApp: true, page: nextPage }, '', window.location.href);
+    const nextPath = pathForPage(nextPage);
+    if (window.location.pathname !== nextPath) {
+      window.history.pushState({ kidsLocApp: true, page: nextPage }, '', nextPath);
+    }
     setPage(nextPage);
   }, []);
 
   useEffect(() => {
     if (!company) return;
-    pageHistoryRef.current = ['inicio'];
-    window.history.replaceState({ ...(window.history.state ?? {}), kidsLocApp: true, page: 'inicio' }, '', window.location.href);
-    const handleBack = () => {
-      if (pageHistoryRef.current.length > 1) {
-        pageHistoryRef.current.pop();
-        setPage(pageHistoryRef.current[pageHistoryRef.current.length - 1] ?? 'inicio');
-      } else {
-        // Mantém o usuário dentro do app quando já está na tela inicial.
-        window.history.pushState({ kidsLocApp: true, page: 'inicio' }, '', window.location.href);
-        pageHistoryRef.current = ['inicio'];
-        setPage('inicio');
-      }
+    const handlePopState = () => {
+      setPage(pageFromLocation());
+      setMenuOpen(false);
     };
-    window.addEventListener('popstate', handleBack);
-    return () => window.removeEventListener('popstate', handleBack);
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
   }, [company?.id]);
   const [menuOpen, setMenuOpen] = useState(false);
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
@@ -158,9 +173,9 @@ export default function App() {
       setSession(nextSession);
       if (event === 'PASSWORD_RECOVERY') setRecovery(true);
       if (event === 'SIGNED_OUT') {
-        pageHistoryRef.current = ['inicio'];
         setCompany(null);
         setPage('inicio');
+        window.history.replaceState({ kidsLocApp: true, page: 'inicio' }, '', pathForPage('inicio'));
         setMenuOpen(false);
         setRecovery(false);
         setForgot(false);
