@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { createCompanyDataRepository } from './companyDataRepository';
 import { supabase } from '../lib/supabase';
+import { AppSelect } from '../components/AppSelect';
 
 type Transaction = { id: string; transaction_type: 'income' | 'expense'; description: string; amount: number; paid_at?: string | null; created_at: string };
 type RentalOption = { id: string; rental_number: number; total_amount: number; customers?: { name?: string } | null };
@@ -110,7 +111,7 @@ export function FinancePage({ companyId }: { companyId: string }) {
     {formOpen ? <form className="data-form" onSubmit={save}>
       <h2>{editing ? 'Editar lançamento' : 'Novo lançamento'}</h2>
       <label>Descrição<input value={description} onChange={event => setDescription(event.target.value)} required maxLength={160} placeholder="Ex.: Combustível" /></label>
-      <label>Tipo<select value={type} onChange={event => setType(event.target.value as 'income' | 'expense')}><option value="income">Entrada</option><option value="expense">Saída</option></select></label>
+      <label>Tipo<AppSelect value={type} onChange={value => setType(value as 'income' | 'expense')} options={[{ value: 'income', label: 'Entrada' }, { value: 'expense', label: 'Saída' }]} /></label>
       <label>Valor (R$)<input value={amount} onChange={event => setAmount(event.target.value)} inputMode="decimal" required placeholder="0,00" /></label>
       <div className="data-form-actions"><button disabled={busy} type="submit">{busy ? 'Salvando...' : 'Salvar'}</button><button className="secondary-button" type="button" onClick={() => { setFormOpen(false); setEditing(null); setDescription(''); setAmount(''); }}>Cancelar</button></div>
     </form> : null}
