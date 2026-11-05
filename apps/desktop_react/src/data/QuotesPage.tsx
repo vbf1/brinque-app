@@ -5,7 +5,7 @@ type Row = Record<string, any>;
 type QuoteDraftItem = { kind: 'product' | 'service' | 'custom'; refId: string; description: string; quantity: string; price: string };
 const money = (value: number) => Number(value || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 const today = () => new Date().toLocaleDateString('en-CA');
-const escapeHtml = (value: unknown) => String(value ?? '').replace(/[&<>\"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',\"'\":'&#39;'}[char] ?? char));
+const escapeHtml = (value: unknown) => String(value ?? '').replace(/[&<>"']/g, char => { if (char === '&') return '&amp;'; if (char === '<') return '&lt;'; if (char === '>') return '&gt;'; if (char === '"') return '&quot;'; return '&#39;'; });
 
 export function QuotesPage({ companyId }: { companyId: string }) {
   const [quotes, setQuotes] = useState<Row[]>([]);
