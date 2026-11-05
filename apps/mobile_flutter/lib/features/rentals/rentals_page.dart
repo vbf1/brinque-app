@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../data/company_data_repository.dart';
+import '../../data/rental_time.dart';
 
 class RentalsPage extends StatefulWidget {
   const RentalsPage({super.key, required this.companyId});
@@ -38,6 +39,12 @@ class _RentalsPageState extends State<RentalsPage> {
     final customerId = ValueNotifier<String?>(rental?['customer_id'] as String?);
     final start = ValueNotifier<DateTime>(_date(rental?['start_date']) ?? DateTime.now());
     final end = ValueNotifier<DateTime>(_date(rental?['end_date']) ?? DateTime.now().add(const Duration(days: 1)));
+    final startTime = ValueNotifier<String>(
+      rental == null ? '09:00' : normalizeRentalTime(rental['start_time'], '00:00'),
+    );
+    final endTime = ValueNotifier<String>(
+      rental == null ? '17:00' : normalizeRentalTime(rental['end_time'], '23:59'),
+    );
     final status = ValueNotifier<String>(rental?['status'] as String? ?? 'pending');
     final delivery = ValueNotifier<String>(rental?['delivery_method'] as String? ?? 'customer_pickup');
     final address = TextEditingController(text: rental?['delivery_address'] as String? ?? '');
@@ -100,6 +107,8 @@ class _RentalsPageState extends State<RentalsPage> {
       customerId.dispose();
       start.dispose();
       end.dispose();
+      startTime.dispose();
+      endTime.dispose();
       status.dispose();
       delivery.dispose();
       reminderMode.dispose();
@@ -131,6 +140,12 @@ class _RentalsPageState extends State<RentalsPage> {
                 Expanded(child: _dateField(context, 'Início', start, setDialogState)),
                 const SizedBox(width: 8),
                 Expanded(child: _dateField(context, 'Término', end, setDialogState)),
+              ]),
+              const SizedBox(height: 8),
+              Row(children: [
+                Expanded(child: _timeField(context, 'Horário de início', startTime, setDialogState)),
+                const SizedBox(width: 8),
+                Expanded(child: _timeField(context, 'Horário de término', endTime, setDialogState)),
               ]),
               DropdownButtonFormField<String>(
                 initialValue: status.value,
@@ -269,7 +284,17 @@ class _RentalsPageState extends State<RentalsPage> {
           actions: [
             TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('Cancelar')),
             FilledButton(onPressed: () {
-              if (end.value.isBefore(start.value)) return;
+              if (!isValidRentalTimeRange(
+                startDate: start.value,
+                endDate: end.value,
+                startTime: startTime.value,
+                endTime: endTime.value,
+              )) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('O término precisa ser posterior ao início.')),
+                );
+                return;
+              }
               if (formKey.currentState!.validate() && itemRows.every((i) => i.productId != null && i.quantity > 0 && i.price >= 0)) {
                 final ids = itemRows.map((i) => i.productId).toList();
                 if (ids.toSet().length != ids.length) {
@@ -295,6 +320,7 @@ class _RentalsPageState extends State<RentalsPage> {
         if (rental == null) {
           rentalId = await repo.createRentalWithItems(
             customerId: customerId.value!, startDate: _iso(start.value), endDate: _iso(end.value),
+            startTime: startTime.value, endTime: endTime.value,
             status: status.value, deliveryMethod: delivery.value, totalAmount: total,
             items: items, deliveryAddress: address.text, responsibleUserIds: responsibleIds,
           );
@@ -303,6 +329,7 @@ class _RentalsPageState extends State<RentalsPage> {
           await repo.updateRentalWithItems(
             rentalId: rentalId, customerId: customerId.value!,
             startDate: _iso(start.value), endDate: _iso(end.value),
+            startTime: startTime.value, endTime: endTime.value,
             status: status.value, deliveryMethod: delivery.value, totalAmount: total,
             items: items, deliveryAddress: address.text, responsibleUserIds: responsibleIds,
           );
@@ -337,16 +364,36 @@ class _RentalsPageState extends State<RentalsPage> {
         if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Não foi possível salvar: $error')));
       }
     }
-    customerId.dispose(); start.dispose(); end.dispose(); status.dispose(); delivery.dispose(); reminderMode.dispose(); reminderDays.dispose(); reminderFrequency.dispose(); address.dispose(); totalController.dispose();
+    customerId.dispose(); start.dispose(); end.dispose(); startTime.dispose(); endTime.dispose(); status.dispose(); delivery.dispose(); reminderMode.dispose(); reminderDays.dispose(); reminderFrequency.dispose(); address.dispose(); totalController.dispose();
   }
 
 
   Future<void> _deleteRental(Map<String, dynamic> rental) async {
+    try {
+      final existingContract = await Supabase.instance.client.from('rental_contracts')
+          .select('id,status').eq('rental_id', rental['id']).inFilter('status', ['sent', 'viewed', 'signed']).limit(1).maybeSingle();
+      if (existingContract != null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Esta locação possui um contrato enviado ou assinado. A exclusão foi bloqueada para preservar o histórico e os documentos.')),
+          );
+        }
+        return;
+      }
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Não foi possível verificar contratos vinculados: $error')),
+        );
+      }
+      return;
+    }
+    if (!mounted) return;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: const Text('Excluir locação?'),
-        content: const Text('Os brinquedos e eventos vinculados serão removidos. Lançamentos financeiros e pagamentos relacionados serão preservados quando houver vínculo configurado. Esta ação não poderá ser desfeita.'),
+        content: const Text('Os brinquedos e eventos vinculados serão removidos. Se houver contrato enviado ou assinado, a exclusão será bloqueada para preservar o histórico e os documentos. Lançamentos financeiros e pagamentos relacionados serão preservados quando houver vínculo configurado. Esta ação não poderá ser desfeita.'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('Cancelar')),
           FilledButton.tonal(onPressed: () => Navigator.pop(dialogContext, true), child: const Text('Excluir')),
@@ -372,6 +419,32 @@ class _RentalsPageState extends State<RentalsPage> {
           if (picked != null) refresh(() => value.value = picked);
         },
         child: Text('$label\n${dateFormat.format(date)}', textAlign: TextAlign.center),
+      ),
+    );
+  }
+
+  Widget _timeField(
+    BuildContext context,
+    String label,
+    ValueNotifier<String> value,
+    void Function(void Function()) refresh,
+  ) {
+    return ValueListenableBuilder<String>(
+      valueListenable: value,
+      builder: (context, time, _) => OutlinedButton(
+        onPressed: () async {
+          final parts = time.split(':');
+          final initial = TimeOfDay(
+            hour: int.tryParse(parts.first) ?? 9,
+            minute: int.tryParse(parts.length > 1 ? parts[1] : '') ?? 0,
+          );
+          final picked = await showTimePicker(context: context, initialTime: initial);
+          if (picked != null) {
+            final formatted = '${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}';
+            refresh(() => value.value = formatted);
+          }
+        },
+        child: Text('$label\n$time', textAlign: TextAlign.center),
       ),
     );
   }
@@ -408,7 +481,7 @@ class _RentalsPageState extends State<RentalsPage> {
               return Card(child: ListTile(
                 leading: const CircleAvatar(child: Icon(Icons.event_note_outlined)),
                 title: Text(r['customers']?['name'] as String? ?? 'Cliente'),
-                subtitle: Text('${dateFormat.format(_date(r['start_date']) ?? DateTime.now())} a ${dateFormat.format(_date(r['end_date']) ?? DateTime.now())}\n$names\nStatus: ${r['status']} · R\$ ${r['total_amount']}'),
+                subtitle: Text('${dateFormat.format(_date(r['start_date']) ?? DateTime.now())} ${normalizeRentalTime(r['start_time'], '00:00')} a ${dateFormat.format(_date(r['end_date']) ?? DateTime.now())} ${normalizeRentalTime(r['end_time'], '23:59')}\n$names\nStatus: ${r['status']} · R\$ ${r['total_amount']}'),
                 isThreeLine: true,
                 trailing: canEdit ? Row(mainAxisSize: MainAxisSize.min, children: [
                   IconButton(tooltip: 'Editar locação', onPressed: () => editRental(data, r), icon: const Icon(Icons.edit_outlined)),

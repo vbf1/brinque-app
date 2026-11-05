@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -46,7 +48,10 @@ class _LoginPageState extends State<LoginPage> {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _busy = true); _feedback('Validando seu acesso...');
     try {
-      await _client.auth.signInWithPassword(email: _email.text.trim(), password: _password.text);
+      await _client.auth.signInWithPassword(email: _email.text.trim(), password: _password.text).timeout(
+        const Duration(seconds: 20),
+        onTimeout: () => throw TimeoutException('O servidor de autenticação demorou demais. Verifique sua conexão e tente novamente.'),
+      );
     } catch (error) { _feedback(_friendlyError(error), error: true); }
     finally { if (mounted) setState(() => _busy = false); }
   }
@@ -58,6 +63,9 @@ class _LoginPageState extends State<LoginPage> {
       await _client.auth.resetPasswordForEmail(
         _email.text.trim(),
         redirectTo: kIsWeb ? null : SupabaseConfig.passwordRecoveryRedirect,
+      ).timeout(
+        const Duration(seconds: 20),
+        onTimeout: () => throw TimeoutException('O pedido de recuperação demorou demais. Verifique sua conexão e tente novamente.'),
       );
       _feedback('Se o e-mail estiver cadastrado, você receberá um link para redefinir a senha. Confira também o spam.');
     } catch (error) { _feedback(_friendlyError(error), error: true); }
@@ -71,7 +79,10 @@ class _LoginPageState extends State<LoginPage> {
     }
     setState(() => _busy = true); _feedback('Atualizando sua senha...');
     try {
-      await _client.auth.updateUser(UserAttributes(password: _newPassword.text));
+      await _client.auth.updateUser(UserAttributes(password: _newPassword.text)).timeout(
+        const Duration(seconds: 20),
+        onTimeout: () => throw TimeoutException('A atualização da senha demorou demais. Verifique sua conexão e tente novamente.'),
+      );
       await _client.auth.signOut();
       _feedback('Senha definida com sucesso! Entre com a nova senha.');
     } catch (error) { _feedback(_friendlyError(error), error: true); }
@@ -115,13 +126,23 @@ class _LoginPageState extends State<LoginPage> {
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.toys_rounded, size: 56, color: Theme.of(context).colorScheme.primary),
-                        const SizedBox(height: 16),
-                        Text(recovery ? 'Definir nova senha' : _forgot ? 'Recuperar senha' : 'KidsLoc App',
-                          textAlign: TextAlign.center, style: Theme.of(context).textTheme.headlineSmall),
+                        Image.asset('assets/kidsloc-brand.webp', width: 116, height: 116, fit: BoxFit.contain),
                         const SizedBox(height: 8),
-                        Text('SONHO KIDS BRINQUEDOS', textAlign: TextAlign.center,
-                          style: Theme.of(context).textTheme.labelSmall?.copyWith(letterSpacing: 1.2)),
+                        RichText(textAlign: TextAlign.center, text: TextSpan(
+                          style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900, letterSpacing: -0.8),
+                          children: const [TextSpan(text: 'KidsLoc '), TextSpan(text: 'App', style: TextStyle(color: Color(0xFF3478E5)))],
+                        )),
+                        const SizedBox(height: 5),
+                        Text('GESTÃO DE LOCAÇÕES', textAlign: TextAlign.center,
+                          style: Theme.of(context).textTheme.labelSmall?.copyWith(letterSpacing: 2, fontWeight: FontWeight.w800, color: const Color(0xFF718096))),
+                        const SizedBox(height: 13),
+                        Center(child: Container(width: 52, height: 5, decoration: BoxDecoration(color: const Color(0xFFFFD34E), borderRadius: BorderRadius.circular(8)))),
+                        const SizedBox(height: 10),
+                        if (recovery || _forgot) ...[
+                          const SizedBox(height: 8),
+                          Text(recovery ? 'Definir nova senha' : 'Recuperar senha',
+                            textAlign: TextAlign.center, style: Theme.of(context).textTheme.headlineSmall),
+                        ],
                         const SizedBox(height: 24),
                         if (recovery) ...[
                           _field(_newPassword, 'Nova senha', password: true),

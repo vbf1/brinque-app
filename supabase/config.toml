@@ -1,0 +1,12 @@
+project_id = "wcxvswomcfpeuhnbxivh"
+
+[functions.manage-employees]
+verify_jwt = true
+
+[functions.send-employee-push]
+verify_jwt = false
+
+[functions.rental-contract-public]
+# Public customer signing uses a high-entropy bearer token stored as a SHA-256 hash.
+# The function validates that token itself; Supabase Auth JWT is not required.
+verify_jwt = false

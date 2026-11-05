@@ -53,6 +53,35 @@ class CompanyDataRepository {
         .eq('id', id).eq('company_id', companyId);
   }
 
+  Future<String> registerRentalPayment({
+    required String rentalId,
+    required num amount,
+    required String paymentMethod,
+    String? notes,
+  }) async {
+    if (amount <= 0) throw ArgumentError('Informe um valor maior que zero.');
+    final result = await _client.rpc(
+      'register_rental_payment',
+      params: {
+        'p_company_id': companyId,
+        'p_rental_id': rentalId,
+        'p_amount': amount,
+        'p_payment_method': paymentMethod,
+        'p_notes': _nullableTrim(notes),
+      },
+    );
+    return result as String;
+  }
+
+  Future<Map<String, dynamic>> fetchRentalPayment(String paymentId) async {
+    final row = await _client.from('payments')
+        .select('id, company_id, rental_id, amount, payment_method, paid_at, notes, rentals(rental_number, customers(name))')
+        .eq('id', paymentId)
+        .eq('company_id', companyId)
+        .single();
+    return Map<String, dynamic>.from(row);
+  }
+
   Future<List<Map<String, dynamic>>> fetchCustomers() async {
     final rows = await _client
         .from('customers')
@@ -132,6 +161,8 @@ class CompanyDataRepository {
     required String customerId,
     required String startDate,
     required String endDate,
+    required String startTime,
+    required String endTime,
     required String status,
     required String deliveryMethod,
     required num totalAmount,
@@ -146,6 +177,8 @@ class CompanyDataRepository {
         'p_customer_id': customerId,
         'p_start_date': startDate,
         'p_end_date': endDate,
+        'p_start_time': startTime,
+        'p_end_time': endTime,
         'p_status': status,
         'p_delivery_method': deliveryMethod,
         'p_total_amount': totalAmount,
@@ -165,6 +198,8 @@ class CompanyDataRepository {
     required String customerId,
     required String startDate,
     required String endDate,
+    required String startTime,
+    required String endTime,
     required String status,
     required String deliveryMethod,
     required num totalAmount,
@@ -180,6 +215,8 @@ class CompanyDataRepository {
         'p_customer_id': customerId,
         'p_start_date': startDate,
         'p_end_date': endDate,
+        'p_start_time': startTime,
+        'p_end_time': endTime,
         'p_status': status,
         'p_delivery_method': deliveryMethod,
         'p_total_amount': totalAmount,

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../data/company_data_repository.dart';
+import '../../data/rental_time.dart';
 
 class ProductsPage extends StatefulWidget {
   const ProductsPage({super.key, required this.companyId});
@@ -20,30 +21,55 @@ class _ProductsPageState extends State<ProductsPage> {
   String _search = '';
 
   Future<List<Map<String, dynamic>>> _load() async {
+    // O histórico é complementar e não deve bloquear a listagem do estoque.
     final results = await Future.wait([
       _repository.fetchProducts(),
       _repository.fetchProductUnits(),
-      _repository.fetchRentals(),
     ]);
     final products = results[0];
     final units = results[1];
-    final rentals = results[2];
+    List<Map<String, dynamic>>? rentals;
+    try {
+      rentals = await _repository.fetchRentals();
+    } catch (error) {
+      debugPrint('KidsLoc: não foi possível carregar o histórico de locações do estoque: $error');
+    }
+    final now = DateTime.now();
+    final activeRentals = (rentals ?? [])
+        .where((rental) => rentalIsActiveAt(rental, now))
+        .toList();
     return products.map((product) {
       final productUnits = units.where((unit) => unit['product_id'] == product['id']).toList();
       final individual = product['inventory_mode'] == 'individual';
+      int? available;
+      if (rentals != null && individual) {
+        final reservedIds = activeRentals.expand((rental) =>
+          (rental['rental_items'] as List? ?? []).where((item) => item['product_id'] == product['id'])
+            .expand((item) => (item['rental_item_units'] as List? ?? [])
+              .map((allocation) => allocation['product_unit_id'])),
+        ).toSet();
+        available = productUnits.where((unit) => unit['status'] == 'available' && !reservedIds.contains(unit['id'])).length;
+      } else if (rentals != null) {
+        final reservedQuantity = activeRentals.fold<int>(0, (total, rental) => total +
+          (rental['rental_items'] as List? ?? []).where((item) => item['product_id'] == product['id'])
+            .fold<int>(0, (sum, item) => sum + ((item['quantity'] as num?)?.toInt() ?? 0)),
+        );
+        available = ((product['total_quantity'] as num?)?.toInt() ?? 0) - reservedQuantity;
+        if (available < 0) available = 0;
+      }
       return {
         ...product,
         '_units': productUnits,
         '_rentals': rentals,
-        'available': individual
-            ? productUnits.where((unit) => unit['status'] == 'available').length
-            : product['total_quantity'],
+        'available': available,
       };
     }).toList();
   }
 
   Future<void> _reload() async {
-    setState(() => _future = _load());
+    final next = _load();
+    setState(() => _future = next);
+    await next;
   }
 
   Future<void> _setUnitStatus(Map<String, dynamic> unit) async {
@@ -112,7 +138,7 @@ class _ProductsPageState extends State<ProductsPage> {
           dailyPrice: double.parse(price.text.replaceAll(',', '.')),
         );
         await _reload();
-        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Brinquedo salvo com sucesso.')));
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Brinquedo salvo e lista atualizada.')));
       } catch (error) {
         if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Não foi possível salvar: $error')));
       }
@@ -149,12 +175,13 @@ class _ProductsPageState extends State<ProductsPage> {
               final p = rows[index];
               final individual = p['inventory_mode'] == 'individual';
               final units = List<Map<String, dynamic>>.from(p['_units'] as List? ?? []);
+              final rentalsKnown = p['_rentals'] != null;
               final rentals = List<Map<String, dynamic>>.from(p['_rentals'] as List? ?? []);
               return Card(child: Column(children: [
                 ListTile(
                   leading: const CircleAvatar(child: Icon(Icons.toys_outlined)),
                   title: Text(p['name'] as String? ?? 'Brinquedo'),
-                  subtitle: Text('${p['available']} disponível(is) de ${p['total_quantity']} · R\$ ${p['daily_price']}/dia · ${individual ? 'Unidades individuais' : 'Por quantidade'}'),
+                  subtitle: Text('${p['available'] == null ? 'Disponibilidade indisponível' : '${p['available']} disponível(is)'} de ${p['total_quantity']} · R\$ ${p['daily_price']}/dia · ${individual ? 'Unidades individuais' : 'Por quantidade'}'),
                   trailing: IconButton(tooltip: 'Editar brinquedo', onPressed: () => _edit(p), icon: const Icon(Icons.edit_outlined)),
                   onTap: () => _edit(p),
                 ),
@@ -166,10 +193,15 @@ class _ProductsPageState extends State<ProductsPage> {
                       .toList()..sort((a, b) => (b['start_date'] ?? '').toString().compareTo((a['start_date'] ?? '').toString()));
                     final recent = history.take(3).map((r) => '${(r['customers'] as Map?)?['name'] ?? 'Cliente'} · ${r['start_date']} · ${r['status']}').join(' | ');
                     final status = unit['status'] as String? ?? 'available';
-                    final label = status == 'maintenance' ? 'Em manutenção' : status == 'inactive' ? 'Inativa' : 'Disponível';
+                    final now = DateTime.now();
+                    final reservedNow = rentalsKnown && rentals.any((rental) =>
+                      rentalIsActiveAt(rental, now) &&
+                      (rental['rental_items'] as List? ?? []).any((item) =>
+                        (item['rental_item_units'] as List? ?? []).any((allocation) => allocation['product_unit_id'] == unit['id'])));
+                    final label = status == 'maintenance' ? 'Em manutenção' : status == 'inactive' ? 'Inativa' : !rentalsKnown ? 'Histórico indisponível' : reservedNow ? 'Reservada agora' : 'Disponível';
                     return ListTile(
                       title: Text('Unidade ${unit['asset_code'] ?? '—'}'),
-                      subtitle: Text('$label\nHistórico: ${recent.isEmpty ? 'Sem locações registradas' : recent}'),
+                      subtitle: Text('$label\nHistórico: ${!rentalsKnown ? 'Indisponível' : recent.isEmpty ? 'Sem locações registradas' : recent}'),
                       isThreeLine: true,
                       trailing: status == 'inactive' ? null : TextButton(
                         onPressed: () => _setUnitStatus(unit),

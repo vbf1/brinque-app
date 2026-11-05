@@ -1,4 +1,6 @@
 from pathlib import Path
+import re
+import shutil
 import sys
 
 android_root = Path(sys.argv[1])
@@ -72,3 +74,65 @@ class MainActivity : FlutterActivity() {
   }
 }
 """)
+
+# KidsLoc App launcher identity: use the exact same branded logo file as the web login.
+manifest_text = manifest.read_text()
+manifest_text = manifest_text.replace('android:label="kidsloc"', 'android:label="KidsLoc App"')
+manifest_text = manifest_text.replace('android:label="Flutter"', 'android:label="KidsLoc App"')
+if 'android:label="KidsLoc App"' not in manifest_text:
+    manifest_text = manifest_text.replace("<application", '<application android:label="KidsLoc App"', 1)
+
+# Explicitly bind both launcher entry points to the branded resources. Do not rely
+# on Flutter's generated template defaults, which may vary between Flutter versions.
+def set_launcher_resources(match):
+    attrs = match.group(1)
+    for name, value in (
+        ("icon", "@mipmap/ic_launcher"),
+        ("roundIcon", "@mipmap/ic_launcher_round"),
+    ):
+        pattern = rf'android:{name}="[^"]*"'
+        replacement = f'android:{name}="{value}"'
+        if re.search(pattern, attrs):
+            attrs = re.sub(pattern, replacement, attrs, count=1)
+        else:
+            attrs += f' {replacement}'
+    return "<application" + attrs + ">"
+
+manifest_text, application_count = re.subn(
+    r"<application\b([^>]*)>",
+    set_launcher_resources,
+    manifest_text,
+    count=1,
+)
+if application_count != 1:
+    raise SystemExit("Could not explicitly configure the Android launcher icon in AndroidManifest.xml")
+manifest.write_text(manifest_text)
+
+source_icon = Path("apps/mobile_flutter/assets/kidsloc-brand.webp")
+if not source_icon.is_file():
+    raise SystemExit(f"KidsLoc icon asset not found: {source_icon}")
+res = android_root / "app" / "src" / "main" / "res"
+(res / "drawable-nodpi").mkdir(parents=True, exist_ok=True)
+shutil.copyfile(source_icon, res / "drawable-nodpi" / "kidsloc_launcher_foreground.webp")
+(res / "values").mkdir(parents=True, exist_ok=True)
+(res / "values" / "kidsloc_icon_colors.xml").write_text(
+    '<resources><color name="kidsloc_launcher_background">#20A8F5</color></resources>'
+)
+(res / "mipmap-anydpi-v26").mkdir(parents=True, exist_ok=True)
+adaptive = '''<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <background android:drawable="@color/kidsloc_launcher_background" />
+    <foreground android:drawable="@drawable/kidsloc_launcher_foreground" />
+</adaptive-icon>'''
+(res / "mipmap-anydpi-v26" / "ic_launcher.xml").write_text(adaptive)
+(res / "mipmap-anydpi-v26" / "ic_launcher_round.xml").write_text(adaptive)
+# Fallback icons for Android versions before adaptive launcher icons.
+for density in ("mdpi", "hdpi", "xhdpi", "xxhdpi", "xxxhdpi"):
+    target = res / f"mipmap-{density}"
+    target.mkdir(parents=True, exist_ok=True)
+    # Flutter's generated Android host already contains PNG launcher icons.
+    # Android treats PNG and WebP files with the same resource name as duplicates,
+    # so remove the generated PNG variants before installing the branded WebP icons.
+    for icon_name in ("ic_launcher", "ic_launcher_round"):
+        (target / f"{icon_name}.png").unlink(missing_ok=True)
+    shutil.copyfile(source_icon, target / "ic_launcher.webp")
+    shutil.copyfile(source_icon, target / "ic_launcher_round.webp")

@@ -19,7 +19,11 @@ Future<void> main() async {
       debugPrint('KidsLoc: Firebase Messaging ainda não está disponível: $error');
     }
   }
-  await Supabase.initialize(url: SupabaseConfig.url, publishableKey: SupabaseConfig.publishableKey);
+  await Supabase.initialize(
+    url: SupabaseConfig.url,
+    publishableKey: SupabaseConfig.publishableKey,
+    authOptions: const FlutterAuthClientOptions(autoRefreshToken: false),
+  );
   runApp(const KidsLocApp());
 }
 
@@ -33,10 +37,49 @@ class KidsLocApp extends StatelessWidget {
       scaffoldMessengerKey: appMessengerKey,
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: green),
+        colorScheme: ColorScheme.fromSeed(seedColor: green).copyWith(
+          primary: const Color(0xFF218653),
+          secondary: const Color(0xFFFFD34E),
+          surface: Colors.white,
+        ),
         useMaterial3: true,
-        scaffoldBackgroundColor: const Color(0xFFF7F9F8),
-        inputDecorationTheme: const InputDecorationTheme(border: OutlineInputBorder()),
+        scaffoldBackgroundColor: const Color(0xFFF5F7FA),
+        cardTheme: CardThemeData(
+          elevation: 0,
+          color: Colors.white,
+          surfaceTintColor: Colors.transparent,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22), side: const BorderSide(color: Color(0xFFE7ECF2))),
+          margin: EdgeInsets.zero,
+        ),
+        inputDecorationTheme: InputDecorationTheme(
+          filled: true,
+          fillColor: const Color(0xFFF8FAFC),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 15, vertical: 15),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Color(0xFFE1E7EF))),
+          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Color(0xFFE1E7EF))),
+          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Color(0xFF218653), width: 1.6)),
+          labelStyle: const TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF64748B)),
+        ),
+        dropdownMenuTheme: DropdownMenuThemeData(
+          textStyle: const TextStyle(color: Color(0xFF172B4D), fontSize: 14, fontWeight: FontWeight.w600),
+          menuStyle: MenuStyle(
+            backgroundColor: const WidgetStatePropertyAll(Colors.white),
+            surfaceTintColor: const WidgetStatePropertyAll(Colors.transparent),
+            elevation: const WidgetStatePropertyAll(12),
+            shape: WidgetStatePropertyAll(RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(18),
+              side: const BorderSide(color: Color(0xFFE7ECF2)),
+            )),
+          ),
+        ),
+        popupMenuTheme: PopupMenuThemeData(
+          color: Colors.white,
+          surfaceTintColor: Colors.transparent,
+          elevation: 12,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18), side: const BorderSide(color: Color(0xFFE7ECF2))),
+          textStyle: const TextStyle(color: Color(0xFF172B4D), fontSize: 14, fontWeight: FontWeight.w600),
+        ),
+        listTileTheme: const ListTileThemeData(minVerticalPadding: 10),
       ),
       home: const AuthGate(),
     );
