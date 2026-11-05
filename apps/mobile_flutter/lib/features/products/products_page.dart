@@ -27,22 +27,44 @@ class _ProductsPageState extends State<ProductsPage> {
     ]);
     final products = results[0];
     final units = results[1];
-    List<Map<String, dynamic>> rentals = [];
+    List<Map<String, dynamic>>? rentals;
     try {
       rentals = await _repository.fetchRentals();
     } catch (error) {
       debugPrint('KidsLoc: não foi possível carregar o histórico de locações do estoque: $error');
     }
+    final now = DateTime.now();
+    final today = '${now.year.toString().padLeft(4, '0')}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+    const activeStatuses = {'pending', 'confirmed', 'ongoing'};
+    final activeRentals = (rentals ?? []).where((rental) =>
+      activeStatuses.contains(rental['status']) &&
+      (rental['start_date']?.toString() ?? '').compareTo(today) <= 0 &&
+      (rental['end_date']?.toString() ?? rental['start_date']?.toString() ?? '').compareTo(today) >= 0,
+    ).toList();
     return products.map((product) {
       final productUnits = units.where((unit) => unit['product_id'] == product['id']).toList();
       final individual = product['inventory_mode'] == 'individual';
+      int? available;
+      if (rentals != null && individual) {
+        final reservedIds = activeRentals.expand((rental) =>
+          (rental['rental_items'] as List? ?? []).where((item) => item['product_id'] == product['id'])
+            .expand((item) => (item['rental_item_units'] as List? ?? [])
+              .map((allocation) => allocation['product_unit_id'])),
+        ).toSet();
+        available = productUnits.where((unit) => unit['status'] == 'available' && !reservedIds.contains(unit['id'])).length;
+      } else if (rentals != null) {
+        final reservedQuantity = activeRentals.fold<int>(0, (total, rental) => total +
+          (rental['rental_items'] as List? ?? []).where((item) => item['product_id'] == product['id'])
+            .fold<int>(0, (sum, item) => sum + ((item['quantity'] as num?)?.toInt() ?? 0)),
+        );
+        available = ((product['total_quantity'] as num?)?.toInt() ?? 0) - reservedQuantity;
+        if (available < 0) available = 0;
+      }
       return {
         ...product,
         '_units': productUnits,
         '_rentals': rentals,
-        'available': individual
-            ? productUnits.where((unit) => unit['status'] == 'available').length
-            : product['total_quantity'],
+        'available': available,
       };
     }).toList();
   }
@@ -156,6 +178,7 @@ class _ProductsPageState extends State<ProductsPage> {
               final p = rows[index];
               final individual = p['inventory_mode'] == 'individual';
               final units = List<Map<String, dynamic>>.from(p['_units'] as List? ?? []);
+              final rentalsKnown = p['_rentals'] != null;
               final rentals = List<Map<String, dynamic>>.from(p['_rentals'] as List? ?? []);
               return Card(child: Column(children: [
                 ListTile(
@@ -173,10 +196,10 @@ class _ProductsPageState extends State<ProductsPage> {
                       .toList()..sort((a, b) => (b['start_date'] ?? '').toString().compareTo((a['start_date'] ?? '').toString()));
                     final recent = history.take(3).map((r) => '${(r['customers'] as Map?)?['name'] ?? 'Cliente'} · ${r['start_date']} · ${r['status']}').join(' | ');
                     final status = unit['status'] as String? ?? 'available';
-                    final label = status == 'maintenance' ? 'Em manutenção' : status == 'inactive' ? 'Inativa' : 'Disponível';
+                    final label = status == 'maintenance' ? 'Em manutenção' : status == 'inactive' ? 'Inativa' : !rentalsKnown ? 'Histórico indisponível' : 'Disponível';
                     return ListTile(
                       title: Text('Unidade ${unit['asset_code'] ?? '—'}'),
-                      subtitle: Text('$label\nHistórico: ${recent.isEmpty ? 'Sem locações registradas' : recent}'),
+                      subtitle: Text('$label\nHistórico: ${!rentalsKnown ? 'Indisponível' : recent.isEmpty ? 'Sem locações registradas' : recent}'),
                       isThreeLine: true,
                       trailing: status == 'inactive' ? null : TextButton(
                         onPressed: () => _setUnitStatus(unit),
