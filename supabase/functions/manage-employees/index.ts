@@ -44,14 +44,75 @@ Deno.serve(async (req) => {
       if (callerError) throw callerError;
       callerRole = caller?.role || null;
     }
+
+    // Global account and company-link operations are isolated from company-scoped
+    // employee actions and require the platform-owner database role.
+    if (action.startsWith("platform_")) {
+      if (!isPlatformOwner) return reply({ error: "Somente o proprietário global pode administrar toda a plataforma." }, 403);
+
+      if (action === "platform_add_membership") {
+        const targetUserId = String(body.user_id || "");
+        const targetCompanyId = String(body.target_company_id || "");
+        const role = String(body.role || "staff");
+        if (!targetUserId || !targetCompanyId || !["staff", "manager", "admin", "owner"].includes(role)) {
+          return reply({ error: "Informe uma conta, uma empresa e um perfil válidos." }, 400);
+        }
+        const [{ data: targetUser, error: userError }, { data: targetCompany, error: companyError }] = await Promise.all([
+          admin.auth.admin.getUserById(targetUserId),
+          admin.from("companies").select("id").eq("id", targetCompanyId).maybeSingle(),
+        ]);
+        if (userError || !targetUser.user) return reply({ error: "Conta não encontrada." }, 404);
+        if (companyError) throw companyError;
+        if (!targetCompany) return reply({ error: "Empresa não encontrada." }, 404);
+        const { data: existing, error: existingError } = await admin.from("company_members")
+          .select("id").eq("company_id", targetCompanyId).eq("user_id", targetUserId).maybeSingle();
+        if (existingError) throw existingError;
+        if (existing) return reply({ error: "Esta conta já possui vínculo com a empresa selecionada." }, 409);
+        const { error: insertError } = await admin.from("company_members").insert({
+          company_id: targetCompanyId, user_id: targetUserId, role,
+        });
+        if (insertError) throw insertError;
+        return reply({ message: "Conta vinculada à empresa com sucesso." });
+      }
+
+      if (action === "platform_change_membership") {
+        const membershipId = String(body.membership_id || "");
+        const role = String(body.role || "");
+        if (!membershipId || !["staff", "manager", "admin", "owner"].includes(role)) {
+          return reply({ error: "Vínculo ou perfil inválido." }, 400);
+        }
+        const { data: membership, error: membershipError } = await admin.from("company_members")
+          .select("id,role").eq("id", membershipId).maybeSingle();
+        if (membershipError) throw membershipError;
+        if (!membership) return reply({ error: "Vínculo não encontrado." }, 404);
+        const { error: updateError } = await admin.from("company_members")
+          .update({ role }).eq("id", membershipId);
+        if (updateError) throw updateError;
+        return reply({ message: "Perfil do usuário atualizado." });
+      }
+
+      if (action === "platform_remove_membership") {
+        const membershipId = String(body.membership_id || "");
+        if (!membershipId) return reply({ error: "Vínculo não informado." }, 400);
+        const { data: membership, error: membershipError } = await admin.from("company_members")
+          .select("id,role").eq("id", membershipId).maybeSingle();
+        if (membershipError) throw membershipError;
+        if (!membership) return reply({ error: "Vínculo não encontrado." }, 404);
+        if (membership.role === "owner") return reply({ error: "Para proteger a empresa, altere o perfil de proprietário antes de remover este vínculo." }, 403);
+        const { error: deleteError } = await admin.from("company_members").delete().eq("id", membershipId);
+        if (deleteError) throw deleteError;
+        return reply({ message: "Vínculo removido. A conta do usuário foi preservada." });
+      }
+    }
+
     if (!callerRole || !["owner", "admin"].includes(callerRole)) {
       return reply({ error: "Você não tem permissão para gerenciar funcionários." }, 403);
     }
 
     if (action === "list_users") {
       const { data: memberships, error: membershipsError } = isPlatformOwner
-        ? await admin.from("company_members").select("user_id,role,company_id,created_at")
-        : await admin.from("company_members").select("user_id,role,company_id,created_at").eq("company_id", companyId);
+        ? await admin.from("company_members").select("id,user_id,role,company_id,created_at")
+        : await admin.from("company_members").select("id,user_id,role,company_id,created_at").eq("company_id", companyId);
       if (membershipsError) throw membershipsError;
 
       const authUsers: Array<any> = [];
@@ -95,6 +156,8 @@ Deno.serve(async (req) => {
           email_confirmed_at: user.email_confirmed_at || null,
           phone_confirmed_at: user.phone_confirmed_at || null,
           memberships: userMemberships.map(member => ({
+            id: member.id,
+            company_id: member.company_id,
             company: companyById.get(member.company_id) || "Empresa",
             role: member.role,
           })),
