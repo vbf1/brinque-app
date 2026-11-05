@@ -50,12 +50,17 @@ class _StatisticsPageState extends State<StatisticsPage> {
         final revenue = rentals.where((r) => r['status'] != 'cancelled')
             .fold<num>(0, (sum, r) => sum + ((r['total_amount'] as num?) ?? 0));
 
-        final products = <String, int>{};
-        final customers = <String, int>{};
+        final products = <String, _NamedCount>{};
+        final customers = <String, _NamedCount>{};
         final monthly = <String, num>{};
         for (final rental in rentals.where((r) => r['status'] != 'cancelled')) {
           final customer = (rental['customers'] as Map?)?['name']?.toString() ?? 'Cliente';
-          customers[customer] = (customers[customer] ?? 0) + 1;
+          final customerKey = rental['customer_id']?.toString() ?? 'rental:${rental['id']}';
+          final previousCustomer = customers[customerKey];
+          customers[customerKey] = _NamedCount(
+            name: customer,
+            count: (previousCustomer?.count ?? 0) + 1,
+          );
           final start = DateTime.tryParse(rental['start_date']?.toString() ?? '');
           if (start != null) {
             final key = '${start.year}-${start.month.toString().padLeft(2, '0')}';
@@ -65,11 +70,16 @@ class _StatisticsPageState extends State<StatisticsPage> {
             if (rawItem is! Map) continue;
             final item = Map<String, dynamic>.from(rawItem);
             final name = (item['products'] as Map?)?['name']?.toString() ?? 'Brinquedo';
-            products[name] = (products[name] ?? 0) + ((item['quantity'] as num?)?.toInt() ?? 0);
+            final productKey = item['product_id']?.toString() ?? 'item:${item['id']}';
+            final previousProduct = products[productKey];
+            products[productKey] = _NamedCount(
+              name: name,
+              count: (previousProduct?.count ?? 0) + ((item['quantity'] as num?)?.toInt() ?? 0),
+            );
           }
         }
-        final topProducts = products.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
-        final topCustomers = customers.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
+        final topProducts = products.values.toList()..sort((a, b) => b.count.compareTo(a.count));
+        final topCustomers = customers.values.toList()..sort((a, b) => b.count.compareTo(a.count));
         final monthlyRows = monthly.entries.toList()..sort((a, b) => a.key.compareTo(b.key));
         final maxMonthly = monthlyRows.fold<num>(0, (max, row) => row.value > max ? row.value : max);
 
@@ -91,7 +101,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
                 const _EmptyLine(text: 'Ainda não há itens suficientes para esta estatística.')
               else
                 ...topProducts.take(5).toList().asMap().entries.map((entry) => _rankingRow(
-                  entry.key + 1, entry.value.key, '${entry.value.value} unidade(s)',
+                  entry.key + 1, entry.value.name, '${entry.value.count} unidade(s)',
                 )),
               const SizedBox(height: 18),
               _section('Clientes recorrentes'),
@@ -99,7 +109,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
                 const _EmptyLine(text: 'Ainda não há clientes recorrentes.')
               else
                 ...topCustomers.take(5).toList().asMap().entries.map((entry) => _rankingRow(
-                  entry.key + 1, entry.value.key, '${entry.value.value} locação(ões)',
+                  entry.key + 1, entry.value.name, '${entry.value.count} locação(ões)',
                 )),
               const SizedBox(height: 18),
               _section('Valores por mês'),
@@ -155,6 +165,12 @@ class _StatisticsPageState extends State<StatisticsPage> {
       ]),
     );
   }
+}
+
+class _NamedCount {
+  const _NamedCount({required this.name, required this.count});
+  final String name;
+  final int count;
 }
 
 class _EmptyLine extends StatelessWidget {
