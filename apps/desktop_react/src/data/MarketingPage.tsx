@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
 import { supabase } from '../lib/supabase';
+import { AppSelect } from '../components/AppSelect';
 
 type Product = { id: string; name: string; description: string | null; daily_price: number };
 type Ad = { id: string; product_id: string | null; title: string; description: string; keywords: string[]; image_url: string | null; image_prompt: string; platforms: string[]; status: string; created_at: string };
@@ -111,11 +112,11 @@ export function MarketingPage({ companyId, userId }: { companyId: string; userId
    <label>Cidades e regiões atendidas<input value={regions} onChange={e=>setRegions(e.target.value)} placeholder="Contagem, Belo Horizonte, Betim..."/><small>Separe as regiões por vírgula.</small></label>
    <label>Descrição padrão<textarea rows={4} value={settings.default_description} onChange={e=>setSettings({...settings,default_description:e.target.value})} placeholder="Informações sobre a empresa, entrega, montagem e diferenciais."/></label>
    <label>Chamada para ação<input value={settings.default_call_to_action} onChange={e=>setSettings({...settings,default_call_to_action:e.target.value})}/></label>
-   <label>Frequência de preparação das campanhas<select value={settings.campaign_frequency} onChange={e=>setSettings({...settings,campaign_frequency:e.target.value as Settings['campaign_frequency']})}><option value="daily">Diariamente</option><option value="twice_weekly">Duas vezes por semana</option><option value="weekly">Semanalmente</option></select><small>Essa preferência será usada pela rotina automática. Toda campanha continuará aguardando sua aprovação antes de qualquer publicação.</small></label>
+   <label>Frequência de preparação das campanhas<AppSelect value={settings.campaign_frequency} onChange={value=>setSettings({...settings,campaign_frequency:value as Settings['campaign_frequency']})} options={[{value:'daily',label:'Diariamente'},{value:'twice_weekly',label:'Duas vezes por semana'},{value:'weekly',label:'Semanalmente'}]} /><small>Essa preferência será usada pela rotina automática. Toda campanha continuará aguardando sua aprovação antes de qualquer publicação.</small></label>
    <div className="form-actions"><button type="submit" disabled={saving}>{saving?'Salvando...':'Salvar configurações'}</button></div>
   </form>:<>
    <div className="marketing-summary"><div><strong>{ads.length}</strong><span>Total</span></div><div><strong>{ads.filter(a=>a.status==='draft').length}</strong><span>Rascunhos</span></div><div><strong>{ads.filter(a=>a.status==='pending_approval').length}</strong><span>Para revisar</span></div><div><strong>{ads.filter(a=>a.status==='approved').length}</strong><span>Aprovados</span></div></div>
-   <div className="marketing-toolbar"><select aria-label="Filtrar anúncios" value={filter} onChange={e=>setFilter(e.target.value)}><option value="all">Todos os anúncios</option>{Object.entries(labels).map(([k,v])=><option value={k} key={k}>{v}</option>)}</select><button type="button" className="secondary-button" onClick={()=>void load()}>Atualizar</button></div>
+   <div className="marketing-toolbar"><AppSelect aria-label="Filtrar anúncios" value={filter} onChange={setFilter} options={[{value:'all',label:'Todos os anúncios'},...Object.entries(labels).map(([value,label])=>({value,label}))]} /><button type="button" className="secondary-button" onClick={()=>void load()}>Atualizar</button></div>
    {loading?<p className="module-empty">Carregando anúncios...</p>:visible.length===0?<p className="module-empty">Nenhum anúncio nesta lista. Crie o primeiro usando um brinquedo do estoque.</p>:<div className="marketing-ad-list">{visible.map(ad=><article className="marketing-ad-card" key={ad.id}>
     {ad.image_url?<img src={ad.image_url} alt="Imagem do anúncio"/>:<div className="marketing-image-placeholder">Imagem ainda não adicionada</div>}
     <div className="marketing-ad-content"><div className="marketing-ad-top"><span className={'marketing-status status-'+ad.status}>{labels[ad.status]??ad.status}</span><small>{new Date(ad.created_at).toLocaleDateString('pt-BR')}</small></div><h3>{ad.title}</h3><p>{ad.description}</p><div className="marketing-tags">{ad.platforms.map(v=><span key={v}>{channels.find(c=>c.id===v)?.label??v}</span>)}</div><small>Palavras-chave: {ad.keywords.join(', ')||'Não informadas'}</small>
@@ -123,7 +124,7 @@ export function MarketingPage({ companyId, userId }: { companyId: string; userId
     </div></article>)}</div>}
    <form className="customer-form marketing-editor" onSubmit={e=>void saveAd(e,false)}>
     <h3>{editing?'Editar anúncio':'Preparar anúncio'}</h3><p className="module-description">Selecione um brinquedo para preencher uma primeira versão. Você pode revisar todos os campos antes de salvar.</p>
-    <label>Brinquedo do estoque<select value={productId} onChange={e=>generate(e.target.value)}><option value="">Selecione um brinquedo</option>{products.map(p=><option value={p.id} key={p.id}>{p.name}</option>)}</select></label>
+    <label>Brinquedo do estoque<AppSelect value={productId} onChange={generate} placeholder="Selecione um brinquedo" options={[{value:'',label:'Selecione um brinquedo'},...products.map(p=>({value:p.id,label:p.name}))]} /></label>
     {selected&&<p className="marketing-product-hint">Preço cadastrado: R$ {Number(selected.daily_price).toFixed(2)} por diária. O preço não será publicado automaticamente.</p>}
     <label>Título *<input required minLength={5} maxLength={180} value={title} onChange={e=>setTitle(e.target.value)} placeholder="Título do anúncio"/></label>
     <label>Descrição *<textarea required minLength={10} maxLength={5000} rows={6} value={description} onChange={e=>setDescription(e.target.value)}/></label>
