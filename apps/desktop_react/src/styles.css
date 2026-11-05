@@ -456,3 +456,6 @@ select:focus-visible{outline:3px solid #3478e52b;outline-offset:1px}
 
 .finance-heading-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 @media(max-width:560px){.finance-heading-actions{width:100%}.finance-heading-actions button{flex:1}}
+
+.quote-actions{display:flex;flex-wrap:wrap;gap:7px;margin-left:auto}
+@media(max-width:600px){.quote-actions{width:100%;margin-left:0}.quote-actions button{flex:1}}
