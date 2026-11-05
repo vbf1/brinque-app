@@ -33,6 +33,7 @@ export function PlatformAdminPage({ currentCompanyId, companies, onCompaniesChan
   const [users, setUsers] = useState<PlatformUser[]>([]);
   const [usersLoading, setUsersLoading] = useState(false);
   const [usersError, setUsersError] = useState('');
+  const [managementReady, setManagementReady] = useState(false);
   const [userSearch, setUserSearch] = useState('');
   const [newMembershipUser, setNewMembershipUser] = useState('');
   const [newMembershipCompany, setNewMembershipCompany] = useState(currentCompanyId);
@@ -50,6 +51,7 @@ export function PlatformAdminPage({ currentCompanyId, companies, onCompaniesChan
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
+      setManagementReady(data?.management_version === 2);
       setUsers((data?.users ?? []) as PlatformUser[]);
     } catch (error) {
       setUsersError(error instanceof Error ? error.message : 'Não foi possível carregar as contas.');
@@ -110,6 +112,10 @@ export function PlatformAdminPage({ currentCompanyId, companies, onCompaniesChan
   }
 
   async function membershipAction(action: string, payload: Record<string, string>, key: string) {
+    if (!managementReady) {
+      setMembershipMessage('As ações de gerenciamento de usuários aguardam a publicação da atualização segura do serviço.');
+      return;
+    }
     setMembershipBusy(key); setMembershipMessage('');
     try {
       const { data, error } = await supabase.functions.invoke('manage-employees', {
@@ -178,6 +184,7 @@ export function PlatformAdminPage({ currentCompanyId, companies, onCompaniesChan
         <article><span>Sem vínculo</span><strong>{users.filter(user => !user.memberships?.length).length}</strong></article>
         <article><span>E-mail confirmado</span><strong>{users.filter(user => !!user.email_confirmed_at).length}</strong></article>
       </div>
+      {!managementReady && <div className="users-error" role="status">A listagem está disponível, mas as alterações de vínculos e perfis aguardam a publicação da atualização segura do serviço de usuários.</div>}
       <form className="customer-form" onSubmit={addMembership}>
         <h3>Vincular conta a uma empresa</h3>
         <p className="module-description">Vincule uma conta já cadastrada e escolha o nível de acesso. Isso não cria uma nova conta nem envia convite.</p>
@@ -189,7 +196,7 @@ export function PlatformAdminPage({ currentCompanyId, companies, onCompaniesChan
           <option value="">Selecione uma empresa</option>{companies.map(company => <option key={company.id} value={company.id}>{company.name}</option>)}
         </select></label>
         <label>Perfil<select value={newMembershipRole} onChange={event => setNewMembershipRole(event.target.value)}>{roles.map(role => <option key={role.value} value={role.value}>{role.label}</option>)}</select></label>
-        <div className="form-actions"><button type="submit" disabled={membershipBusy === 'add' || !newMembershipUser || !newMembershipCompany}>{membershipBusy === 'add' ? 'Vinculando...' : 'Vincular usuário'}</button></div>
+        <div className="form-actions"><button type="submit" disabled={!managementReady || membershipBusy === 'add' || !newMembershipUser || !newMembershipCompany}>{membershipBusy === 'add' ? 'Vinculando...' : 'Vincular usuário'}</button></div>
       </form>
       <div className="users-filters"><input aria-label="Buscar conta" value={userSearch} onChange={event => setUserSearch(event.target.value)} placeholder="Buscar por nome, e-mail, telefone ou ID..." /><button type="button" className="secondary-button" onClick={() => void loadUsers()} disabled={usersLoading}>↻ Atualizar</button></div>
       {usersError && <div className="users-error" role="alert">{usersError}<button type="button" onClick={() => void loadUsers()}>Tentar novamente</button></div>}
@@ -200,10 +207,10 @@ export function PlatformAdminPage({ currentCompanyId, companies, onCompaniesChan
           <div className="users-memberships"><strong>Vínculos com empresas</strong>
             {!user.memberships?.length ? <p className="module-empty">Esta conta não está vinculada a nenhuma empresa.</p> : user.memberships.map(membership => <div key={membership.id} className="users-details">
               <div><small>Empresa</small><strong>{membership.company}</strong></div>
-              <label style={{ display: 'grid', gap: 6, minWidth: 180 }}>Perfil<select value={membership.role} onChange={event => void membershipAction('platform_change_membership', { membership_id: membership.id, role: event.target.value }, membership.id)} disabled={!!membershipBusy}>
+              <label style={{ display: 'grid', gap: 6, minWidth: 180 }}>Perfil<select value={membership.role} onChange={event => void membershipAction('platform_change_membership', { membership_id: membership.id, role: event.target.value }, membership.id)} disabled={!managementReady || !!membershipBusy}>
                 {roles.map(role => <option key={role.value} value={role.value}>{role.label}</option>)}
               </select></label>
-              <button type="button" className="secondary-button" disabled={!!membershipBusy || membership.role === 'owner'} onClick={() => {
+              <button type="button" className="secondary-button" disabled={!managementReady || !!membershipBusy || membership.role === 'owner'} onClick={() => {
                 if (window.confirm('Remover o vínculo desta conta com ' + membership.company + '? A conta continuará existindo.')) {
                   void membershipAction('platform_remove_membership', { membership_id: membership.id }, membership.id);
                 }
