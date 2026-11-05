@@ -290,6 +290,10 @@ export default function App() {
     };
   }, [session, feedback]);
 
+  useEffect(() => {
+    if (company && !platformOwner && page === 'gerenciar-empresa') navigateTo('inicio');
+  }, [company, platformOwner, page, navigateTo]);
+
   async function login(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!email.trim() || !password) return feedback('Informe seu e-mail e sua senha.', true);
