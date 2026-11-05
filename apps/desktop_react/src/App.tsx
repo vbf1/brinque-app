@@ -198,8 +198,9 @@ export default function App() {
 
   if (loading) return (
     <main className="legacy-auth-screen"><section className="legacy-auth-card">
-      <div className="legacy-auth-brand-row"><div className="legacy-logo">✦</div><div><div className="legacy-auth-brand">KIDSLOC APP</div><p className="legacy-muted">Acesse sua empresa Sonho Kids Brinquedos</p></div></div>
-      <div className="legacy-login-accent" />
+      <div className="legacy-auth-brand" style={{ display: 'block', visibility: 'visible', opacity: 1, textAlign: 'center', color: 'var(--ink)', fontSize: 22, fontWeight: 850, lineHeight: 1.25, margin: '0 0 4px' }}>KIDSLOC APP</div>
+      <p className="legacy-muted" style={{ display: 'block', visibility: 'visible', textAlign: 'center', margin: '0 0 12px' }}>Acesse sua empresa Sonho Kids Brinquedos</p>
+      <div className="legacy-login-accent" style={{ display: 'block', width: 52, height: 5, background: 'var(--yellow)', margin: '0 auto 16px' }} />
       <div className="legacy-loading">Preparando seu acesso...</div>
     </section></main>
   );
@@ -220,8 +221,9 @@ export default function App() {
 
   if (!session) return (
     <main className="legacy-auth-screen"><section className="legacy-auth-card">
-      <div className="legacy-auth-brand-row"><div className="legacy-logo">✦</div><div><div className="legacy-auth-brand">KIDSLOC APP</div><p className="legacy-muted">Acesse sua empresa Sonho Kids Brinquedos</p></div></div>
-      <div className="legacy-login-accent" />
+      <div className="legacy-auth-brand" style={{ display: 'block', visibility: 'visible', opacity: 1, textAlign: 'center', color: 'var(--ink)', fontSize: 22, fontWeight: 850, lineHeight: 1.25, margin: '0 0 4px' }}>KIDSLOC APP</div>
+      <p className="legacy-muted" style={{ display: 'block', visibility: 'visible', textAlign: 'center', margin: '0 0 12px' }}>Acesse sua empresa Sonho Kids Brinquedos</p>
+      <div className="legacy-login-accent" style={{ display: 'block', width: 52, height: 5, background: 'var(--yellow)', margin: '0 auto 16px' }} />
       <h1>{forgot ? 'Recuperar senha' : 'Bem-vindo de volta!'}</h1>
       <p className="legacy-intro">{forgot ? 'Informe o e-mail da conta para receber o link de recuperação.' : 'Entre com a conta já cadastrada no sistema.'}</p>
       {forgot ? (
