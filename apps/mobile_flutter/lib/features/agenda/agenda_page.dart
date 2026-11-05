@@ -38,7 +38,7 @@ class _AgendaPageState extends State<AgendaPage> {
     final lastDay = DateTime(next.year, next.month + 1, 0).day;
     setState(() {
       _month = next;
-      _selected = DateTime(next.year, next.month, _selected.day.clamp(1, lastDay));
+      _selected = DateTime(next.year, next.month, _selected.day.clamp(1, lastDay).toInt());
     });
   }
   DateTime? _parseDate(dynamic value) => DateTime.tryParse(value?.toString() ?? '');
