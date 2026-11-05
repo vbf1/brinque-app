@@ -343,12 +343,13 @@ class _QuotesPageState extends State<QuotesPage> {
     ]),
     floatingActionButton: FloatingActionButton.extended(
       onPressed: _busy ? null : () async {
+        final messenger = ScaffoldMessenger.of(context);
         try {
           final data = await _future;
           if (mounted) await _newQuote(data);
         } catch (error) {
           if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
+            messenger.showSnackBar(
               SnackBar(content: Text('Não foi possível abrir o formulário de orçamento: $error')),
             );
           }
