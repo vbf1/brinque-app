@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:webview_flutter/webview_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/app_messenger.dart';
 import '../../core/native_push_service.dart';
@@ -42,6 +43,17 @@ class _CompanyHomePageState extends State<CompanyHomePage> {
         onMessageReceived: _handleWebMessage,
       )
       ..setNavigationDelegate(NavigationDelegate(
+        onNavigationRequest: (request) {
+          final uri = Uri.tryParse(request.url);
+          if (uri == null) return NavigationDecision.navigate;
+          final isAppHost = uri.host == 'vbf1.github.io' || uri.host.endsWith('.supabase.co');
+          if (isAppHost) return NavigationDecision.navigate;
+          if (uri.scheme == 'https' || uri.scheme == 'http' || uri.scheme == 'mailto' || uri.scheme == 'tel' || uri.scheme == 'whatsapp') {
+            unawaited(launchUrl(uri, mode: LaunchMode.externalApplication).then((_) {}).catchError((_) {}));
+            return NavigationDecision.prevent;
+          }
+          return NavigationDecision.navigate;
+        },
         onPageStarted: (_) {
           if (mounted) setState(() { _loading = true; _pageFailed = false; });
         },
