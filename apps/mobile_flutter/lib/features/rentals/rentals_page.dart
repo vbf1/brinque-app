@@ -481,7 +481,7 @@ class _RentalsPageState extends State<RentalsPage> {
               return Card(child: ListTile(
                 leading: const CircleAvatar(child: Icon(Icons.event_note_outlined)),
                 title: Text(r['customers']?['name'] as String? ?? 'Cliente'),
-                subtitle: Text('${dateFormat.format(_date(r['start_date']) ?? DateTime.now())} ${_timeValue(r['start_time'], '00:00')} a ${dateFormat.format(_date(r['end_date']) ?? DateTime.now())} ${_timeValue(r['end_time'], '23:59')}\n$names\nStatus: ${r['status']} · R\$ ${r['total_amount']}'),
+                subtitle: Text('${dateFormat.format(_date(r['start_date']) ?? DateTime.now())} ${normalizeRentalTime(r['start_time'], '00:00')} a ${dateFormat.format(_date(r['end_date']) ?? DateTime.now())} ${normalizeRentalTime(r['end_time'], '23:59')}\n$names\nStatus: ${r['status']} · R\$ ${r['total_amount']}'),
                 isThreeLine: true,
                 trailing: canEdit ? Row(mainAxisSize: MainAxisSize.min, children: [
                   IconButton(tooltip: 'Editar locação', onPressed: () => editRental(data, r), icon: const Icon(Icons.edit_outlined)),
