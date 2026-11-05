@@ -24,7 +24,6 @@ as $$
 $$;
 
 revoke all on function private.is_platform_owner() from public, anon;
-grant usage on schema private to authenticated;
 grant execute on function private.is_platform_owner() to authenticated;
 
 create or replace function public.is_platform_owner()
@@ -81,8 +80,8 @@ drop policy if exists platform_owner_all on public.companies;
 create policy platform_owner_all
 on public.companies as permissive
 for all to authenticated
-using (private.is_platform_owner())
-with check (private.is_platform_owner());
+using (public.is_platform_owner())
+with check (public.is_platform_owner());
 
 do $$
 declare
@@ -117,7 +116,7 @@ create policy rentals_scope_select
 on public.rentals as restrictive
 for select to authenticated
 using (
-  private.is_platform_owner()
+  public.is_platform_owner()
   or exists (
     select 1
     from public.company_members cm
@@ -141,7 +140,7 @@ create policy rental_responsibles_scope_select
 on public.rental_responsibles as restrictive
 for select to authenticated
 using (
-  private.is_platform_owner()
+  public.is_platform_owner()
   or user_id = (select auth.uid())
   or exists (
     select 1
@@ -158,7 +157,7 @@ create policy platform_owner_company_assets
 on storage.objects as permissive
 for all to authenticated
 using (
-  private.is_platform_owner()
+  public.is_platform_owner()
   and bucket_id in ('company-branding', 'occurrence-photos', 'product-images', 'rental-contracts')
 )
 with check (
