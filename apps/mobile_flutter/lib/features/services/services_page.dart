@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -119,7 +121,7 @@ class _ServicesPageState extends State<ServicesPage> {
       setState(() => _busy = true);
       try {
         final amount = double.parse(price.text.replaceAll(',', '.'));
-        List<int>? imageBytes;
+        Uint8List? imageBytes;
         String? imageMime;
         String? imageExtension;
         if (image != null) {
@@ -215,14 +217,14 @@ class _ServicesPageState extends State<ServicesPage> {
       Expanded(child: FutureBuilder<List<Map<String, dynamic>>>(
         future: _future,
         builder: (context, snapshot) {
-          if (snapshot.connectionState != ConnectionState.done) return const Center(child: CircularProgressIndicator());
-          if (snapshot.hasError) return Center(child: Padding(
+          if (snapshot.connectionState != ConnectionState.done) { return const Center(child: CircularProgressIndicator()); }
+          if (snapshot.hasError) { return Center(child: Padding(
             padding: const EdgeInsets.all(24),
             child: Column(mainAxisSize: MainAxisSize.min, children: [
               Text('Não foi possível carregar os serviços. ${snapshot.error}', textAlign: TextAlign.center),
               OutlinedButton(onPressed: _reload, child: const Text('Tentar novamente')),
             ]),
-          ));
+          )); }
           final rows = (snapshot.data ?? []).where((row) =>
             (row['name'] as String? ?? '').toLowerCase().contains(_search)).toList();
           if (rows.isEmpty) return const Center(child: Text('Nenhum serviço encontrado.'));
