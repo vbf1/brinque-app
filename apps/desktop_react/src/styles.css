@@ -477,3 +477,27 @@ select:focus-visible{outline:3px solid #3478e52b;outline-offset:1px}
 .kidsloc-tour-actions button{min-height:42px}
 .kidsloc-tour-actions .kidsloc-tour-skip{padding:8px 4px;background:transparent;color:var(--muted);font-size:12px}
 @media(max-width:520px){.legacy-head-actions{gap:5px}.legacy-help-button{padding:6px 8px;font-size:10px}.kidsloc-tour-dialog{padding:19px}.kidsloc-tour-dialog h2{font-size:20px}}
+
+
+/* Tutorial em formato coachmark: mantém o aplicativo visível e utilizável. */
+.kidsloc-tour-backdrop{display:none!important}
+.kidsloc-tour-coach{position:fixed;z-index:10000;right:22px;bottom:22px;width:min(370px,calc(100vw - 32px));max-height:min(310px,42vh);overflow:auto;padding:15px 17px;border:1px solid var(--line);border-radius:17px;background:var(--surface);color:var(--ink);box-shadow:0 12px 38px #07152b35}
+.kidsloc-tour-coach .kidsloc-tour-top{display:flex;align-items:center;justify-content:space-between;gap:10px;color:var(--blue);font-size:10px;font-weight:850;letter-spacing:.1em}
+.kidsloc-tour-coach .kidsloc-tour-top>span{display:flex;align-items:center;gap:7px}
+.kidsloc-tour-coach .kidsloc-tour-top i{width:7px;height:7px;border-radius:50%;background:var(--green)}
+.kidsloc-tour-coach .kidsloc-tour-close{flex:0 0 29px;width:29px;min-height:29px;font-size:19px}
+.kidsloc-tour-coach .kidsloc-tour-progress{height:4px;margin:10px 0 9px;border-radius:8px;background:var(--bg);overflow:hidden}
+.kidsloc-tour-coach .kidsloc-tour-progress span{display:block;height:100%;border-radius:8px;background:var(--green);transition:width .2s}
+.kidsloc-tour-content{display:grid;gap:5px}
+.kidsloc-tour-coach .kidsloc-tour-count{color:var(--muted);font-size:10px;font-weight:750}
+.kidsloc-tour-coach h2{margin:1px 0;font-size:17px;line-height:1.25}
+.kidsloc-tour-coach p{margin:0;color:var(--muted);font-size:12px;line-height:1.5}
+.kidsloc-tour-coach .kidsloc-tour-actions{display:flex;align-items:center;justify-content:space-between;gap:9px;margin-top:12px}
+.kidsloc-tour-coach .kidsloc-tour-actions button{min-height:35px;padding:7px 11px;font-size:11px}
+.kidsloc-tour-coach .kidsloc-tour-actions .kidsloc-tour-skip{padding-left:2px;background:transparent;color:var(--muted)}
+@media(max-width:600px){
+ .kidsloc-tour-coach{right:10px;bottom:10px;left:10px;width:auto;max-height:34vh;padding:12px 14px;border-radius:14px}
+ .kidsloc-tour-coach h2{font-size:15px}
+ .kidsloc-tour-coach p{font-size:11px;line-height:1.4}
+ .kidsloc-tour-coach .kidsloc-tour-actions{margin-top:9px}
+}
