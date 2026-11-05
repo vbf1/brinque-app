@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
 import { supabase } from '../lib/supabase';
 import { createCompanyDataRepository } from './companyDataRepository';
+import { AppSelect } from '../components/AppSelect';
 
 type Row = Record<string, any>;
 type DraftItem = { productId: string; quantity: number; price: string };
@@ -134,21 +135,21 @@ export function RentalsPage({ companyId }: { companyId: string }) {
     {!canManageRentals && <p className="module-description">Nesta versão, a edição de locações fica restrita ao proprietário e aos administradores para preservar todos os funcionários responsáveis vinculados.</p>}
     {formOpen && <form className="customer-form rental-form" onSubmit={save}>
       <h3>{editing ? 'Editar locação' : 'Nova locação'}</h3>
-      <label>Cliente *<select required value={customerId} onChange={e => setCustomerId(e.target.value)}><option value="">Selecione o cliente</option>{customers.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select></label>
+      <label>Cliente *<AppSelect required value={customerId} onChange={setCustomerId} placeholder="Selecione o cliente" options={[{ value: '', label: 'Selecione o cliente' }, ...customers.map(c => ({ value: c.id, label: c.name }))]} /></label>
       <div className="form-grid">
         <label>Data de início *<input type="date" required value={startDate} onChange={e => setStartDate(e.target.value)} /></label>
         <label>Data de término *<input type="date" min={startDate} required value={endDate} onChange={e => setEndDate(e.target.value)} /></label>
-        <label>Status<select value={status} onChange={e => setStatus(e.target.value)}><option value="pending">Pendente</option><option value="confirmed">Confirmada</option><option value="ongoing">Em andamento</option>{editing && <><option value="completed">Concluída</option><option value="cancelled">Cancelada</option></>}</select></label>
-        <label>Entrega<select value={deliveryMethod} onChange={e => setDeliveryMethod(e.target.value)}><option value="customer_pickup">Retirada pelo cliente</option><option value="delivery">Entregar no endereço</option></select></label>
+        <label>Status<AppSelect value={status} onChange={setStatus} options={[{ value: 'pending', label: 'Pendente' }, { value: 'confirmed', label: 'Confirmada' }, { value: 'ongoing', label: 'Em andamento' }, ...(editing ? [{ value: 'completed', label: 'Concluída' }, { value: 'cancelled', label: 'Cancelada' }] : [])]} /></label>
+        <label>Entrega<AppSelect value={deliveryMethod} onChange={setDeliveryMethod} options={[{ value: 'customer_pickup', label: 'Retirada pelo cliente' }, { value: 'delivery', label: 'Entregar no endereço' }]} /></label>
       </div>
       {deliveryMethod === 'delivery' && <label>Endereço de entrega *<input required value={deliveryAddress} onChange={e => setDeliveryAddress(e.target.value)} /></label>}
       <div className="rental-items-heading"><h3>Brinquedos da locação</h3><button type="button" className="secondary-button" onClick={() => setItems([...items, { productId: '', quantity: 1, price: '0' }])}>+ Adicionar brinquedo</button></div>
       {items.map((item, index) => <div className="rental-item-editor" key={index}>
         <div className="rental-item-top"><strong>Brinquedo {index + 1}</strong><button type="button" className="remove-item-button" disabled={items.length === 1} onClick={() => setItems(items.filter((_, i) => i !== index))}>Remover</button></div>
-        <label>Brinquedo<select required value={item.productId} onChange={e => {
-          const product = products.find(p => p.id === e.target.value);
-          setItems(items.map((current, i) => i === index ? { ...current, productId: e.target.value, price: String(product?.daily_price ?? current.price) } : current));
-        }}><option value="">Selecione</option>{products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select></label>
+        <label>Brinquedo<AppSelect required value={item.productId} onChange={value => {
+          const product = products.find(p => p.id === value);
+          setItems(items.map((current, i) => i === index ? { ...current, productId: value, price: String(product?.daily_price ?? current.price) } : current));
+        }} placeholder="Selecione" options={[{ value: '', label: 'Selecione' }, ...products.map(p => ({ value: p.id, label: p.name }))]} /></label>
         <div className="form-grid"><label>Quantidade<input type="number" min="1" step="1" required value={item.quantity} onChange={e => setItems(items.map((current, i) => i === index ? { ...current, quantity: Number(e.target.value) } : current))} /></label><label>Diária por unidade (R$)<input inputMode="decimal" required value={item.price} onChange={e => setItems(items.map((current, i) => i === index ? { ...current, price: e.target.value } : current))} /></label></div>
       </div>)}
       <label>Valor total da locação (R$) *<input type="number" min="0" step="0.01" required value={totalAmount} onChange={e => setTotalAmount(e.target.value)} placeholder="0,00" /></label>
