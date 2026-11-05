@@ -32,7 +32,8 @@ export function FinancePage({ companyId }: { companyId: string }) {
     try {
       const [transactions, rentalRows] = await Promise.all([repository.fetchTransactions(), repository.fetchRentals()]);
       setRows(transactions as Transaction[]);
-      setRentals(rentalRows.filter((r: any) => r.status !== 'cancelled') as RentalOption[]);
+      const rentalList = rentalRows as unknown as Array<RentalOption & { status: string }>;
+      setRentals(rentalList.filter(r => r.status !== 'cancelled'));
       setMessage('');
     }
     catch (error) { setMessage(error instanceof Error ? error.message : 'Não foi possível carregar o financeiro.'); }
