@@ -53,6 +53,35 @@ class CompanyDataRepository {
         .eq('id', id).eq('company_id', companyId);
   }
 
+  Future<String> registerRentalPayment({
+    required String rentalId,
+    required num amount,
+    required String paymentMethod,
+    String? notes,
+  }) async {
+    if (amount <= 0) throw ArgumentError('Informe um valor maior que zero.');
+    final result = await _client.rpc(
+      'register_rental_payment',
+      params: {
+        'p_company_id': companyId,
+        'p_rental_id': rentalId,
+        'p_amount': amount,
+        'p_payment_method': paymentMethod,
+        'p_notes': _nullableTrim(notes),
+      },
+    );
+    return result as String;
+  }
+
+  Future<Map<String, dynamic>> fetchRentalPayment(String paymentId) async {
+    final row = await _client.from('payments')
+        .select('id, company_id, rental_id, amount, payment_method, paid_at, notes, rentals(rental_number, customers(name))')
+        .eq('id', paymentId)
+        .eq('company_id', companyId)
+        .single();
+    return Map<String, dynamic>.from(row);
+  }
+
   Future<List<Map<String, dynamic>>> fetchCustomers() async {
     final rows = await _client
         .from('customers')
