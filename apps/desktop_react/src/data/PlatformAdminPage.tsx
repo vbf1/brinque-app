@@ -45,6 +45,7 @@ export function PlatformAdminPage({ currentCompanyId, companies, onCompaniesChan
     if (!currentCompanyId) return;
     setUsersLoading(true);
     setUsersError('');
+    setManagementReady(false);
     try {
       const { data, error } = await supabase.functions.invoke('manage-employees', {
         body: { action: 'list_users', company_id: currentCompanyId },
