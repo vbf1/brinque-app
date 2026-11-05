@@ -24,6 +24,24 @@ DateTime? rentalBoundary(
       : day.add(Duration(hours: hour, minutes: minute));
 }
 
+bool rentalIsActiveAt(Map<String, dynamic> rental, DateTime instant) {
+  if (!const {'pending', 'confirmed', 'ongoing'}.contains(rental['status'])) {
+    return false;
+  }
+  final start = rentalBoundary(
+    rental['start_date'],
+    rental['start_time'],
+    isEnd: false,
+  );
+  final end = rentalBoundary(
+    rental['end_date'] ?? rental['start_date'],
+    rental['end_time'],
+    isEnd: true,
+  );
+  return start != null && end != null &&
+      !instant.isBefore(start) && instant.isBefore(end);
+}
+
 String normalizeRentalTime(dynamic value, String fallback) {
   final raw = value?.toString() ?? '';
   return raw.length >= 5 && RegExp(r'^\d{2}:\d{2}').hasMatch(raw)
