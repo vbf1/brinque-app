@@ -73,7 +73,9 @@ class _UsersPageState extends State<UsersPage> {
           DropdownButtonFormField<String>(initialValue: role,
             decoration: const InputDecoration(labelText: 'Perfil'),
             items: [const DropdownMenuItem(value:'staff',child:Text('Funcionário')),
-              if (_isOwner) const DropdownMenuItem(value:'admin',child:Text('Administrador'))],
+              if (_isOwner) const DropdownMenuItem(value:'manager',child:Text('Gerente')),
+              if (_isOwner) const DropdownMenuItem(value:'manager',child:Text('Gerente')),
+              DropdownMenuItem(value:'admin',child:Text('Administrador'))],
             onChanged: (v) => setDialog(() => role = v ?? 'staff')),
         ])),
         actions: [
@@ -211,7 +213,7 @@ class _UsersPageState extends State<UsersPage> {
         if(_isOwner)_detail('ID da conta',user['id']?.toString()??'—'),
         if(_canManage && role!='owner' && (_isOwner || role=='staff')) ...[
           const SizedBox(height:8),
-          if(_isOwner) DropdownButtonFormField<String>(initialValue:role=='admin'?'admin':'staff',
+          if(_isOwner) DropdownButtonFormField<String>(initialValue:role=='admin'?'admin':role=='manager'?'manager':'staff',
             decoration:const InputDecoration(labelText:'Perfil do usuário'),
             items:const [DropdownMenuItem(value:'staff',child:Text('Funcionário')),
               DropdownMenuItem(value:'admin',child:Text('Administrador'))],
