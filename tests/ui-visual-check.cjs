@@ -103,11 +103,13 @@ const viewports = [
     }
     // Static regression guards for the owner/company startup flow.
     const appSource = fs.readFileSync('apps/desktop_react/src/App.tsx', 'utf8');
+    const selectionSource = fs.readFileSync('apps/desktop_react/src/lib/companySelection.ts', 'utf8');
     const managementSource = fs.readFileSync('apps/desktop_react/src/data/CompanyManagementPage.tsx', 'utf8');
     const startupGuards = [
-      ['session initialization is deduplicated', appSource.includes('function sameSessionSnapshot')],
-      ['legacy company IDs require a confirmed selection timestamp', appSource.includes('hasConfirmedPreference') && appSource.includes('kidsloc_selected_company_at')],
-      ['owner company manager starts with no selected company', appSource.includes('selectedCompanyId=""') && managementSource.includes('value={selected?.id ?? \'\'}')],
+      ['App delegates company access to the dedicated selection service', appSource.includes('resolveCompanyAccess(session)') && appSource.includes('persistCompanySelection')],
+      ['a saved company requires an explicit timestamped preference', selectionSource.includes('hasExplicitPreference') && selectionSource.includes('kidsloc_selected_company_at')],
+      ['selection is verified with a fresh server read before activation', selectionSource.includes('await supabase.auth.getUser()') && selectionSource.includes('savedAt !== selectedAt')],
+      ['owner company manager starts with no selected company', appSource.includes('setCompany(null)') && managementSource.includes('value={selected?.id ?? \'\'}')],
     ];
     for (const [label, passed] of startupGuards) {
       if (!passed) { failures++; console.error('FAIL company-startup: ' + label); }
