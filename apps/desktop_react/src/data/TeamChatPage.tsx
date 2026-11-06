@@ -74,12 +74,18 @@ export function TeamChatPage({ companyId, viewerRole }: { companyId: string; vie
 
   useEffect(() => { void load(); }, [load]);
   useEffect(() => {
-    if (!active) { setMessages([]); setActiveMembers([]); return; }
+    if (!active) { setMessages([]); setActiveMembers([]); setAddMemberId(''); return; }
+    let alive = true;
+    setActiveMembers([]);
+    setAddMemberId('');
     if (isOwner) {
       void supabase.from('team_conversation_members').select('user_id').eq('conversation_id', active.id)
-        .then(({ data, error }) => { if (error) setMessage(error.message); else setActiveMembers((data ?? []).map(row => row.user_id)); });
+        .then(({ data, error }) => {
+          if (!alive) return;
+          if (error) setMessage(error.message);
+          else setActiveMembers((data ?? []).map(row => row.user_id));
+        });
     }
-    let alive = true;
     const fetchMessages = async () => {
       const { data, error } = await supabase.from('team_messages')
         .select('id, conversation_id, sender_id, body, created_at')
@@ -92,7 +98,7 @@ export function TeamChatPage({ companyId, viewerRole }: { companyId: string; vie
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'team_messages', filter: 'conversation_id=eq.' + active.id }, () => { void fetchMessages(); })
       .subscribe(status => { if (status === 'SUBSCRIBED') void fetchMessages(); });
     return () => { alive = false; void supabase.removeChannel(channel); };
-  }, [active]);
+  }, [active, isOwner]);
   useEffect(() => { if (messageArea.current) messageArea.current.scrollTop = messageArea.current.scrollHeight; }, [messages]);
 
   async function startDirect() {
