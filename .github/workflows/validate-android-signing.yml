@@ -1,14 +1,8 @@
 name: Validate KidsLoc Android signing and update
 
+# Teste completo de instalação/reinstalação é executado sob demanda,
+# não a cada alteração de código. A compilação normal já valida e gera o APK.
 on:
-  push:
-    branches: [main]
-    paths:
-      - "apps/mobile_flutter/**"
-      - "google-services.json"
-      - ".github/scripts/configure-preview-android.py"
-      - ".github/scripts/configure-release-signing.py"
-      - ".github/workflows/validate-android-signing.yml"
   workflow_dispatch:
 
 permissions:
