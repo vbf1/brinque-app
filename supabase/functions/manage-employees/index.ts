@@ -127,7 +127,7 @@ Deno.serve(async (req) => {
       if (name.length < 2 || name.length > 100) return reply({ error: "Informe um nome entre 2 e 100 caracteres." }, 400);
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return reply({ error: "Informe um e-mail válido." }, 400);
       if (!["staff", "manager", "admin"].includes(role)) return reply({ error: "Perfil solicitado inválido." }, 400);
-      if (role === "admin" && callerRole !== "owner") return reply({ error: "Somente o proprietário pode cadastrar administradores." }, 403);
+      if (role !== "staff" && callerRole !== "owner") return reply({ error: "Somente o proprietário pode cadastrar gerentes ou administradores." }, 403);
 
       const [{ data: company, error: companyError }, { data: inviterProfile }] = await Promise.all([
         admin.from("companies").select("name").eq("id", companyId).maybeSingle(),
