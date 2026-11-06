@@ -99,8 +99,9 @@ jobs:
         run: |
           APK="build/app/outputs/flutter-apk/app-release.apk"
           test -s "$APK"
-          apksigner verify --verbose --print-certs "$APK"
-          aapt dump badging "$APK" | grep -F "package: name='br.com.sonhokids.kidsloc'"
+          BUILD_TOOLS="$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -n 1)"
+          "$BUILD_TOOLS/apksigner" verify --verbose --print-certs "$APK"
+          "$BUILD_TOOLS/aapt" dump badging "$APK" | grep -F "package: name='br.com.sonhokids.kidsloc'"
 
       - name: Upload signed test APK
         uses: actions/upload-artifact@v4
