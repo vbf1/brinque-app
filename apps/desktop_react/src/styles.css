@@ -694,3 +694,75 @@ select:focus-visible{outline:3px solid #3478e52b;outline-offset:1px}
 .platform-company-group .users-card{padding:13px 2px;border:0;border-bottom:1px solid var(--line);border-radius:0;background:transparent;box-shadow:none}
 .platform-company-group .users-card:last-child{border-bottom:0}
 @media(max-width:480px){.platform-company-heading{padding:10px}.platform-company-heading-action{font-size:10px}.platform-company-group>.users-list{padding:0 9px 8px}}
+
+/* Platform admin: prevent long account emails and status labels from breaking card alignment. */
+.platform-admin-page .platform-company-group .users-card-top{
+ display:grid;
+ grid-template-columns:42px minmax(0,1fr) auto;
+ align-items:center;
+ gap:10px;
+ min-width:0;
+}
+.platform-admin-page .platform-company-group .users-primary{min-width:0;max-width:100%}
+.platform-admin-page .platform-company-group .users-primary strong,
+.platform-admin-page .platform-company-group .users-primary span{
+ display:block;
+ min-width:0;
+ max-width:100%;
+ overflow-wrap:anywhere;
+ word-break:normal;
+}
+.platform-admin-page .platform-company-group .users-primary span{line-height:1.45}
+.platform-admin-page .platform-company-group .users-role{
+ justify-self:end;
+ max-width:180px;
+ min-width:0;
+ white-space:normal;
+ overflow-wrap:anywhere;
+ text-align:center;
+ line-height:1.35;
+}
+.platform-admin-page .platform-company-group .users-card>.users-details{
+ grid-template-columns:repeat(3,minmax(0,1fr));
+ align-items:start;
+}
+.platform-admin-page .platform-company-group .users-memberships .users-details{
+ grid-template-columns:minmax(0,1.1fr) minmax(160px,1fr) auto;
+ align-items:end;
+}
+.platform-admin-page .platform-company-group .membership-role-field{min-width:0}
+.platform-admin-page .platform-company-group .users-memberships .users-details>button{
+ justify-self:stretch;
+ align-self:end;
+ min-width:0;
+ white-space:normal;
+}
+@media(max-width:640px){
+ .platform-admin-page .platform-company-group .users-card-top{
+  grid-template-columns:38px minmax(0,1fr);
+  align-items:start;
+  gap:8px 10px;
+ }
+ .platform-admin-page .platform-company-group .users-avatar{grid-row:1 / span 2;width:38px;height:38px}
+ .platform-admin-page .platform-company-group .users-primary{grid-column:2;grid-row:1}
+ .platform-admin-page .platform-company-group .users-role{
+  grid-column:2;
+  grid-row:2;
+  justify-self:start;
+  max-width:100%;
+  margin:0;
+ }
+ .platform-admin-page .platform-company-group .users-card>.users-details{
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:10px;
+ }
+ .platform-admin-page .platform-company-group .users-memberships .users-details{
+  grid-template-columns:minmax(0,1fr);
+  align-items:stretch;
+ }
+ .platform-admin-page .platform-company-group .users-memberships .users-details>button{
+  justify-self:stretch;
+  width:100%;
+ }
+}
+
