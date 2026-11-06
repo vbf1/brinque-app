@@ -142,28 +142,29 @@ export default function App() {
     setIsError(error);
   }, []);
 
-  // A seleção é sincronizada no navegador e no perfil do usuário no Supabase.
-  // Isso evita que sessões independentes (web/PWA/WebView) restaurem empresas diferentes.
-  const selectCompany = useCallback((selected: { id: string; name: string }) => {
+  // A preferência remota da conta é a única fonte persistente da empresa ativa.
+  // Não usamos localStorage para restaurar empresas antigas ou divergentes entre sessões.
+  const selectCompany = useCallback(async (selected: { id: string; name: string }) => {
+    if (!session?.user) return;
     const selectedAt = new Date().toISOString();
-    const preferenceKey = `kidsloc_selected_company_${session?.user.id ?? ''}`;
-    const preferenceAtKey = `${preferenceKey}_at`;
-    try {
-      window.localStorage.setItem(preferenceKey, selected.id);
-      window.localStorage.setItem(preferenceAtKey, selectedAt);
-    } catch { /* preferência local opcional */ }
-    setCompany({ ...selected, role: 'owner' });
-    if (session?.user) {
-      void supabase.auth.updateUser({
-        data: {
-          ...session.user.user_metadata,
-          kidsloc_selected_company_id: selected.id,
-          kidsloc_selected_company_at: selectedAt,
-        },
-      }).then(({ error }) => {
-        if (error) feedback('Empresa selecionada neste dispositivo, mas não foi possível sincronizar a preferência entre sessões.', true);
-      });
+    const { data, error } = await supabase.auth.updateUser({
+      data: {
+        ...session.user.user_metadata,
+        kidsloc_selected_company_id: selected.id,
+        kidsloc_selected_company_at: selectedAt,
+      },
+    });
+    if (error) {
+      feedback('Não foi possível salvar sua empresa selecionada na conta. Tente novamente.', true);
+      return;
     }
+    const savedId = String(data.user?.user_metadata?.kidsloc_selected_company_id ?? '');
+    if (savedId !== selected.id) {
+      feedback('A seleção não foi confirmada pelo servidor. Tente selecionar a empresa novamente.', true);
+      return;
+    }
+    setCompany({ ...selected, role: 'owner' });
+    feedback('');
   }, [session?.user, feedback]);
 
   useEffect(() => {
@@ -287,48 +288,19 @@ export default function App() {
             feedback('Nenhuma empresa cadastrada. Acesse Gerenciar empresa e usuários para criar a primeira.', true);
             return;
           }
-          // Restaura exclusivamente a última empresa escolhida pelo usuário.
-          // Sem preferência válida, não seleciona empresa automaticamente.
-          const preferenceKey = `kidsloc_selected_company_${session.user.id}`;
-          const preferenceAtKey = `${preferenceKey}_at`;
-          let localCompanyId = '';
-          let localSelectedAt = '';
-          try {
-            localCompanyId = window.localStorage.getItem(preferenceKey) ?? '';
-            localSelectedAt = window.localStorage.getItem(preferenceAtKey) ?? '';
-          } catch { /* preferência local opcional */ }
-
-          // Lê os metadados atuais do servidor, não apenas os dados possivelmente antigos
-          // que vieram dentro de uma sessão aberta em outro dispositivo/instância.
+          // Restaura somente a preferência confirmada no perfil remoto.
+          // Preferências antigas do navegador são ignoradas: sem escolha salva, fica sem empresa.
           const { data: freshUserData, error: freshUserError } = await supabase.auth.getUser();
           if (freshUserError) throw freshUserError;
           if (!active) return;
           const remoteCompanyId = String(freshUserData.user?.user_metadata?.kidsloc_selected_company_id ?? '');
-          const remoteSelectedAt = String(freshUserData.user?.user_metadata?.kidsloc_selected_company_at ?? '');
-          const localCompany = companyList.find(item => item.id === localCompanyId);
-          const remoteCompany = companyList.find(item => item.id === remoteCompanyId);
+          const savedCompany = companyList.find(item => item.id === remoteCompanyId);
 
-          let savedCompany = remoteCompany;
-          const localTime = Date.parse(localSelectedAt) || 0;
-          const remoteTime = Date.parse(remoteSelectedAt) || 0;
-          if (localCompany && (!remoteCompany || localTime > remoteTime)) {
-            savedCompany = localCompany;
-            const selectedAt = localSelectedAt || new Date().toISOString();
-            try { window.localStorage.setItem(preferenceAtKey, selectedAt); } catch { /* preferência local opcional */ }
-            void supabase.auth.updateUser({
-              data: {
-                ...freshUserData.user?.user_metadata,
-                kidsloc_selected_company_id: localCompany.id,
-                kidsloc_selected_company_at: selectedAt,
-              },
-            });
-          } else if (remoteCompany) {
-            // O valor remoto é a preferência mais recente e prevalece entre sessões.
-            try {
-              window.localStorage.setItem(preferenceKey, remoteCompany.id);
-              window.localStorage.setItem(preferenceAtKey, remoteSelectedAt || new Date().toISOString());
-            } catch { /* preferência local opcional */ }
-          }
+          // Remove chaves locais antigas que poderiam reintroduzir uma empresa anterior.
+          try {
+            window.localStorage.removeItem(`kidsloc_selected_company_${session.user.id}`);
+            window.localStorage.removeItem(`kidsloc_selected_company_${session.user.id}_at`);
+          } catch { /* armazenamento local opcional */ }
 
           if (!savedCompany) {
             setCompany(null);
