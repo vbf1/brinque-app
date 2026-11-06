@@ -297,8 +297,14 @@ export default function App() {
           if (freshUserError) throw freshUserError;
           if (!active) return;
           const remoteCompanyId = String(freshUserData.user?.user_metadata?.kidsloc_selected_company_id ?? '');
-          const savedCompany = companyList.find(item => item.id === remoteCompanyId);
-          setCompanyDiagnostic(`Conta: ${freshUserData.user?.email ?? session.user.email ?? 'e-mail indisponível'} · ID final: ${session.user.id.slice(-8)} · Perfil global: sim · Preferência remota: ${savedCompany ? savedCompany.name : (remoteCompanyId ? 'ID não encontrado nas empresas disponíveis' : 'vazia')} · Empresa ativa: ${savedCompany ? savedCompany.name : 'nenhuma'}`);
+          const remoteCompanySelectedAt = String(freshUserData.user?.user_metadata?.kidsloc_selected_company_at ?? '');
+          const selectedAtTimestamp = Date.parse(remoteCompanySelectedAt);
+          // Restore only a preference written by the explicit selection flow.
+          // Incomplete legacy IDs must not silently become a default company.
+          const hasConfirmedPreference = Boolean(remoteCompanyId && remoteCompanySelectedAt && Number.isFinite(selectedAtTimestamp));
+          const savedCompany = hasConfirmedPreference ? companyList.find(item => item.id === remoteCompanyId) : undefined;
+          const preferenceDiagnostic = !remoteCompanyId ? 'vazia' : !hasConfirmedPreference ? 'antiga/incompleta ignorada' : savedCompany ? savedCompany.name : 'ID não encontrado nas empresas disponíveis';
+          setCompanyDiagnostic('Conta: ' + (freshUserData.user?.email ?? session.user.email ?? 'e-mail indisponível') + ' · ID final: ' + session.user.id.slice(-8) + ' · Perfil global: sim · Preferência remota: ' + preferenceDiagnostic + ' · Empresa ativa: ' + (savedCompany ? savedCompany.name : 'nenhuma'));
 
           // Remove chaves locais antigas que poderiam reintroduzir uma empresa anterior.
           try {
