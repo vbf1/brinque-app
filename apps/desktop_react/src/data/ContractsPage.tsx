@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { AppSelect } from '../components/AppSelect';
+import { AppConfirmDialog } from '../components/AppConfirmDialog';
 import { supabase } from '../lib/supabase';
 
 type Rental = Record<string, any>;
@@ -44,6 +45,7 @@ async function hashToken(token: string) {
 }
 
 export function ContractsPage({ companyId, companyName }: { companyId: string; companyName: string }) {
+  const [confirmContract, setConfirmContract] = useState<Contract | null>(null);
   const [rentals, setRentals] = useState<Rental[]>([]);
   const [contracts, setContracts] = useState<Contract[]>([]);
   const [loading, setLoading] = useState(true);
@@ -154,7 +156,7 @@ export function ContractsPage({ companyId, companyName }: { companyId: string; c
   }
 
   async function cancelContract(contract: Contract) {
-    if (!window.confirm('Cancelar este contrato? O link de assinatura deixará de funcionar.')) return;
+    setConfirmContract(null);
     setBusy(true);
     try {
       const { error } = await supabase.from('rental_contracts').update({ status: 'cancelled', token_hash: null, token_expires_at: null })
@@ -193,6 +195,7 @@ export function ContractsPage({ companyId, companyName }: { companyId: string; c
   }
 
   return <section className="module-shell">
+    <AppConfirmDialog open={!!confirmContract} title="Cancelar contrato?" description="O link de assinatura deixará de funcionar. Contratos já assinados não podem ser cancelados por esta ação." confirmLabel="Cancelar contrato" busy={busy} onCancel={() => setConfirmContract(null)} onConfirm={() => { if (confirmContract) void cancelContract(confirmContract); }} />
     <header className="module-header"><div><p className="eyebrow">DOCUMENTOS</p><h2>Contratos de locação</h2><p className="module-description">Gere contratos e acompanhe as assinaturas externas ou pelo KidsLoc.</p></div><button type="button" onClick={() => void load()}>Atualizar</button></header>
     <div className="marketing-editor">
       <h3>Novo contrato</h3>
@@ -213,7 +216,7 @@ export function ContractsPage({ companyId, companyName }: { companyId: string; c
           {contract.status === 'draft' && <button type="button" disabled={busy} onClick={() => void markSent(contract)}>Marcar como enviado</button>}
           {contract.signature_method === 'external' && ['sent','viewed'].includes(contract.status) && <label className="marketing-upload-button">Anexar PDF assinado<input type="file" accept="application/pdf" disabled={uploading === contract.id} onChange={event => void receiveSigned(contract, event.target.files?.[0])} /></label>}
           {contract.signed_pdf_path && <button type="button" onClick={() => void openSigned(contract)}>Abrir PDF assinado</button>}
-          {!terminal && <button type="button" className="danger-button" disabled={busy} onClick={() => void cancelContract(contract)}>Cancelar</button>}
+          {!terminal && <button type="button" className="danger-button" disabled={busy} onClick={() => setConfirmContract(contract)}>Cancelar</button>}
         </div>
       </article>;
     })}</div>}
