@@ -107,7 +107,7 @@ jobs:
           flutter build apk --release --build-number="$BUILD_NUMBER"
           test -s build/app/outputs/flutter-apk/app-release.apk
 
-      - name: Download previous signed baseline APK
+      - name: Download previous prototype APK for package and version reference
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -120,23 +120,22 @@ jobs:
           test -n "$BASELINE_APK" && test -s "$BASELINE_APK"
           echo "KIDSLOC_BASELINE_APK=$BASELINE_APK" >> "$GITHUB_ENV"
 
-      - name: Verify package, signature continuity and version increase
+      - name: Verify release signing, package and version increase
         working-directory: /tmp/kidsloc-android
+        env:
+          KIDSLOC_KEYSTORE_PASSWORD: ${{ secrets.KIDSLOC_KEYSTORE_PASSWORD }}
+          KIDSLOC_KEY_ALIAS: ${{ secrets.KIDSLOC_KEY_ALIAS }}
         run: |
           APK="build/app/outputs/flutter-apk/app-release.apk"
           BUILD_TOOLS="$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -n 1)"
           "$BUILD_TOOLS/apksigner" verify --verbose "$APK"
-          "$BUILD_TOOLS/apksigner" verify --verbose "$KIDSLOC_BASELINE_APK"
-          NEW_CERT="$("$BUILD_TOOLS/apksigner" verify --print-certs "$APK" | sed -n 's/.*SHA-256 digest: //p' | head -n 1 | tr -d '[:space:]')"
-          OLD_CERT="$("$BUILD_TOOLS/apksigner" verify --print-certs "$KIDSLOC_BASELINE_APK" | sed -n 's/.*SHA-256 digest: //p' | head -n 1 | tr -d '[:space:]')"
-          echo "Certificado SHA-256 do APK novo: $NEW_CERT"
-          echo "Certificado SHA-256 da referência: $OLD_CERT"
-          if [ -z "$NEW_CERT" ] || [ -z "$OLD_CERT" ]; then
-            echo "::error::Não foi possível extrair o certificado SHA-256 de um dos APKs."
-            exit 1
-          fi
-          if [ "$NEW_CERT" != "$OLD_CERT" ]; then
-            echo "::error::Os certificados SHA-256 são diferentes. Atualização bloqueada."
+          KEY_CERT="$(keytool -list -v -keystore android/app/kidsloc-upload.jks -storepass "$KIDSLOC_KEYSTORE_PASSWORD" -alias "$KIDSLOC_KEY_ALIAS" | sed -n 's/^[[:space:]]*SHA256: //p' | head -n 1 | tr -d ':[:space:]' | tr '[:upper:]' '[:lower:]')"
+          APK_CERT="$("$BUILD_TOOLS/apksigner" verify --print-certs "$APK" | sed -n 's/.*SHA-256 digest: //p' | head -n 1 | tr -d '[:space:]')"
+          echo "Certificado SHA-256 da chave persistente: $KEY_CERT"
+          echo "Certificado SHA-256 do APK: $APK_CERT"
+          test -n "$KEY_CERT" && test -n "$APK_CERT"
+          if [ "$KEY_CERT" != "$APK_CERT" ]; then
+            echo "::error::O APK não foi assinado com a chave persistente do KidsLoc."
             exit 1
           fi
           NEW_PACKAGE="$("$BUILD_TOOLS/aapt" dump badging "$APK" | sed -n "s/^package: name='\\([^']*\\)'.*/\\1/p")"
@@ -149,9 +148,9 @@ jobs:
           test "$OLD_PACKAGE" = "br.com.sonhokids.kidsloc"
           test -n "$OLD_CODE" && test -n "$NEW_CODE"
           test "$NEW_CODE" -gt "$OLD_CODE"
-          echo "Identidade, assinatura e versionCode confirmados."
+          echo "Assinatura persistente, identidade e versionCode confirmados."
 
-      - name: Verify update preserves installed app data on Android emulator
+      - name: Verify install and app data preservation on Android emulator
         uses: ReactiveCircus/android-emulator-runner@v2
         with:
           api-level: 35
@@ -159,17 +158,18 @@ jobs:
           arch: x86_64
           profile: pixel_2
           script: |
-            adb install "$KIDSLOC_BASELINE_APK"
+            APK="/tmp/kidsloc-android/build/app/outputs/flutter-apk/app-release.apk"
+            PACKAGE="br.com.sonhokids.kidsloc"
+            adb install "$APK"
             adb root
             adb wait-for-device
-            PACKAGE="br.com.sonhokids.kidsloc"
-            APP_UID="$(adb shell dumpsys package "$PACKAGE" | sed -n 's/.*userId=\([0-9]*\).*/\1/p' | head -n 1 | tr -d '\r')"
+            APP_UID="$(adb shell dumpsys package "$PACKAGE" | sed -n 's/.*userId=\\([0-9]*\\).*/\\1/p' | head -n 1 | tr -d '\\r')"
             test -n "$APP_UID"
             adb shell "mkdir -p /data/user/0/$PACKAGE/files && printf 'kidsloc-data-preserved' > /data/user/0/$PACKAGE/files/update-preservation-check.txt && chown -R $APP_UID:$APP_UID /data/user/0/$PACKAGE"
-            adb install -r /tmp/kidsloc-android/build/app/outputs/flutter-apk/app-release.apk
-            MARKER="$(adb shell cat /data/user/0/$PACKAGE/files/update-preservation-check.txt | tr -d '\r')"
+            adb install -r "$APK"
+            MARKER="$(adb shell cat /data/user/0/$PACKAGE/files/update-preservation-check.txt | tr -d '\\r')"
             test "$MARKER" = "kidsloc-data-preserved"
-            echo "Atualização instalada sobre o app existente sem apagar os dados privados."
+            echo "Instalação assinada e reinstalação preservaram os dados privados do aplicativo."
 
       - name: Upload signed test APK after validation
         uses: actions/upload-artifact@v4
