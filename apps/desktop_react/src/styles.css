@@ -512,3 +512,4 @@ img,video,canvas{max-width:100%}
   .stats-bar-value{font-size:7px}
   .data-summary-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
+/* Layout regression checks: 320px–1280px viewports. */
