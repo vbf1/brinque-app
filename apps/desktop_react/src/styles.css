@@ -467,3 +467,48 @@ select:focus-visible{outline:3px solid #3478e52b;outline-offset:1px}
 /* Login reference: centered wordmark only, without the square brand symbol. */
 .legacy-auth-brand{align-items:center;justify-content:center;text-align:center}
 .legacy-auth-brand .legacy-auth-wordmark{width:100%;text-align:center}
+
+/* Ajustes globais de responsividade para módulos e componentes compartilhados. */
+.module-shell,.data-page,.module-page,.team-chat-layout,.team-chat-sidebar,.team-chat-panel,
+.customer-form,.data-form,.data-list-row,.customer-row,.record-unit-row,.users-card,
+.agenda-calendar,.agenda-day-panel,.stats-panel,.marketing-ai-studio{min-width:0;max-width:100%}
+.module-toolbar{flex-wrap:wrap;align-items:stretch}
+.module-toolbar input{min-width:min(100%,220px)}
+.customer-info,.data-list-row>div:first-child,.data-details,.record-unit-row>span{min-width:0}
+.customer-info strong,.customer-info span,.data-list-row strong,.data-list-row span,
+.record-unit-row strong,.record-unit-row small{overflow-wrap:anywhere}
+.data-row-actions,.form-actions,.data-form-actions,.finance-heading-actions,.quote-actions{min-width:0;max-width:100%}
+.data-row-actions button,.form-actions button,.data-form-actions button{max-width:100%;white-space:normal}
+.data-list-row{min-width:0}
+.team-chat-message-list{min-width:0;overflow-x:hidden}
+.team-chat-message,.team-chat-bubble{max-width:100%;overflow-wrap:anywhere;word-break:break-word}
+.module-header,.data-page-heading,.legacy-page-heading{min-width:0}
+.module-header>div,.data-page-heading>div,.legacy-page-heading>div{min-width:0}
+.module-header h2,.data-page-heading h1,.legacy-page-heading h1{overflow-wrap:anywhere}
+img,video,canvas{max-width:100%}
+@media(max-width:640px){
+  .module-toolbar{flex-direction:column}
+  .module-toolbar input,.module-toolbar button{width:100%;min-width:0}
+  .data-list-row{grid-template-columns:minmax(0,1fr) auto;align-items:start}
+  .data-list-row .data-row-actions{grid-column:1/-1;justify-content:flex-start}
+  .data-row-actions button{flex:1 1 auto}
+  .customer-row{flex-wrap:wrap}
+  .customer-row .customer-info{flex:1 1 calc(100% - 56px)}
+  .customer-row>button{margin-left:49px}
+  .form-actions,.data-form-actions{justify-content:stretch}
+  .form-actions button,.data-form-actions button{flex:1 1 120px}
+  .agenda-month-heading{gap:4px}
+  .agenda-month-heading h3{min-width:0;overflow-wrap:anywhere}
+  .agenda-day-title{min-width:0}
+  .marketing-toolbar-filters{min-width:0}
+  .team-chat-layout{grid-template-columns:minmax(0,1fr)}
+}
+@media(max-width:360px){
+  .legacy-main{padding-left:10px;padding-right:10px}
+  .legacy-section-title{align-items:flex-start;flex-direction:column}
+  .legacy-page-heading h1,.module-header h2,.data-page-heading h1{font-size:21px}
+  .agenda-day{min-height:54px}
+  .stats-bars{gap:4px}
+  .stats-bar-value{font-size:7px}
+  .data-summary-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
