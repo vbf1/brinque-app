@@ -9,6 +9,8 @@ export function TeamChatPage({ companyId, viewerRole }: { companyId: string; vie
   const isOwner = viewerRole === 'owner';
   const [viewerId, setViewerId] = useState('');
   const [members, setMembers] = useState<Member[]>([]);
+  const [activeMembers, setActiveMembers] = useState<string[]>([]);
+  const [addMemberId, setAddMemberId] = useState('');
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [conversationPeers, setConversationPeers] = useState<Map<string, string>>(new Map());
   const [previews, setPreviews] = useState<Map<string, string>>(new Map());
@@ -72,7 +74,11 @@ export function TeamChatPage({ companyId, viewerRole }: { companyId: string; vie
 
   useEffect(() => { void load(); }, [load]);
   useEffect(() => {
-    if (!active) { setMessages([]); return; }
+    if (!active) { setMessages([]); setActiveMembers([]); return; }
+    if (isOwner) {
+      void supabase.from('team_conversation_members').select('user_id').eq('conversation_id', active.id)
+        .then(({ data, error }) => { if (error) setMessage(error.message); else setActiveMembers((data ?? []).map(row => row.user_id)); });
+    }
     let alive = true;
     const fetchMessages = async () => {
       const { data, error } = await supabase.from('team_messages')
@@ -104,6 +110,32 @@ export function TeamChatPage({ companyId, viewerRole }: { companyId: string; vie
       await loadConversations(viewerId);
       setActive(created as Conversation);
     } catch (error) { setMessage(error instanceof Error ? error.message : 'Não foi possível iniciar a conversa.'); }
+    finally { setSending(false); }
+  }
+
+  async function addConversationMember() {
+    if (!active || !addMemberId) return;
+    setSending(true); setMessage('');
+    try {
+      const { error } = await supabase.from('team_conversation_members').insert({
+        conversation_id: active.id, company_id: companyId, user_id: addMemberId,
+      });
+      if (error) throw error;
+      setActiveMembers(current => [...current, addMemberId]);
+      setAddMemberId('');
+    } catch (error) { setMessage(error instanceof Error ? error.message : 'Não foi possível adicionar o participante.'); }
+    finally { setSending(false); }
+  }
+
+  async function removeConversationMember(userId: string) {
+    if (!active) return;
+    setSending(true); setMessage('');
+    try {
+      const { error } = await supabase.from('team_conversation_members').delete()
+        .eq('conversation_id', active.id).eq('user_id', userId).eq('company_id', companyId);
+      if (error) throw error;
+      setActiveMembers(current => current.filter(id => id !== userId));
+    } catch (error) { setMessage(error instanceof Error ? error.message : 'Não foi possível remover o participante.'); }
     finally { setSending(false); }
   }
 
@@ -157,6 +189,14 @@ export function TeamChatPage({ companyId, viewerRole }: { companyId: string; vie
       <div className="team-chat-panel">
         {active ? <>
           <header><strong>{conversationName(active)}</strong><small>{active.conversation_type === 'team' ? 'Mensagens visíveis para toda a equipe' : 'Conversa privada'}</small></header>
+          {isOwner && <div className="team-chat-owner-members" aria-label="Gerenciar participantes">
+            <strong>Participantes</strong>
+            <div>{activeMembers.map(id => <span key={id} className="team-chat-member-chip">{memberName(id)} <button type="button" disabled={sending} aria-label={'Remover ' + memberName(id)} onClick={() => void removeConversationMember(id)}>×</button></span>)}</div>
+            <div className="team-chat-add-member"><select aria-label="Adicionar funcionário" value={addMemberId} onChange={event => setAddMemberId(event.target.value)}>
+              <option value="">Adicionar funcionário...</option>
+              {members.filter(member => !activeMembers.includes(member.user_id)).map(member => <option key={member.user_id} value={member.user_id}>{member.name} · {member.role}</option>)}
+            </select><button type="button" disabled={!addMemberId || sending} onClick={() => void addConversationMember()}>Adicionar</button></div>
+          </div>}
           <div className="team-chat-message-list" ref={messageArea}>
             {messages.map(item => <article key={item.id} className={'team-chat-message' + (item.sender_id === viewerId ? ' mine' : '')}>
               {item.sender_id !== viewerId && <b>{memberName(item.sender_id)}</b>}
