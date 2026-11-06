@@ -114,6 +114,7 @@ export default function App() {
   const [platformOwner, setPlatformOwner] = useState(false);
   const [availableCompanies, setAvailableCompanies] = useState<Array<{ id: string; name: string }>>([]);
   const [companyLoading, setCompanyLoading] = useState(false);
+  const [companyDiagnostic, setCompanyDiagnostic] = useState('Aguardando verificação da conta...');
   const [page, setPage] = useState<Page>(() => pageFromLocation());
 
   const navigateTo = useCallback((nextPage: Page) => {
@@ -164,6 +165,7 @@ export default function App() {
       return;
     }
     setCompany({ ...selected, role: 'owner' });
+    setCompanyDiagnostic(`Conta: ${data.user?.email ?? 'e-mail indisponível'} · ID final: ${session.user.id.slice(-8)} · Perfil global: sim · Preferência remota: ${selected.id} · Empresa ativa: ${selected.name}`);
     feedback('');
   }, [session?.user, feedback]);
 
@@ -263,6 +265,7 @@ export default function App() {
       setPlatformOwner(false);
       setAvailableCompanies([]);
       setCompanyLoading(false);
+      setCompanyDiagnostic('Sem sessão autenticada.');
       return;
     }
     setCompanyLoading(true);
@@ -295,6 +298,7 @@ export default function App() {
           if (!active) return;
           const remoteCompanyId = String(freshUserData.user?.user_metadata?.kidsloc_selected_company_id ?? '');
           const savedCompany = companyList.find(item => item.id === remoteCompanyId);
+          setCompanyDiagnostic(`Conta: ${freshUserData.user?.email ?? session.user.email ?? 'e-mail indisponível'} · ID final: ${session.user.id.slice(-8)} · Perfil global: sim · Preferência remota: ${savedCompany ? savedCompany.name : (remoteCompanyId ? 'ID não encontrado nas empresas disponíveis' : 'vazia')} · Empresa ativa: ${savedCompany ? savedCompany.name : 'nenhuma'}`);
 
           // Remove chaves locais antigas que poderiam reintroduzir uma empresa anterior.
           try {
@@ -320,9 +324,12 @@ export default function App() {
         const { data: companyData, error: companyError } = await supabase.from('companies')
           .select('id, name').eq('id', member.company_id).single();
         if (companyError) throw companyError;
-        if (active) setCompany({ id: companyData.id, name: companyData.name, role: member.role });
+        if (active) {
+          setCompanyDiagnostic(`Conta: ${session.user.email ?? 'e-mail indisponível'} · ID final: ${session.user.id.slice(-8)} · Perfil global: não · Vínculo: ${member.role} · Empresa do vínculo: ${companyData.name} · Empresa ativa: ${companyData.name}`);
+          setCompany({ id: companyData.id, name: companyData.name, role: member.role });
+        }
       } catch (error) {
-        if (active) { setCompany(null); feedback(friendlyError(error), true); }
+        if (active) { setCompany(null); setCompanyDiagnostic(`Conta: ${session.user.email ?? 'e-mail indisponível'} · ID final: ${session.user.id.slice(-8)} · Diagnóstico: ${friendlyError(error)}`); feedback(friendlyError(error), true); }
       } finally {
         window.clearTimeout(timeoutId);
         if (active) setCompanyLoading(false);
@@ -436,7 +443,7 @@ export default function App() {
   );
 
   if (companyLoading) return <main className="legacy-auth-screen"><section className="legacy-auth-card"><div className="legacy-auth-brand"><div className="legacy-auth-wordmark"><strong>KidsLoc <span>App</span></strong><small>GESTÃO DE LOCAÇÕES</small></div><div className="legacy-login-accent" /></div><div className="legacy-loading">Carregando os dados da empresa...</div></section></main>;
-  if (!company && platformOwner) return <main className="legacy-auth-screen"><section className="legacy-auth-card" style={{ width: 'min(920px, 100%)' }}><div className="legacy-auth-brand"><div className="legacy-auth-wordmark"><strong>KidsLoc <span>App</span></strong><small>GESTÃO DE LOCAÇÕES</small></div><div className="legacy-login-accent" /></div><CompanyManagementPage companies={availableCompanies} selectedCompanyId="" userId={session.user.id} onCompaniesChanged={setAvailableCompanies} onCompanySelected={created => selectCompany(created)} /><button onClick={logout} disabled={busy} className="legacy-secondary-button">Sair</button></section></main>;
+  if (!company && platformOwner) return <main className="legacy-auth-screen"><section className="legacy-auth-card" style={{ width: 'min(920px, 100%)' }}><div className="legacy-auth-brand"><div className="legacy-auth-wordmark"><strong>KidsLoc <span>App</span></strong><small>GESTÃO DE LOCAÇÕES</small></div><div className="legacy-login-accent" /></div><div style={{ margin: '12px 0', padding: '10px 12px', borderRadius: 10, background: '#fff8df', color: '#51420b', fontSize: 12, lineHeight: 1.5, overflowWrap: 'anywhere' }}><strong>Diagnóstico da conta:</strong><br />{companyDiagnostic}</div><CompanyManagementPage companies={availableCompanies} selectedCompanyId="" userId={session.user.id} onCompaniesChanged={setAvailableCompanies} onCompanySelected={created => selectCompany(created)} /><button onClick={logout} disabled={busy} className="legacy-secondary-button">Sair</button></section></main>;
   if (!company) return <main className="legacy-auth-screen"><section className="legacy-auth-card"><div className="legacy-auth-brand"><div className="legacy-auth-wordmark"><strong>KidsLoc <span>App</span></strong><small>GESTÃO DE LOCAÇÕES</small></div><div className="legacy-login-accent" /></div><h1>Acesso sem empresa vinculada</h1><p className="legacy-intro">{message || 'Esta conta não está vinculada a uma empresa.'}</p><button onClick={logout} disabled={busy} className="legacy-primary-button">Sair</button></section></main>;
 
   return (
@@ -449,7 +456,7 @@ export default function App() {
             <button type="button" className="legacy-menu-trigger" aria-label="Abrir menu" aria-expanded={menuOpen} onClick={() => setMenuOpen(value => !value)}><span /><span /><span /></button>
           </div>
         </div>
-        <div className="legacy-greeting">Olá, {userLabel} 👋<small>{company.name} · Gestão de locações sincronizada.</small>{platformOwner && <label className="legacy-company-switcher-label">Empresa selecionada<select className="legacy-company-switcher" value={company.id} onChange={event => { const selected = availableCompanies.find(item => item.id === event.target.value); if (selected) { selectCompany(selected); setPage('inicio'); } }}>{availableCompanies.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>}</div>
+        <div className="legacy-greeting">Olá, {userLabel} 👋<small>{company.name} · Gestão de locações sincronizada.</small><small style={{ display: 'block', marginTop: 4, opacity: 0.75, fontSize: 10 }}>Diagnóstico: {companyDiagnostic}</small>{platformOwner && <label className="legacy-company-switcher-label">Empresa selecionada<select className="legacy-company-switcher" value={company.id} onChange={event => { const selected = availableCompanies.find(item => item.id === event.target.value); if (selected) { selectCompany(selected); setPage('inicio'); } }}>{availableCompanies.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>}</div>
       </header>
       {menuOpen && <button className="legacy-menu-backdrop" aria-label="Fechar menu" onClick={() => setMenuOpen(false)} />}
       <nav className={menuOpen ? 'legacy-menu-panel open' : 'legacy-menu-panel'} aria-label="Menus de navegação">
