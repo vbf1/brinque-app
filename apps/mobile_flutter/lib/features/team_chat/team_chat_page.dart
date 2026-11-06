@@ -13,6 +13,7 @@ class _TeamChatPageState extends State<TeamChatPage> {
   final _client = Supabase.instance.client;
   final _composer = TextEditingController();
   List<Map<String, dynamic>> _members = [], _conversations = [], _messages = [];
+  List<String> _activeMembers = [];
   final Map<String, String> _conversationPeers = {};
   final Map<String, String> _conversationPreviews = {};
   bool get _isOwner => widget.viewerRole == 'owner';
@@ -90,8 +91,14 @@ class _TeamChatPageState extends State<TeamChatPage> {
 
   Future<void> _open(Map<String, dynamic> conversation) async {
     if (_channel != null) { await _client.removeChannel(_channel); _channel = null; }
-    setState(() { _active = conversation; _messages = []; });
+    setState(() { _active = conversation; _messages = []; _activeMembers = []; });
     final id = conversation['id'] as String;
+    if (_isOwner) {
+      try {
+        final rows = await _client.from('team_conversation_members').select('user_id').eq('conversation_id', id);
+        if (mounted && _active?['id'] == id) setState(() => _activeMembers = List<Map<String, dynamic>>.from(rows).map((row) => row['user_id'] as String).toList());
+      } catch (error) { if (mounted) setState(() => _error = error.toString()); }
+    }
     _channel = _client.channel('kidsloc-team-$id')
       .onPostgresChanges(event: PostgresChangeEvent.insert, schema: 'public', table: 'team_messages',
         filter: PostgresChangeFilter(type: PostgresChangeFilterType.eq, column: 'conversation_id', value: id),
@@ -125,6 +132,27 @@ class _TeamChatPageState extends State<TeamChatPage> {
     } catch (error) { if (mounted) setState(() => _error = 'Não foi possível iniciar a conversa: $error'); }
     finally { if (mounted) setState(() => _sending = false); }
   }
+  Future<void> _addConversationMember(String userId) async {
+    final active = _active;
+    if (active == null || !_isOwner) return;
+    setState(() { _sending = true; _error = null; });
+    try {
+      await _client.from('team_conversation_members').insert({'conversation_id': active['id'], 'company_id': widget.companyId, 'user_id': userId});
+      if (mounted) setState(() => _activeMembers = [..._activeMembers, userId]);
+    } catch (error) { if (mounted) setState(() => _error = 'Não foi possível adicionar o participante: $error'); }
+    finally { if (mounted) setState(() => _sending = false); }
+  }
+  Future<void> _removeConversationMember(String userId) async {
+    final active = _active;
+    if (active == null || !_isOwner) return;
+    setState(() { _sending = true; _error = null; });
+    try {
+      await _client.from('team_conversation_members').delete().eq('conversation_id', active['id']).eq('company_id', widget.companyId).eq('user_id', userId);
+      if (mounted) setState(() => _activeMembers = _activeMembers.where((id) => id != userId).toList());
+    } catch (error) { if (mounted) setState(() => _error = 'Não foi possível remover o participante: $error'); }
+    finally { if (mounted) setState(() => _sending = false); }
+  }
+
   Future<void> _send() async {
     final body = _composer.text.trim(), active = _active, viewer = _viewerId;
     if (body.isEmpty || active == null || viewer == null) return;
@@ -182,7 +210,9 @@ class _TeamChatPageState extends State<TeamChatPage> {
     ]);
   }
 
+  Widget _ownerParticipantControls() {\n    final available = _members.where((member) => !_activeMembers.contains(member['user_id'])).toList();\n    return Material(color: Theme.of(context).colorScheme.surfaceContainerLow, child: Padding(padding: const EdgeInsets.all(10), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [\n      Text('Participantes', style: Theme.of(context).textTheme.titleSmall),\n      const SizedBox(height: 6),\n      Wrap(spacing: 6, runSpacing: 4, children: _activeMembers.map((id) => InputChip(label: Text(_memberName(id)), onDeleted: _sending ? null : () => _removeConversationMember(id))).toList()),\n      if (available.isNotEmpty) DropdownButtonFormField<String>(initialValue: null, isExpanded: true, decoration: const InputDecoration(labelText: 'Adicionar funcionário', border: OutlineInputBorder(), isDense: true), items: available.map((member) => DropdownMenuItem<String>(value: member['user_id'] as String, child: Text('\u0024{member['name']} · \u0024{member['role']}', overflow: TextOverflow.ellipsis))).toList(), onChanged: _sending ? null : (value) { if (value != null) _addConversationMember(value); }),\n    ])));\n  }\n
   Widget _messageView() => Column(children: [
+    if (_isOwner) _ownerParticipantControls(),
     Expanded(child: ListView.builder(padding: const EdgeInsets.all(14), itemCount: _messages.length, itemBuilder: (context, index) {
       final item = _messages[index], mine = item['sender_id'] == _viewerId;
       final time = DateTime.tryParse(item['created_at'] as String? ?? '')?.toLocal();
