@@ -172,18 +172,21 @@ jobs:
           disable-linux-hw-accel: false
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
           script: |
-            APK="/tmp/kidsloc-android/build/app/outputs/flutter-apk/app-release.apk"
-            PACKAGE="br.com.sonhokids.kidsloc"
-            adb install "$APK"
-            adb root
-            adb wait-for-device
-            APP_UID="$(adb shell dumpsys package "$PACKAGE" | sed -n 's/.*userId=\\([0-9]*\\).*/\\1/p' | head -n 1 | tr -d '\\r')"
-            test -n "$APP_UID"
-            adb shell "mkdir -p /data/user/0/$PACKAGE/files && printf 'kidsloc-data-preserved' > /data/user/0/$PACKAGE/files/update-preservation-check.txt && chown -R $APP_UID:$APP_UID /data/user/0/$PACKAGE"
-            adb install -r "$APK"
-            MARKER="$(adb shell cat /data/user/0/$PACKAGE/files/update-preservation-check.txt | tr -d '\\r')"
-            test "$MARKER" = "kidsloc-data-preserved"
-            echo "Instalação assinada e reinstalação preservaram os dados privados do aplicativo."
+            bash -euo pipefail -c '
+              APK="/tmp/kidsloc-android/build/app/outputs/flutter-apk/app-release.apk"
+              PACKAGE="br.com.sonhokids.kidsloc"
+              test -s "$APK"
+              adb install "$APK"
+              adb root
+              adb wait-for-device
+              APP_UID="$(adb shell dumpsys package "$PACKAGE" | grep -oE "userId=[0-9]+" | head -n 1 | cut -d= -f2 | tr -d "\\r")"
+              test -n "$APP_UID"
+              adb shell "mkdir -p /data/user/0/$PACKAGE/files && printf kidsloc-data-preserved > /data/user/0/$PACKAGE/files/update-preservation-check.txt && chown -R $APP_UID:$APP_UID /data/user/0/$PACKAGE"
+              adb install -r "$APK"
+              MARKER="$(adb shell cat /data/user/0/$PACKAGE/files/update-preservation-check.txt | tr -d "\\r")"
+              test "$MARKER" = "kidsloc-data-preserved"
+              echo "Instalação assinada e reinstalação preservaram os dados privados do aplicativo."
+            '
 
       - name: Upload signed test APK after validation
         uses: actions/upload-artifact@v4
