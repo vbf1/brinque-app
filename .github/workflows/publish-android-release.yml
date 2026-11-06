@@ -1,0 +1,106 @@
+name: Publish KidsLoc Android Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_version:
+        description: "Versão pública, por exemplo 1.0.1"
+        required: true
+        type: string
+      release_notes:
+        description: "Resumo das novidades"
+        required: true
+        type: string
+      prerelease:
+        description: "Marcar como pré-lançamento"
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Validate version and signing secrets
+        env:
+          KIDSLOC_KEYSTORE_BASE64: \${{ secrets.KIDSLOC_KEYSTORE_BASE64 }}
+          KIDSLOC_KEYSTORE_PASSWORD: \${{ secrets.KIDSLOC_KEYSTORE_PASSWORD }}
+          KIDSLOC_KEY_ALIAS: \${{ secrets.KIDSLOC_KEY_ALIAS }}
+          KIDSLOC_KEY_PASSWORD: \${{ secrets.KIDSLOC_KEY_PASSWORD }}
+        run: |
+          python3 - <<'PY'
+          import os, re
+          version = "\${{ inputs.release_version }}"
+          if not re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+", version):
+              raise SystemExit("Use o formato X.Y.Z, por exemplo 1.0.1")
+          names = ["KIDSLOC_KEYSTORE_BASE64", "KIDSLOC_KEYSTORE_PASSWORD", "KIDSLOC_KEY_ALIAS", "KIDSLOC_KEY_PASSWORD"]
+          missing = [name for name in names if not os.environ.get(name)]
+          if missing:
+              raise SystemExit("Configure os GitHub Actions Secrets: " + ", ".join(missing))
+          PY
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Generate Android host project
+        run: |
+          flutter create --platforms=android --org br.com.sonhokids --project-name kidsloc /tmp/kidsloc-android
+          cp -R apps/mobile_flutter/lib /tmp/kidsloc-android/
+          cp -R apps/mobile_flutter/assets /tmp/kidsloc-android/
+          cp apps/mobile_flutter/pubspec.yaml /tmp/kidsloc-android/pubspec.yaml
+          cp apps/mobile_flutter/pubspec.lock /tmp/kidsloc-android/pubspec.lock
+          cp google-services.json /tmp/kidsloc-android/android/app/google-services.json
+          python3 .github/scripts/configure-preview-android.py /tmp/kidsloc-android/android
+          python3 .github/scripts/configure-release-signing.py /tmp/kidsloc-android/android
+      - name: Set release version
+        working-directory: /tmp/kidsloc-android
+        env:
+          RELEASE_VERSION: \${{ inputs.release_version }}
+          BUILD_NUMBER: \${{ github.run_number }}
+        run: |
+          python3 - <<'PY'
+          import os, re
+          from pathlib import Path
+          path = Path("pubspec.yaml")
+          content, count = re.subn(r"^version:.*$", f"version: {os.environ['RELEASE_VERSION']}+{os.environ['BUILD_NUMBER']}", path.read_text(), count=1, flags=re.M)
+          if count != 1:
+              raise SystemExit("Não foi possível definir a versão do KidsLoc")
+          path.write_text(content)
+          PY
+      - name: Resolve dependencies
+        working-directory: /tmp/kidsloc-android
+        run: flutter pub get
+      - name: Analyze and test
+        working-directory: /tmp/kidsloc-android
+        run: |
+          flutter analyze
+          flutter test
+      - name: Build signed APK
+        working-directory: /tmp/kidsloc-android
+        env:
+          KIDSLOC_KEYSTORE_BASE64: \${{ secrets.KIDSLOC_KEYSTORE_BASE64 }}
+          KIDSLOC_KEYSTORE_PASSWORD: \${{ secrets.KIDSLOC_KEYSTORE_PASSWORD }}
+          KIDSLOC_KEY_ALIAS: \${{ secrets.KIDSLOC_KEY_ALIAS }}
+          KIDSLOC_KEY_PASSWORD: \${{ secrets.KIDSLOC_KEY_PASSWORD }}
+        run: |
+          flutter build apk --release --build-number=\${GITHUB_RUN_NUMBER}
+          cp build/app/outputs/flutter-apk/app-release.apk build/app/outputs/flutter-apk/KidsLoc-\${{ inputs.release_version }}.apk
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v\${{ inputs.release_version }}
+          name: KidsLoc App v\${{ inputs.release_version }}
+          body: \${{ inputs.release_notes }}
+          prerelease: \${{ inputs.prerelease }}
+          files: /tmp/kidsloc-android/build/app/outputs/flutter-apk/KidsLoc-\${{ inputs.release_version }}.apk
