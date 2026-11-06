@@ -79,8 +79,11 @@ class _UsersPageState extends State<UsersPage> {
     return Card(margin:const EdgeInsets.only(bottom:10),child:ExpansionTile(
       leading:CircleAvatar(child:Text((name.isNotEmpty?name:email.isNotEmpty?email:'?').substring(0,1).toUpperCase())),
       title:Text(name.isEmpty?'Nome não informado':name,style:const TextStyle(fontWeight:FontWeight.w700)),
-      subtitle:Text(email.isEmpty?'E-mail não informado':email),
-      trailing:Container(padding:const EdgeInsets.symmetric(horizontal:9,vertical:6),decoration:BoxDecoration(color:Theme.of(context).colorScheme.secondaryContainer,borderRadius:BorderRadius.circular(20)),child:Text(_roles[role]??'Sem vínculo',style:Theme.of(context).textTheme.labelSmall?.copyWith(fontWeight:FontWeight.w700))),
+      subtitle:Column(crossAxisAlignment:CrossAxisAlignment.start,mainAxisSize:MainAxisSize.min,children:[
+        Text(email.isEmpty?'E-mail não informado':email,maxLines:2,overflow:TextOverflow.ellipsis),
+        const SizedBox(height:5),
+        Align(alignment:Alignment.centerLeft,child:Container(padding:const EdgeInsets.symmetric(horizontal:9,vertical:5),decoration:BoxDecoration(color:Theme.of(context).colorScheme.secondaryContainer,borderRadius:BorderRadius.circular(20)),child:Text(_roles[role]??'Sem vínculo',maxLines:1,overflow:TextOverflow.ellipsis,style:Theme.of(context).textTheme.labelSmall?.copyWith(fontWeight:FontWeight.w700)))),
+      ]),
       childrenPadding:const EdgeInsets.fromLTRB(16,0,16,16),
       children:[const Divider(),_detail('Telefone',(user['phone']??'').toString().isEmpty?'Não informado':user['phone'].toString()),_detail('Empresa',(user['company']??'').toString().isEmpty?'Sem empresa vinculada':user['company'].toString()),_detail('Data de cadastro',_date(user['registered_at'])),_detail('Último acesso',_date(user['last_sign_in_at'])),_detail('E-mail',user['email_confirmed_at']!=null?'Confirmado':'Pendente de confirmação'),_detail('Telefone confirmado',user['phone_confirmed_at']!=null?'Sim':'Não'),
         if(_isOwner&&memberships.length>1)_detail('Vínculos',memberships.map((m)=>'${m['company']} · ${_roles[m['role']]??m['role']}').join('\n')),
