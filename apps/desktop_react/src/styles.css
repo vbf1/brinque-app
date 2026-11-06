@@ -513,3 +513,28 @@ img,video,canvas{max-width:100%}
   .data-summary-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
 /* Layout regression checks: 320px–1280px viewports. */
+
+/* Small-screen refinements after responsive visual review */
+@media(max-width:390px){
+  .data-list-row{
+    grid-template-columns:minmax(0,1fr);
+    align-items:start;
+    gap:7px;
+  }
+  .data-list-row>div:first-child,
+  .data-list-row>strong,
+  .data-row-actions{
+    grid-column:1;
+  }
+  .data-list-row>strong{justify-self:start}
+  .data-row-actions{justify-content:flex-start}
+  .data-row-actions button{min-width:0;flex:1 1 110px}
+  .agenda-calendar,.agenda-day-panel{padding:10px}
+  .agenda-grid{gap:3px}
+  .agenda-day{min-height:58px;padding:6px 1px;gap:3px}
+  .agenda-day small{padding:2px 1px;font-size:8px;line-height:1.1}
+  .agenda-day.selected{padding:5px 0}
+  .team-chat-layout{min-height:0}
+  .team-chat-panel{min-height:360px}
+  .team-chat-message-list{min-height:180px;max-height:42vh}
+}
