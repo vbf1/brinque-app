@@ -9,6 +9,7 @@ on:
       - 'apps/mobile_flutter/**'
       - '.github/workflows/build-flutter-apk.yml'
       - '.github/scripts/configure-preview-android.py'
+      - '.github/scripts/configure-release-signing.py'
       - 'google-services.json'
   workflow_dispatch:
 
@@ -26,12 +27,21 @@ jobs:
         uses: subosito/flutter-action@v2
         with:
           channel: stable
+          cache: true
+          pub-cache-path: ~/.pub-cache
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '21'
+      - name: Cache Gradle dependencies
+        uses: gradle/actions/setup-gradle@v4
       - name: Generate Android host project
+        env:
+          KIDSLOC_KEYSTORE_BASE64: ${{ secrets.KIDSLOC_KEYSTORE_BASE64 }}
+          KIDSLOC_KEYSTORE_PASSWORD: ${{ secrets.KIDSLOC_KEYSTORE_PASSWORD }}
+          KIDSLOC_KEY_ALIAS: ${{ secrets.KIDSLOC_KEY_ALIAS }}
+          KIDSLOC_KEY_PASSWORD: ${{ secrets.KIDSLOC_KEY_PASSWORD }}
         run: |
           flutter create --platforms=android --org br.com.sonhokids --project-name kidsloc /tmp/kidsloc-android
           cp -R apps/mobile_flutter/lib /tmp/kidsloc-android/
@@ -42,6 +52,7 @@ jobs:
           cp apps/mobile_flutter/pubspec.lock /tmp/kidsloc-android/pubspec.lock
           cp google-services.json /tmp/kidsloc-android/android/app/google-services.json
           python3 .github/scripts/configure-preview-android.py /tmp/kidsloc-android/android
+          python3 .github/scripts/configure-release-signing.py /tmp/kidsloc-android/android
       - name: Resolve dependencies
         working-directory: /tmp/kidsloc-android
         run: flutter pub get
@@ -56,6 +67,25 @@ jobs:
         run: |
           flutter build apk --release --build-number=${GITHUB_RUN_NUMBER}
           test -s build/app/outputs/flutter-apk/app-release.apk
+      - name: Verify persistent release signature
+        working-directory: /tmp/kidsloc-android
+        env:
+          KIDSLOC_KEYSTORE_PASSWORD: ${{ secrets.KIDSLOC_KEYSTORE_PASSWORD }}
+          KIDSLOC_KEY_ALIAS: ${{ secrets.KIDSLOC_KEY_ALIAS }}
+        run: |
+          APK="build/app/outputs/flutter-apk/app-release.apk"
+          BUILD_TOOLS="$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -n 1)"
+          "$BUILD_TOOLS/apksigner" verify --verbose "$APK"
+          KEY_CERT="$(keytool -list -v -keystore android/app/kidsloc-upload.jks -storepass "$KIDSLOC_KEYSTORE_PASSWORD" -alias "$KIDSLOC_KEY_ALIAS" | sed -n 's/^[[:space:]]*SHA256: //p' | head -n 1 | tr -d ':[:space:]' | tr '[:upper:]' '[:lower:]')"
+          APK_CERT="$("$BUILD_TOOLS/apksigner" verify --print-certs "$APK" | sed -n 's/.*SHA-256 digest: //p' | head -n 1 | tr -d '[:space:]')"
+          test -n "$KEY_CERT" && test -n "$APK_CERT"
+          test "$KEY_CERT" = "$APK_CERT"
+          PACKAGE="$("$BUILD_TOOLS/aapt" dump badging "$APK" | sed -n "s/^package: name='\\([^']*\\)'.*/\\1/p")"
+          test "$PACKAGE" = "br.com.sonhokids.kidsloc"
+          echo "APK assinado com a chave permanente; pacote: $PACKAGE"
+      - name: Prepare distributable APK
+        working-directory: /tmp/kidsloc-android
+        run: |
           cp build/app/outputs/flutter-apk/app-release.apk build/app/outputs/flutter-apk/kidsloc-app.apk
           test -s build/app/outputs/flutter-apk/kidsloc-app.apk
           ls -lh build/app/outputs/flutter-apk/kidsloc-app.apk
