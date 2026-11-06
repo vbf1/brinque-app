@@ -1,4 +1,5 @@
 const { chromium } = require('playwright');
+const fs = require('node:fs');
 
 const baseUrl = process.env.KIDSLOC_BASE_URL || 'http://127.0.0.1:4173/kidsloc-app/';
 const viewports = [
@@ -42,12 +43,14 @@ const viewports = [
           cardOutside: !cardRect || cardRect.left < 0 || cardRect.right > window.innerWidth + 1,
           inputOutside: outside,
           inputCount: inputs.length,
+          logoImageVisible: !!document.querySelector('.legacy-auth-brand img'),
+          wordmarkCentered: (() => { const wordmark = document.querySelector('.legacy-auth-wordmark'); if (!wordmark) return false; const rect = wordmark.getBoundingClientRect(); return Math.abs((rect.left + rect.width / 2) - window.innerWidth / 2) < 3; })(),
         };
       });
 
       await page.screenshot({ path: `artifacts/react-${viewport.name}.png`, fullPage: true });
 
-      if (login.overflow || !login.cardVisible || login.cardOutside || login.inputOutside || pageErrors.length) {
+      if (login.overflow || !login.cardVisible || login.cardOutside || login.inputOutside || login.logoImageVisible || !login.wordmarkCentered || pageErrors.length) {
         failures++;
         console.error(`FAIL ${viewport.name}: ${JSON.stringify({ ...login, pageErrors })}`);
       } else {
@@ -65,6 +68,35 @@ const viewports = [
         failures++;
         console.error(`FAIL ${viewport.name}: não retornou ao login`);
       }
+      await page.close();
+    }
+
+    // Exercise shared layout classes used by authenticated modules without requiring production credentials.
+    const css = fs.readFileSync('apps/desktop_react/src/styles.css', 'utf8');
+    const fixture = `<!doctype html><html><head><meta name="viewport" content="width=device-width, initial-scale=1"></head><body>
+      <div class="legacy-app"><header class="legacy-header"><div class="legacy-headrow"><div class="legacy-brand"><strong>KidsLoc App</strong></div><div class="legacy-head-actions"><button>Menu</button></div></div></header>
+      <main class="legacy-main"><section class="module-shell"><div class="module-header"><div><p class="eyebrow">GESTÃO</p><h2>Brinquedos e estoque</h2></div><button>Novo cadastro</button></div>
+      <div class="module-toolbar"><input value="Pesquisa com um nome ou e-mail muito comprido para testar a largura"><button>Pesquisar</button></div>
+      <div class="data-list"><article class="data-list-row"><div><strong>Nome de cadastro com descrição extensa</strong><span>email-muito-comprido-para-testar-quebra-de-layout@example.com</span></div><strong>R$ 999.999,99</strong><div class="data-row-actions"><button>Editar</button><button>Excluir</button></div></article></div>
+      <div class="form-grid"><label>Nome<input value="Texto de teste"></label><label>E-mail<input value="usuario@example.com"></label></div>
+      <div class="agenda-layout"><section class="agenda-calendar"><div class="agenda-month-heading"><button>‹</button><h3>Setembro de 2026</h3><button>›</button></div><div class="agenda-grid">${'<div class="agenda-day">15<small>12 reservas</small></div>'.repeat(7)}</div></section><aside class="agenda-day-panel">Reservas do dia</aside></div>
+      <div class="stats-panels"><section class="stats-panel"><h3>Resumo estatístico</h3><p>Texto extenso para validar quebra e dimensionamento responsivo.</p></section></div>
+      <div class="team-chat-layout"><aside class="team-chat-sidebar">Conversas</aside><section class="team-chat-panel"><div class="team-chat-message-list">Mensagem longa de teste para validar quebra automática em larguras reduzidas.</div></section></div>
+      <section class="users-card"><div class="users-card-top"><div class="users-avatar">U</div><div class="users-primary"><strong>Usuário de teste</strong><span>email-muito-comprido-para-testar-quebra-de-layout@example.com</span></div><span class="users-role">Administrador</span></div></section>
+      </section></main></div></body></html>`;
+    for (const viewport of viewports) {
+      const page = await browser.newPage({ viewport: { width: viewport.width, height: viewport.height }, deviceScaleFactor: 1 });
+      await page.setContent(fixture, { waitUntil: 'domcontentloaded' });
+      await page.addStyleTag({ content: css });
+      const layout = await page.evaluate(() => {
+        const rectProblems = [...document.querySelectorAll('.module-shell,.data-list-row,.agenda-layout,.team-chat-layout,.users-card')].filter(el => {
+          const r = el.getBoundingClientRect(); return r.left < -1 || r.right > window.innerWidth + 1 || r.width > window.innerWidth + 1;
+        }).map(el => el.className);
+        return { viewport: window.innerWidth, documentWidth: document.documentElement.scrollWidth, overflow: document.documentElement.scrollWidth > window.innerWidth + 1, rectProblems };
+      });
+      await page.screenshot({ path: `artifacts/modules-${viewport.name}.png`, fullPage: true });
+      if (layout.overflow || layout.rectProblems.length) { failures++; console.error(`FAIL module-layout ${viewport.name}: ${JSON.stringify(layout)}`); }
+      else console.log(`PASS module-layout ${viewport.name}: componentes compartilhados dentro da largura disponível`);
       await page.close();
     }
   } finally {
