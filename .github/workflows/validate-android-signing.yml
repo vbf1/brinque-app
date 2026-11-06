@@ -50,12 +50,18 @@ jobs:
         uses: subosito/flutter-action@v2
         with:
           channel: stable
+          cache: true
+          cache-key: flutter-pub-${{ runner.os }}-${{ hashFiles('apps/mobile_flutter/pubspec.lock') }}
+          cache-path: ${{ runner.tool_cache }}/flutter-pub-cache
 
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '21'
+
+      - name: Cache Gradle dependencies
+        uses: gradle/actions/setup-gradle@v4
 
       - name: Generate Android host project
         env:
