@@ -1,0 +1,45 @@
+name: Build KidsLoc web preview
+
+on:
+  push:
+    branches:
+      - prototype/first-test-build
+    paths:
+      - 'apps/desktop_react/**'
+      - '.github/workflows/preview-react-build.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kidsloc-web-preview
+  cancel-in-progress: true
+
+jobs:
+  build-preview:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout test branch
+        uses: actions/checkout@v4
+        with:
+          ref: prototype/first-test-build
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: apps/desktop_react/package-lock.json
+      - name: Install dependencies
+        working-directory: apps/desktop_react
+        run: npm ci --no-audit --no-fund
+      - name: Build React preview
+        working-directory: apps/desktop_react
+        run: npm run build
+      - name: Upload web preview artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: KidsLoc-web-preview
+          path: apps/desktop_react/dist/
+          if-no-files-found: error
+          retention-days: 7
