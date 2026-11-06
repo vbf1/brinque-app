@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { AppSelect } from '../components/AppSelect';
 import { supabase } from '../lib/supabase';
 
 type Rental = Record<string, any>;
@@ -195,8 +196,8 @@ export function ContractsPage({ companyId, companyName }: { companyId: string; c
     <header className="module-header"><div><p className="eyebrow">DOCUMENTOS</p><h2>Contratos de locação</h2><p className="module-description">Gere contratos e acompanhe as assinaturas externas ou pelo KidsLoc.</p></div><button type="button" onClick={() => void load()}>Atualizar</button></header>
     <div className="marketing-editor">
       <h3>Novo contrato</h3>
-      <label>Locação<select value={selectedRental} onChange={event => setSelectedRental(event.target.value)}><option value="">Selecione uma locação</option>{rentals.map(rental => <option key={rental.id} value={rental.id}>#{rental.rental_number} · {rental.customers?.name ?? 'Cliente'} · {date(rental.start_date)}</option>)}</select></label>
-      <label>Modalidade de assinatura<select value={method} onChange={event => setMethod(event.target.value as 'external' | 'in_app')}><option value="external">Gov.br ou outro serviço externo</option><option value="in_app">Assinar diretamente pelo KidsLoc</option></select></label>
+      <label>Locação<AppSelect value={selectedRental} onChange={setSelectedRental} placeholder="Selecione uma locação" options={[{value:'',label:'Selecione uma locação'},...rentals.map(rental=>({value:rental.id,label:`#${rental.rental_number} · ${rental.customers?.name ?? 'Cliente'} · ${date(rental.start_date)}`}))]} /></label>
+      <label>Modalidade de assinatura<AppSelect value={method} onChange={value => setMethod(value as 'external' | 'in_app')} placeholder="Modalidade de assinatura" options={[{value:'external',label:'Gov.br ou outro serviço externo'},{value:'in_app',label:'Assinar diretamente pelo KidsLoc'}]} /></label>
       <button type="button" disabled={busy || !selectedRental} onClick={() => void createContract()}>{busy ? 'Gerando...' : 'Criar contrato'}</button>
     </div>
     {message && <p className="marketing-manual-note" role="status">{message}</p>}
