@@ -123,14 +123,27 @@ jobs:
           "$BUILD_TOOLS/apksigner" verify --verbose "$KIDSLOC_BASELINE_APK"
           NEW_CERT="$("$BUILD_TOOLS/apksigner" verify --print-certs "$APK" | sed -n 's/.*SHA-256 digest: //p' | head -n 1 | tr -d '[:space:]')"
           OLD_CERT="$("$BUILD_TOOLS/apksigner" verify --print-certs "$KIDSLOC_BASELINE_APK" | sed -n 's/.*SHA-256 digest: //p' | head -n 1 | tr -d '[:space:]')"
-          test -n "$NEW_CERT" && test "$NEW_CERT" = "$OLD_CERT"
-          "$BUILD_TOOLS/aapt" dump badging "$APK" | grep -F "package: name='br.com.sonhokids.kidsloc'"
-          "$BUILD_TOOLS/aapt" dump badging "$KIDSLOC_BASELINE_APK" | grep -F "package: name='br.com.sonhokids.kidsloc'"
-          OLD_CODE="$("$BUILD_TOOLS/aapt" dump badging "$KIDSLOC_BASELINE_APK" | sed -n "s/.*versionCode='\([^']*\)'.*/\1/p")"
-          NEW_CODE="$("$BUILD_TOOLS/aapt" dump badging "$APK" | sed -n "s/.*versionCode='\([^']*\)'.*/\1/p")"
+          echo "Certificado SHA-256 do APK novo: $NEW_CERT"
+          echo "Certificado SHA-256 da referência: $OLD_CERT"
+          if [ -z "$NEW_CERT" ] || [ -z "$OLD_CERT" ]; then
+            echo "::error::Não foi possível extrair o certificado SHA-256 de um dos APKs."
+            exit 1
+          fi
+          if [ "$NEW_CERT" != "$OLD_CERT" ]; then
+            echo "::error::Os certificados SHA-256 são diferentes. Atualização bloqueada."
+            exit 1
+          fi
+          NEW_PACKAGE="$("$BUILD_TOOLS/aapt" dump badging "$APK" | sed -n "s/^package: name='\\([^']*\\)'.*/\\1/p")"
+          OLD_PACKAGE="$("$BUILD_TOOLS/aapt" dump badging "$KIDSLOC_BASELINE_APK" | sed -n "s/^package: name='\\([^']*\\)'.*/\\1/p")"
+          OLD_CODE="$("$BUILD_TOOLS/aapt" dump badging "$KIDSLOC_BASELINE_APK" | sed -n "s/.*versionCode='\\([^']*\\)'.*/\\1/p")"
+          NEW_CODE="$("$BUILD_TOOLS/aapt" dump badging "$APK" | sed -n "s/.*versionCode='\\([^']*\\)'.*/\\1/p")"
+          echo "Package de referência: $OLD_PACKAGE; package novo: $NEW_PACKAGE"
+          echo "versionCode de referência: $OLD_CODE; versionCode novo: $NEW_CODE"
+          test "$NEW_PACKAGE" = "br.com.sonhokids.kidsloc"
+          test "$OLD_PACKAGE" = "br.com.sonhokids.kidsloc"
           test -n "$OLD_CODE" && test -n "$NEW_CODE"
           test "$NEW_CODE" -gt "$OLD_CODE"
-          echo "Certificado SHA-256 mantido; versionCode $OLD_CODE -> $NEW_CODE."
+          echo "Identidade, assinatura e versionCode confirmados."
 
       - name: Verify update preserves installed app data on Android emulator
         uses: ReactiveCircus/android-emulator-runner@v2
