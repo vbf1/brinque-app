@@ -70,6 +70,14 @@ function withTimeout<T>(promise: Promise<T>, milliseconds: number, message: stri
   });
 }
 
+function sameSessionSnapshot(left: Session | null, right: Session | null): boolean {
+  if (!left || !right) return left === right;
+  return left.access_token === right.access_token
+    && left.refresh_token === right.refresh_token
+    && left.user.id === right.user.id
+    && JSON.stringify(left.user.user_metadata) === JSON.stringify(right.user.user_metadata);
+}
+
 function friendlyError(error: unknown): string {
   const raw = error instanceof Error ? error.message : String(error ?? '');
   const value = raw.toLowerCase();
@@ -212,7 +220,7 @@ export default function App() {
         const { data, error } = await supabase.auth.getSession();
         if (!active) return;
         if (error) feedback(friendlyError(error), true);
-        setSession(data.session);
+        setSession(current => sameSessionSnapshot(current, data.session) ? current : data.session);
       } catch (error) {
         if (active) {
           setSession(null);
@@ -226,7 +234,7 @@ export default function App() {
     void initialize();
     const { data } = supabase.auth.onAuthStateChange((event, nextSession) => {
       if (!active) return;
-      setSession(nextSession);
+      setSession(current => sameSessionSnapshot(current, nextSession) ? current : nextSession);
       if (window.KidsLocNative) {
         if (nextSession && (event === 'INITIAL_SESSION' || event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED')) {
           window.KidsLocNative.postMessage(JSON.stringify({
