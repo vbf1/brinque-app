@@ -56,10 +56,17 @@ jobs:
           java-version: '21'
 
       - name: Generate Android host project
+        env:
+          KIDSLOC_KEYSTORE_BASE64: ${{ secrets.KIDSLOC_KEYSTORE_BASE64 }}
+          KIDSLOC_KEYSTORE_PASSWORD: ${{ secrets.KIDSLOC_KEYSTORE_PASSWORD }}
+          KIDSLOC_KEY_ALIAS: ${{ secrets.KIDSLOC_KEY_ALIAS }}
+          KIDSLOC_KEY_PASSWORD: ${{ secrets.KIDSLOC_KEY_PASSWORD }}
         run: |
           flutter create --platforms=android --org br.com.sonhokids --project-name kidsloc /tmp/kidsloc-android
           cp -R apps/mobile_flutter/lib /tmp/kidsloc-android/
           cp -R apps/mobile_flutter/assets /tmp/kidsloc-android/
+          rm -rf /tmp/kidsloc-android/test
+          cp -R apps/mobile_flutter/test /tmp/kidsloc-android/test
           cp apps/mobile_flutter/pubspec.yaml /tmp/kidsloc-android/pubspec.yaml
           cp apps/mobile_flutter/pubspec.lock /tmp/kidsloc-android/pubspec.lock
           cp google-services.json /tmp/kidsloc-android/android/app/google-services.json
