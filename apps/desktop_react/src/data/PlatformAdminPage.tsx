@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
 import { supabase } from '../lib/supabase';
 import { AppSelect } from '../components/AppSelect';
+import { AppConfirmDialog } from '../components/AppConfirmDialog';
 
 type Company = { id: string; name: string };
 type Membership = { id: string; company_id: string; company: string; role: string };
@@ -41,6 +42,7 @@ export function PlatformAdminPage({ currentCompanyId, companies, onCompaniesChan
   const [newMembershipRole, setNewMembershipRole] = useState('staff');
   const [membershipBusy, setMembershipBusy] = useState('');
   const [membershipMessage, setMembershipMessage] = useState('');
+  const [confirmMembership, setConfirmMembership] = useState<Membership | null>(null);
 
   const loadUsers = useCallback(async () => {
     if (!currentCompanyId) return;
@@ -205,11 +207,7 @@ export function PlatformAdminPage({ currentCompanyId, companies, onCompaniesChan
             {!user.memberships?.length ? <p className="module-empty">Esta conta não está vinculada a nenhuma empresa.</p> : user.memberships.map(membership => <div key={membership.id || membership.company + membership.role} className="users-details">
               <div><small>Empresa</small><strong>{membership.company}</strong></div>
               <label className="membership-role-field">Perfil<AppSelect value={membership.role} onChange={value => void membershipAction('platform_change_membership', { membership_id: membership.id, role: value }, membership.id)} disabled={!managementReady || !!membershipBusy} options={roles} placeholder="Perfil" /></label>
-              <button type="button" className="secondary-button" disabled={!managementReady || !!membershipBusy || membership.role === 'owner'} onClick={() => {
-                if (window.confirm('Remover o vínculo desta conta com ' + membership.company + '? A conta continuará existindo.')) {
-                  void membershipAction('platform_remove_membership', { membership_id: membership.id }, membership.id);
-                }
-              }}>{membershipBusy === membership.id ? 'Processando...' : 'Remover vínculo'}</button>
+              <button type="button" className="secondary-button" disabled={!managementReady || !!membershipBusy || membership.role === 'owner'} onClick={() => setConfirmMembership(membership)}>{membershipBusy === membership.id ? 'Processando...' : 'Remover vínculo'}</button>
             </div>)}
           </div>
         </article>)}
