@@ -95,8 +95,10 @@ jobs:
           KIDSLOC_KEYSTORE_PASSWORD: ${{ secrets.KIDSLOC_KEYSTORE_PASSWORD }}
           KIDSLOC_KEY_ALIAS: ${{ secrets.KIDSLOC_KEY_ALIAS }}
           KIDSLOC_KEY_PASSWORD: ${{ secrets.KIDSLOC_KEY_PASSWORD }}
+          RELEASE_VERSION: ${{ inputs.release_version }}
+          BUILD_NUMBER: ${{ github.run_number }}
         run: |
-          flutter build apk --release --build-number=\${GITHUB_RUN_NUMBER}
+          flutter build apk --release --build-name="${RELEASE_VERSION}" --build-number="${BUILD_NUMBER}"
           cp build/app/outputs/flutter-apk/app-release.apk build/app/outputs/flutter-apk/KidsLoc-${{ inputs.release_version }}.apk
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
