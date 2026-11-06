@@ -112,7 +112,7 @@ export function UsersPage({ companyId, viewerRole }: Props) {
       {isOwner && user.memberships?.length>1 && <div className="users-memberships"><small>Vínculos e perfis</small><strong>{user.memberships.map(item=>item.company+' · '+(roleNames[item.role]||item.role)).join(' | ')}</strong></div>}
       <div className="users-id"><small>ID da conta</small><strong>{user.id}</strong></div></div>
       {canManageTeam && user.role !== 'owner' && (isOwner || user.role === 'staff') && <div className="form-actions">
-        {isOwner && <label>Perfil<select value={user.role === 'admin' ? 'admin' : user.role === 'manager' ? 'manager' : 'staff'} disabled={saving} onChange={e=>void changeRole(user, e.target.value as 'staff'|'admin')}>
+        {isOwner && <label>Perfil<select value={user.role === 'admin' ? 'admin' : user.role === 'manager' ? 'manager' : 'staff'} disabled={saving} onChange={e=>void changeRole(user, e.target.value as 'staff'|'manager'|'admin')}>
           <option value="staff">Funcionário</option><option value="manager">Gerente</option><option value="admin">Administrador</option>
         </select></label>}
         <button type="button" className="secondary-button" disabled={saving} onClick={()=>void removeUser(user)}>Remover acesso</button>
