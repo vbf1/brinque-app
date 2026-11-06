@@ -41,22 +41,49 @@ export function RentalsPage({ companyId }: { companyId: string }) {
 
   const load = useCallback(async () => {
     setLoading(true);
-    try {
-      const [r, c, p, e] = await Promise.all([repo.fetchRentals(), repo.fetchCustomers(), repo.fetchProducts(), repo.fetchCompanyMembers()]);
-      setRentals(r as Row[]); setCustomers(c as Row[]); setProducts(p as Row[]); setEmployees(e as Row[]);
+    const results = await Promise.allSettled([
+      repo.fetchRentals(),
+      repo.fetchCustomers(),
+      repo.fetchProducts(),
+      repo.fetchCompanyMembers(),
+    ]);
+    const [rentalsResult, customersResult, productsResult, employeesResult] = results;
+    const errors: string[] = [];
+    if (rentalsResult.status === 'fulfilled') setRentals(rentalsResult.value as Row[]);
+    else errors.push('locações: ' + (rentalsResult.reason instanceof Error ? rentalsResult.reason.message : 'falha ao carregar'));
+    if (customersResult.status === 'fulfilled') setCustomers(customersResult.value as Row[]);
+    else errors.push('clientes: ' + (customersResult.reason instanceof Error ? customersResult.reason.message : 'falha ao carregar'));
+    if (productsResult.status === 'fulfilled') setProducts(productsResult.value as Row[]);
+    else errors.push('brinquedos: ' + (productsResult.reason instanceof Error ? productsResult.reason.message : 'falha ao carregar'));
+    if (employeesResult.status === 'fulfilled') {
+      const members = employeesResult.value as Row[];
+      setEmployees(members);
       const { data: auth } = await supabase.auth.getUser();
-      const currentMember = (e as Row[]).find(employee => employee.user_id === auth.user?.id);
+      const currentMember = members.find(employee => employee.user_id === auth.user?.id);
       setCanManageRentals(['owner', 'admin'].includes(currentMember?.role));
-      setMessage('');
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Não foi possível carregar as locações.');
-    } finally { setLoading(false); }
+    } else {
+      errors.push('equipe: ' + (employeesResult.reason instanceof Error ? employeesResult.reason.message : 'falha ao carregar'));
+    }
+    setMessage(errors.length ? 'Alguns dados não puderam ser carregados — ' + errors.join('; ') : '');
+    setLoading(false);
   }, [repo]);
   useEffect(() => { void load(); }, [load]);
 
   const days = Math.max(0, Math.round((new Date(`${endDate}T12:00:00`).getTime() - new Date(`${startDate}T12:00:00`).getTime()) / 86400000) + 1);
 
-  function openForm(rental?: Row) {
+  async function openForm(rental?: Row) {
+    try {
+      // Atualiza a lista ao abrir o formulário para evitar seletor vazio com dados desatualizados.
+      const latestCustomers = await repo.fetchCustomers();
+      setCustomers(latestCustomers as Row[]);
+      if (!latestCustomers.length) {
+        setMessage('Nenhum cliente cadastrado nesta empresa. Cadastre um cliente na seção Clientes e volte para criar a locação.');
+      } else {
+        setMessage('');
+      }
+    } catch (error) {
+      setMessage('Não foi possível carregar os clientes: ' + (error instanceof Error ? error.message : 'erro desconhecido'));
+    }
     setEditing(rental ?? null);
     setCustomerId(rental?.customer_id ?? '');
     setStartDate(rental?.start_date ?? isoToday());
@@ -145,7 +172,7 @@ export function RentalsPage({ companyId }: { companyId: string }) {
     {!canManageRentals && <p className="module-description">Nesta versão, a edição de locações fica restrita ao proprietário e aos administradores para preservar todos os funcionários responsáveis vinculados.</p>}
     {formOpen && <form className="customer-form rental-form" onSubmit={save}>
       <h3>{editing ? 'Editar locação' : 'Nova locação'}</h3>
-      <label>Cliente *<select required value={customerId} onChange={e => setCustomerId(e.target.value)}><option value="">Selecione o cliente</option>{customers.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select></label>
+      <label>Cliente *<select required value={customerId} onChange={e => setCustomerId(e.target.value)}><option value="">{customers.length ? 'Selecione o cliente' : 'Nenhum cliente disponível'}</option>{customers.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select>{customers.length === 0 && <small className="module-description">Cadastre primeiro em Clientes. Se já existem cadastros, atualize a página e confira a mensagem de carregamento.</small>}</label>
       <div className="form-grid">
         <label>Data de início *<input type="date" required value={startDate} onChange={e => setStartDate(e.target.value)} /></label>
         <label>Horário de início *<input type="time" required value={startTime} onChange={e => setStartTime(e.target.value)} /></label>
