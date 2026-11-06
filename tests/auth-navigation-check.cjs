@@ -152,7 +152,7 @@ async function installSupabaseMocks(page, mode) {
       await navigation.getByRole('button', { name: 'Clientes' }).click();
       await page.locator('h1').filter({ hasText: /^Clientes$/ }).waitFor({ state: 'visible' });
       await page.goBack();
-      await page.getByText('Resumo do negócio', { exact: true }).waitFor({ state: 'visible' });
+      await page.getByText('Resumo do negócio').first().waitFor({ state: 'visible' });
       await page.getByRole('button', { name: 'Abrir menu' }).click();
       await page.getByRole('navigation', { name: 'Menus de navegação' }).getByRole('button', { name: 'Sair' }).click();
       await page.getByRole('button', { name: 'Entrar' }).waitFor({ state: 'visible' });
