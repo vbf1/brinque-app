@@ -20,7 +20,7 @@ Deno.serve(async (req) => {
     const serviceKey = secretKeys.default || Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     if (!url || !anonKey || !serviceKey) return reply({ error: "Configuração segura do servidor incompleta. Verifique as chaves do Supabase." }, 500);
 
-    const token = (req.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "");
+    const token = (req.headers.get("Authorization") || "").replace(/^Bearer\\s+/i, "");
     if (!token) return reply({ error: "Sessão não identificada. Entre novamente." }, 401);
     const authClient = createClient(url, anonKey, {
       global: { headers: { Authorization: `Bearer ${token}` } },
@@ -33,12 +33,11 @@ Deno.serve(async (req) => {
     const body = await req.json();
     const action = String(body.action || "");
     const companyId = String(body.company_id || "");
-    if (!companyId) return reply({ error: "Empresa não identificada." }, 400);
 
     const { data: isPlatformOwner, error: ownerCheckError } = await authClient.rpc("is_platform_owner");
     if (ownerCheckError) throw ownerCheckError;
     let callerRole: string | null = isPlatformOwner ? "owner" : null;
-    if (!isPlatformOwner) {
+    if (!isPlatformOwner && companyId) {
       const { data: caller, error: callerError } = await admin.from("company_members")
         .select("role").eq("company_id", companyId).eq("user_id", authData.user.id).maybeSingle();
       if (callerError) throw callerError;
@@ -103,6 +102,12 @@ Deno.serve(async (req) => {
         if (deleteError) throw deleteError;
         return reply({ message: "Vínculo removido. A conta do usuário foi preservada." });
       }
+    }
+
+    // Only the global user directory may run without a company context.
+    // All other employee actions remain strictly company-scoped.
+    if (!companyId && action !== "list_users") {
+      return reply({ error: "Empresa não identificada." }, 400);
     }
 
     if (!callerRole || !["owner", "admin"].includes(callerRole)) {
@@ -188,7 +193,7 @@ Deno.serve(async (req) => {
       const email = String(body.email || "").trim().toLowerCase();
       const role = String(body.role || "staff");
       if (name.length < 2 || name.length > 100) return reply({ error: "Informe um nome entre 2 e 100 caracteres." }, 400);
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return reply({ error: "Informe um e-mail válido." }, 400);
+      if (!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email)) return reply({ error: "Informe um e-mail válido." }, 400);
       if (!["staff", "admin"].includes(role)) return reply({ error: "Perfil solicitado inválido." }, 400);
       if (role === "admin" && callerRole !== "owner") return reply({ error: "Somente o proprietário pode cadastrar administradores." }, 403);
 
