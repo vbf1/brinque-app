@@ -418,11 +418,11 @@ export default function App() {
   const isPublicCheckout = new URLSearchParams(window.location.search).has('checkout') || window.location.pathname.split('/').filter(Boolean).at(-1) === 'checkout';
   if (isPublicCheckout) return <CheckoutPage />;
 
-  if (loading) return <main className="legacy-auth-screen"><section className="legacy-auth-card"><div className="legacy-auth-brand"><img src={`${import.meta.env.BASE_URL}kidsloc-brand.webp`} alt="KidsLoc App" /><div className="legacy-auth-wordmark"><strong>KidsLoc <span>App</span></strong><small>GESTÃO DE LOCAÇÕES</small></div><div className="legacy-login-accent" /></div><p className="legacy-muted">Acesse sua empresa</p><div className="legacy-loading">Verificando sua sessão e preparando o aplicativo...</div></section></main>;
+  if (loading) return <main className="legacy-auth-screen"><section className="legacy-auth-card"><div className="legacy-auth-brand"><div className="legacy-auth-wordmark"><strong>KidsLoc <span>App</span></strong><small>GESTÃO DE LOCAÇÕES</small></div><div className="legacy-login-accent" /></div><p className="legacy-muted">Acesse sua empresa</p><div className="legacy-loading">Verificando sua sessão e preparando o aplicativo...</div></section></main>;
 
   if (recovery && session) return (
     <main className="legacy-auth-screen"><section className="legacy-auth-card">
-      <div className="legacy-auth-brand"><img src={`${import.meta.env.BASE_URL}kidsloc-brand.webp`} alt="KidsLoc App" /><div className="legacy-auth-wordmark"><strong>KidsLoc <span>App</span></strong><small>GESTÃO DE LOCAÇÕES</small></div><div className="legacy-login-accent" /></div><p className="legacy-muted">GESTÃO DE LOCAÇÕES</p><h1>Definir nova senha</h1>
+      <div className="legacy-auth-brand"><div className="legacy-auth-wordmark"><strong>KidsLoc <span>App</span></strong><small>GESTÃO DE LOCAÇÕES</small></div><div className="legacy-login-accent" /></div><p className="legacy-muted">GESTÃO DE LOCAÇÕES</p><h1>Definir nova senha</h1>
       <form onSubmit={updatePassword} className="legacy-form">
         <label htmlFor="new-password">Nova senha</label>
         <input id="new-password" type="password" autoComplete="new-password" value={newPassword} onChange={e => setNewPassword(e.target.value)} required minLength={6} placeholder="Digite a nova senha" />
@@ -436,7 +436,7 @@ export default function App() {
 
   if (!session) return (
     <main className="legacy-auth-screen"><section className="legacy-auth-card">
-      <div className="legacy-auth-brand"><img src={`${import.meta.env.BASE_URL}kidsloc-brand.webp`} alt="KidsLoc App" /><div className="legacy-auth-wordmark"><strong>KidsLoc <span>App</span></strong><small>GESTÃO DE LOCAÇÕES</small></div><div className="legacy-login-accent" /></div>
+      <div className="legacy-auth-brand"><div className="legacy-auth-wordmark"><strong>KidsLoc <span>App</span></strong><small>GESTÃO DE LOCAÇÕES</small></div><div className="legacy-login-accent" /></div>
       {forgot && <><h1>Recuperar senha</h1><p className="legacy-intro">Informe o e-mail da conta para receber o link de recuperação.</p></>}
       {forgot ? (
         <form onSubmit={requestReset} className="legacy-form">
@@ -457,15 +457,15 @@ export default function App() {
     </section></main>
   );
 
-  if (companyLoading) return <main className="legacy-auth-screen"><section className="legacy-auth-card"><div className="legacy-auth-brand"><img src={`${import.meta.env.BASE_URL}kidsloc-brand.webp`} alt="KidsLoc App" /><div className="legacy-auth-wordmark"><strong>KidsLoc <span>App</span></strong><small>GESTÃO DE LOCAÇÕES</small></div><div className="legacy-login-accent" /></div><div className="legacy-loading">Carregando os dados da empresa...</div></section></main>;
-  if (!company && platformOwner) return <main className="legacy-auth-screen"><section className="legacy-auth-card" style={{ width: 'min(900px, 100%)' }}><div className="legacy-auth-brand"><img src={`${import.meta.env.BASE_URL}kidsloc-brand.webp`} alt="KidsLoc App" /><div className="legacy-auth-wordmark"><strong>KidsLoc <span>App</span></strong><small>GESTÃO DE LOCAÇÕES</small></div><div className="legacy-login-accent" /></div><PlatformAdminPage currentCompanyId="" companies={availableCompanies} onCompaniesChanged={setAvailableCompanies} onSelectCompany={selected => setCompany({ ...selected, role: 'owner' })} /><button onClick={logout} disabled={busy} className="legacy-secondary-button">Sair</button></section></main>;
-  if (!company) return <main className="legacy-auth-screen"><section className="legacy-auth-card"><div className="legacy-auth-brand"><img src={`${import.meta.env.BASE_URL}kidsloc-brand.webp`} alt="KidsLoc App" /><div className="legacy-auth-wordmark"><strong>KidsLoc <span>App</span></strong><small>GESTÃO DE LOCAÇÕES</small></div><div className="legacy-login-accent" /></div><h1>Acesso sem empresa vinculada</h1><p className="legacy-intro">{message || 'Esta conta não está vinculada a uma empresa.'}</p><button onClick={logout} disabled={busy} className="legacy-primary-button">Sair</button></section></main>;
+  if (companyLoading) return <main className="legacy-auth-screen"><section className="legacy-auth-card"><div className="legacy-auth-brand"><div className="legacy-auth-wordmark"><strong>KidsLoc <span>App</span></strong><small>GESTÃO DE LOCAÇÕES</small></div><div className="legacy-login-accent" /></div><div className="legacy-loading">Carregando os dados da empresa...</div></section></main>;
+  if (!company && platformOwner) return <main className="legacy-auth-screen"><section className="legacy-auth-card" style={{ width: 'min(900px, 100%)' }}><div className="legacy-auth-brand"><div className="legacy-auth-wordmark"><strong>KidsLoc <span>App</span></strong><small>GESTÃO DE LOCAÇÕES</small></div><div className="legacy-login-accent" /></div><PlatformAdminPage currentCompanyId="" companies={availableCompanies} onCompaniesChanged={setAvailableCompanies} onSelectCompany={selected => setCompany({ ...selected, role: 'owner' })} /><button onClick={logout} disabled={busy} className="legacy-secondary-button">Sair</button></section></main>;
+  if (!company) return <main className="legacy-auth-screen"><section className="legacy-auth-card"><div className="legacy-auth-brand"><div className="legacy-auth-wordmark"><strong>KidsLoc <span>App</span></strong><small>GESTÃO DE LOCAÇÕES</small></div><div className="legacy-login-accent" /></div><h1>Acesso sem empresa vinculada</h1><p className="legacy-intro">{message || 'Esta conta não está vinculada a uma empresa.'}</p><button onClick={logout} disabled={busy} className="legacy-primary-button">Sair</button></section></main>;
 
   return (
     <div className="legacy-app">
       <header className="legacy-header">
         <div className="legacy-headrow">
-          <div className="legacy-brand"><div className="legacy-logo"><img src={`${import.meta.env.BASE_URL}kidsloc-brand.webp`} alt="KidsLoc App" /></div><div><strong>KIDSLOC APP</strong><span>GESTÃO DE LOCAÇÕES</span></div></div>
+          <div className="legacy-brand"><div className="legacy-logo"></div><div><strong>KIDSLOC APP</strong><span>GESTÃO DE LOCAÇÕES</span></div></div>
           <div className="legacy-head-actions">
             <button type="button" className="legacy-theme-button" aria-label={theme === 'dark' ? 'Ativar tema claro' : 'Ativar tema escuro'} title={theme === 'dark' ? 'Tema claro' : 'Tema escuro'} onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>{theme === 'dark' ? '☾' : '☀'}</button>
             <button type="button" className="legacy-help-button" title="Ver tutorial do aplicativo" onClick={openTour}>Ajuda</button>
