@@ -12,7 +12,7 @@ type Props = {
 };
 
 export function CompanyManagementPage({ companies, selectedCompanyId, userId, onCompanySelected, onCompaniesChanged }: Props) {
-  const selected = companies.find(company => company.id === selectedCompanyId) ?? companies[0] ?? null;
+  const selected = companies.find(company => company.id === selectedCompanyId) ?? null;
   const [newCompanyName, setNewCompanyName] = useState('');
   const [companyName, setCompanyName] = useState(selected?.name ?? '');
   const [members, setMembers] = useState<Member[]>([]);
@@ -142,6 +142,7 @@ export function CompanyManagementPage({ companies, selectedCompanyId, userId, on
     <div className="module-header" style={{ marginTop: 24 }}><div><h2>Empresas cadastradas ({companies.length})</h2><p className="module-description">Selecione uma empresa para editar seus dados e gerenciar sua equipe.</p></div></div>
     <div className="users-filters">
       <select aria-label="Selecionar empresa" value={selected?.id ?? ''} onChange={event => { const item = companies.find(company => company.id === event.target.value); if (item) onCompanySelected(item); }}>
+        {!selected && <option value="">Selecione uma empresa</option>}
         {companies.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}
       </select>
     </div>
