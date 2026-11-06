@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { AppSelect } from '../components/AppSelect';
 import { createCompanyDataRepository } from './companyDataRepository';
 import { supabase } from '../lib/supabase';
 
@@ -100,9 +101,9 @@ export function FinancePage({ companyId }: { companyId: string }) {
     <div className="data-summary-grid"><article className="data-summary"><span>Entradas</span><strong>{money(income)}</strong></article><article className="data-summary"><span>Saídas</span><strong>{money(expense)}</strong></article><article className="data-summary"><span>Saldo registrado</span><strong>{money(income-expense)}</strong></article></div>
     {paymentOpen && <form className="data-form" onSubmit={registerPayment}>
       <h2>Registrar recebimento e emitir recibo</h2>
-      <label>Locação<select required value={paymentRentalId} onChange={event => setPaymentRentalId(event.target.value)}><option value="">Selecione a locação</option>{rentals.map(r => <option key={r.id} value={r.id}>#{r.rental_number} · {r.customers?.name || 'Cliente'} · {money(Number(r.total_amount))}</option>)}</select></label>
+      <label>Locação<AppSelect required value={paymentRentalId} onChange={setPaymentRentalId} placeholder="Selecione a locação" options={[{value:'',label:'Selecione a locação'},...rentals.map(r=>({value:r.id,label:`#${r.rental_number} · ${r.customers?.name || 'Cliente'} · ${money(Number(r.total_amount))}`}))]} /></label>
       <label>Valor recebido (R$)<input required inputMode="decimal" value={paymentAmount} onChange={event => setPaymentAmount(event.target.value)} placeholder="0,00" /></label>
-      <label>Forma de pagamento<select value={paymentMethod} onChange={event => setPaymentMethod(event.target.value)}><option value="pix">Pix</option><option value="cash">Dinheiro</option><option value="card">Cartão</option><option value="bank_transfer">Transferência bancária</option><option value="other">Outro</option></select></label>
+      <label>Forma de pagamento<AppSelect value={paymentMethod} onChange={setPaymentMethod} placeholder="Forma de pagamento" options={[{value:'pix',label:'Pix'},{value:'cash',label:'Dinheiro'},{value:'card',label:'Cartão'},{value:'bank_transfer',label:'Transferência bancária'},{value:'other',label:'Outro'}]} /></label>
       <label>Observações<input value={paymentNotes} onChange={event => setPaymentNotes(event.target.value)} maxLength={300} /></label>
       <div className="data-form-actions"><button disabled={busy} type="submit">{busy ? 'Registrando...' : 'Confirmar pagamento e gerar recibo'}</button><button className="secondary-button" type="button" onClick={() => setPaymentOpen(false)}>Cancelar</button></div>
       <small>O recebimento será lançado no financeiro, vinculado à locação, e um documento de recibo será registrado.</small>
@@ -110,7 +111,7 @@ export function FinancePage({ companyId }: { companyId: string }) {
     {formOpen ? <form className="data-form" onSubmit={save}>
       <h2>{editing ? 'Editar lançamento' : 'Novo lançamento'}</h2>
       <label>Descrição<input value={description} onChange={event => setDescription(event.target.value)} required maxLength={160} placeholder="Ex.: Combustível" /></label>
-      <label>Tipo<select value={type} onChange={event => setType(event.target.value as 'income' | 'expense')}><option value="income">Entrada</option><option value="expense">Saída</option></select></label>
+      <label>Tipo<AppSelect value={type} onChange={value => setType(value as 'income' | 'expense')} placeholder="Tipo de lançamento" options={[{value:'income',label:'Entrada'},{value:'expense',label:'Saída'}]} /></label>
       <label>Valor (R$)<input value={amount} onChange={event => setAmount(event.target.value)} inputMode="decimal" required placeholder="0,00" /></label>
       <div className="data-form-actions"><button disabled={busy} type="submit">{busy ? 'Salvando...' : 'Salvar'}</button><button className="secondary-button" type="button" onClick={() => { setFormOpen(false); setEditing(null); setDescription(''); setAmount(''); }}>Cancelar</button></div>
     </form> : null}
