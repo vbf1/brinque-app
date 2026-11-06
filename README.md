@@ -1,34 +1,93 @@
 # KidsLoc App — Sonho Kids Brinquedos
 
-Aplicativo web instalável (PWA), preparado para publicação no GitHub Pages e conexão com Supabase.
+Sistema de gestão de locações de brinquedos da Sonho Kids Brinquedos. O repositório contém a aplicação web React/TypeScript, um projeto Android Flutter em evolução, funções serverless Supabase, migrações SQL e testes automatizados.
 
-## O que esta versão conecta
-- Login por e-mail e senha com Supabase Auth.
-- Identificação da empresa e do perfil (proprietário/funcionário) por `company_members`.
-- Cadastro e leitura em nuvem de clientes, brinquedos, locações, itens das locações e lançamentos financeiros.
-- Atualização dos dados ao entrar no aplicativo.
-- Sessão de login persistente no aparelho.
-- Tela para criar uma nova senha ao abrir um link de recuperação enviado pelo Supabase.
+> **Estado importante:** a aplicação web React é o fluxo funcional publicado. O projeto Flutter possui módulos nativos, mas o fluxo principal do APK atualmente abre a aplicação web dentro de uma WebView. A ativação do shell Flutter nativo depende de paridade funcional e validação aprovadas. Consulte [a auditoria de paridade](docs/mobile-web-parity-audit.md).
+
+## Estrutura do repositório
+
+```text
+apps/
+  desktop_react/       # React + TypeScript + Vite
+  mobile_flutter/      # Aplicativo Android Flutter e módulos nativos
+supabase/
+  functions/           # Edge Functions
+  migrations/          # Arquivos SQL versionados
+tests/                 # Verificações automatizadas existentes
+docs/                  # Arquitetura, produto, segurança e operação
+.github/workflows/     # CI, validações, APK e publicação web
+```
+
+## Tecnologias e serviços
+- Web: React 19, TypeScript 5.8 e Vite 6.
+- Android: Flutter/Dart, com WebView no fluxo principal atual.
+- Backend: Supabase Auth, PostgreSQL, PostgREST/RPC, Storage e Edge Functions.
+- Push: Firebase Cloud Messaging está integrado ao projeto; o estado de validação do fluxo nativo deve ser conferido antes de qualquer promessa de funcionamento.
+- CI: GitHub Actions.
+
+## Executar a aplicação web
+
+Requisitos: Node.js 22 (conforme workflows) e npm.
+
+```sh
+cd apps/desktop_react
+npm ci
+npm run dev
+```
+
+Build de produção local:
+
+```sh
+npm run build
+npm run preview
+```
+
+O build executa `tsc -b && vite build`. As configurações Supabase são fornecidas por variáveis de ambiente; consulte `apps/desktop_react/.env.example`. Nunca use chaves secret/service_role no cliente.
+
+## Executar o projeto Flutter
+
+Requisitos: Flutter estável compatível com Dart 3.9+, Android SDK e Java 21 para o pipeline Android.
+
+```sh
+cd apps/mobile_flutter
+flutter pub get
+flutter analyze
+flutter test
+flutter run
+```
+
+O workflow de APK gera o projeto host Android durante a execução e valida o pacote `br.com.sonhokids.kidsloc` e a assinatura configurada no CI. Não substitua a chave de assinatura.
+
+## Backend Supabase
+O Supabase existente é o backend compartilhado. A aplicação usa SDKs cliente, APIs PostgREST/RPC, Auth e Storage; isso não significa acesso SQL direto pelo navegador ou pelo APK. As regras de acesso dependem de RLS e das validações das Edge Functions.
+
+Consulte:
+- [Arquitetura](docs/architecture.md)
+- [Contratos e API](docs/api.md)
+- [Segurança](docs/security.md)
+- [Inventário de migrações](docs/database-migration-inventory.md)
+
+## Testes e validação
+
+```sh
+cd apps/desktop_react
+npm ci
+npm run build
+```
+
+```sh
+cd apps/mobile_flutter
+flutter pub get
+flutter analyze
+flutter test
+```
+
+Os testes React adicionais existentes ficam em `tests/` e são executados pelo workflow visual. Consulte [Testing](docs/testing.md) para o escopo e as limitações atuais. Não considere um workflow antigo como prova de validação do HEAD atual.
 
 ## Publicação
-1. Envie `index.html`, `manifest.webmanifest`, `sw.js` e `README.md` para a raiz do repositório GitHub.
-2. No GitHub, abra **Settings → Pages**.
-3. Em **Build and deployment**, escolha **Deploy from a branch**, branch `main` e pasta `/ (root)`.
-4. Salve e aguarde o endereço HTTPS do GitHub Pages.
+A publicação web é automatizada pelo workflow `.github/workflows/deploy-react-pages.yml` em pushes na `main` que alteram a aplicação React. O APK é construído pelo workflow `.github/workflows/build-flutter-apk.yml`. Não faça merge, push, deploy ou release sem aprovação explícita.
 
-## Supabase
-A aplicação usa a URL do projeto e a chave pública `publishable` no navegador. Isso é esperado para aplicações Supabase; a proteção dos dados depende de Auth e RLS no banco. Nunca coloque `service_role` ou `sb_secret` no código do navegador.
+URL web atual: https://vbf1.github.io/kidsloc-app/
 
-As contas precisam existir em **Authentication → Users** e estar vinculadas à empresa em `company_members`.
-
-## Recuperação de senha
-Ao abrir o link de recuperação enviado pelo Supabase, o aplicativo reconhece o evento `PASSWORD_RECOVERY` e exibe o formulário para cadastrar e confirmar uma nova senha. O endereço `https://vbf1.github.io/kidsloc-app/` deve estar cadastrado em **Authentication → URL Configuration → Site URL** e em **Redirect URLs**.
-
-## Limitações importantes desta etapa
-- A locação registra o intervalo como um único dia (data do evento).
-- A disponibilidade é estimada com base nas locações já gravadas; ainda não existe bloqueio transacional para duas pessoas salvarem simultaneamente a última unidade. Confirme o estoque antes de aceitar uma reserva concorrente.
-- Controle individual por número de série/unidade, pagamentos integrados, contratos e assinatura digital ainda não estão implementados.
-- Esta versão não migra automaticamente cadastros antigos guardados no `localStorage`. Antes da primeira sincronização, o app guarda uma cópia dos dados locais antigos no armazenamento do navegador (`brq_legacy_backup_v1`), mas não os importa automaticamente.
-
-## Uso
-Abra o endereço HTTPS publicado, entre com a conta já cadastrada e adicione o aplicativo à tela inicial pelo menu do navegador.
+## Regras para contribuições
+Leia primeiro [AGENTS.md](AGENTS.md). Mudanças devem ser pequenas, compatíveis, testadas e documentadas. Não executar migrações nem alterar dados, RLS, autenticação, assinatura Android, secrets ou publicação sem aprovação específica.
