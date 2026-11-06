@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { supabase } from '../lib/supabase';
 import { AppSelect } from '../components/AppSelect';
+import { AppConfirmDialog } from '../components/AppConfirmDialog';
 
 type Photo = { id: string; storage_path: string; url: string };
 type Occurrence = {
@@ -32,6 +33,8 @@ export function OccurrencesPage({ companyId, role }: { companyId: string; role: 
   const [currentUserId, setCurrentUserId] = useState('');
   const [form, setForm] = useState(emptyForm);
   const [files, setFiles] = useState<File[]>([]);
+  const [pendingPhoto, setPendingPhoto] = useState<Photo | null>(null);
+  const [pendingOccurrence, setPendingOccurrence] = useState<Occurrence | null>(null);
   const isAdmin = role === 'owner' || role === 'admin';
 
   async function load() {
@@ -138,7 +141,8 @@ export function OccurrencesPage({ companyId, role }: { companyId: string; role: 
   }
 
   async function removePhoto(photo: Photo) {
-    if (!editing || !window.confirm('Excluir esta foto da ocorrência?')) return;
+    if (!editing) return;
+    setPendingPhoto(null);
     setBusy(true); setError('');
     try {
       const { error: storageError } = await supabase.storage.from('occurrence-photos').remove([photo.storage_path]);
@@ -155,7 +159,7 @@ export function OccurrencesPage({ companyId, role }: { companyId: string; role: 
   async function remove(item: Occurrence) {
     const { data: auth } = await supabase.auth.getUser();
     if (!auth.user || (!isAdmin && item.created_by !== auth.user.id)) { setError('Você não tem permissão para excluir este relato.'); return; }
-    if (!window.confirm('Excluir esta ocorrência e todas as fotos anexadas permanentemente?')) return;
+    setPendingOccurrence(null);
     setBusy(true); setError('');
     try {
       if (item.photos.length) {
@@ -170,6 +174,8 @@ export function OccurrencesPage({ companyId, role }: { companyId: string; role: 
   }
 
   return <section className="data-page">
+    <AppConfirmDialog open={!!pendingPhoto} title="Excluir foto?" description="Esta imagem será removida permanentemente das evidências da ocorrência." confirmLabel="Excluir foto" busy={busy} onCancel={() => setPendingPhoto(null)} onConfirm={() => { if (pendingPhoto) void removePhoto(pendingPhoto); }} />
+    <AppConfirmDialog open={!!pendingOccurrence} title="Excluir ocorrência?" description="O relato e todas as fotos anexadas serão removidos permanentemente. Essa ação não poderá ser desfeita." confirmLabel="Excluir ocorrência" busy={busy} onCancel={() => setPendingOccurrence(null)} onConfirm={() => { if (pendingOccurrence) void remove(pendingOccurrence); }} />
     <div className="data-page-heading"><div><p className="eyebrow">REGISTROS OPERACIONAIS</p><h1>Ocorrências</h1><p>Relatos, gravidade, prejuízos e evidências em um só lugar.</p></div>
       <button type="button" onClick={() => open()}>＋ Novo relato</button></div>
     {error && <p className="feedback error" role="alert">{error}</p>}
@@ -184,9 +190,9 @@ export function OccurrencesPage({ companyId, role }: { companyId: string; role: 
         <label>Descrição<textarea disabled={!!editing && !canManage(editing)} rows={5} maxLength={6000} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} required /></label>
         <label>Prejuízo estimado (R$), opcional<input disabled={!!editing && !canManage(editing)} type="number" min="0" step="0.01" value={form.loss_amount} onChange={(e) => setForm({ ...form, loss_amount: e.target.value })} /></label>
         {(!editing || canManage(editing)) && <label>Fotos e evidências (JPG, PNG ou WEBP; até 8 MB por foto)<input type="file" accept="image/jpeg,image/png,image/webp" multiple onChange={(e) => setFiles(Array.from(e.target.files ?? []))} /></label>}
-        {editing?.photos.map((photo) => <div className="data-row-actions" key={photo.id}><a href={photo.url} target="_blank" rel="noreferrer">Abrir foto</a>{editing && canManage(editing) && <button type="button" className="danger-button" disabled={busy} onClick={() => void removePhoto(photo)}>Excluir foto</button>}</div>)}
+        {editing?.photos.map((photo) => <div className="data-row-actions" key={photo.id}><a href={photo.url} target="_blank" rel="noreferrer">Abrir foto</a>{editing && canManage(editing) && <button type="button" className="danger-button" disabled={busy} onClick={() => setPendingPhoto(photo)}>Excluir foto</button>}</div>)}
         <div className="data-form-actions">{(!editing || canManage(editing)) && <button disabled={busy} type="submit">{busy ? 'Salvando...' : 'Salvar ocorrência'}</button>}<button type="button" className="secondary-button" onClick={() => { setEditing(null); setShowForm(false); setForm(emptyForm); setFiles([]); }}>Fechar</button>
-          {editing && canManage(editing) && <button type="button" className="danger-button" disabled={busy} onClick={() => void remove(editing)}>Excluir ocorrência</button>}
+          {editing && canManage(editing) && <button type="button" className="danger-button" disabled={busy} onClick={() => setPendingOccurrence(editing)}>Excluir ocorrência</button>}
         </div>
       </form>
     ) : null}
