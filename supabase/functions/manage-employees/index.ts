@@ -126,7 +126,7 @@ Deno.serve(async (req) => {
       const role = String(body.role || "staff");
       if (name.length < 2 || name.length > 100) return reply({ error: "Informe um nome entre 2 e 100 caracteres." }, 400);
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return reply({ error: "Informe um e-mail válido." }, 400);
-      if (!["staff", "admin"].includes(role)) return reply({ error: "Perfil solicitado inválido." }, 400);
+      if (!["staff", "manager", "admin"].includes(role)) return reply({ error: "Perfil solicitado inválido." }, 400);
       if (role === "admin" && callerRole !== "owner") return reply({ error: "Somente o proprietário pode cadastrar administradores." }, 403);
 
       const [{ data: company, error: companyError }, { data: inviterProfile }] = await Promise.all([
@@ -141,7 +141,7 @@ Deno.serve(async (req) => {
         authData.user.email ||
         "Equipe da empresa"
       ).trim();
-      const roleLabel = role === "admin" ? "Administrador" : "Funcionário";
+      const roleLabel = role === "admin" ? "Administrador" : role === "manager" ? "Gerente" : "Funcionário";
 
       const { data: invited, error: inviteError } = await admin.auth.admin.inviteUserByEmail(email, {
         data: {
@@ -182,7 +182,7 @@ Deno.serve(async (req) => {
     if (action === "change_role") {
       const targetId = String(body.user_id || "");
       const newRole = String(body.role || "");
-      if (!targetId || !["staff", "admin"].includes(newRole)) return reply({ error: "Dados de alteração inválidos." }, 400);
+      if (!targetId || !["staff", "manager", "admin"].includes(newRole)) return reply({ error: "Dados de alteração inválidos." }, 400);
       if (targetId === authData.user.id) return reply({ error: "Você não pode alterar seu próprio perfil." }, 403);
       const { data: target, error } = await admin.from("company_members").select("id,role")
         .eq("company_id", companyId).eq("user_id", targetId).maybeSingle();
