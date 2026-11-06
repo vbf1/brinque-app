@@ -1,3 +1,4 @@
+// Authenticated company selection is covered by the companion company-selection check.
 const { chromium } = require('playwright');
 const fs = require('node:fs');
 
