@@ -210,7 +210,28 @@ class _TeamChatPageState extends State<TeamChatPage> {
     ]);
   }
 
-  Widget _ownerParticipantControls() {\n    final available = _members.where((member) => !_activeMembers.contains(member['user_id'])).toList();\n    return Material(color: Theme.of(context).colorScheme.surfaceContainerLow, child: Padding(padding: const EdgeInsets.all(10), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [\n      Text('Participantes', style: Theme.of(context).textTheme.titleSmall),\n      const SizedBox(height: 6),\n      Wrap(spacing: 6, runSpacing: 4, children: _activeMembers.map((id) => InputChip(label: Text(_memberName(id)), onDeleted: _sending ? null : () => _removeConversationMember(id))).toList()),\n      if (available.isNotEmpty) DropdownButtonFormField<String>(initialValue: null, isExpanded: true, decoration: const InputDecoration(labelText: 'Adicionar funcionário', border: OutlineInputBorder(), isDense: true), items: available.map((member) => DropdownMenuItem<String>(value: member['user_id'] as String, child: Text('\u0024{member['name']} · \u0024{member['role']}', overflow: TextOverflow.ellipsis))).toList(), onChanged: _sending ? null : (value) { if (value != null) _addConversationMember(value); }),\n    ])));\n  }\n
+  Widget _ownerParticipantControls() {
+    final available = _members.where((member) => !_activeMembers.contains(member['user_id'])).toList();
+    return Material(
+      color: Theme.of(context).colorScheme.surfaceContainerLow,
+      child: Padding(padding: const EdgeInsets.all(10), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text('Participantes', style: Theme.of(context).textTheme.titleSmall),
+        const SizedBox(height: 6),
+        Wrap(spacing: 6, runSpacing: 4, children: _activeMembers.map((id) => InputChip(
+          label: Text(_memberName(id)), onDeleted: _sending ? null : () => _removeConversationMember(id),
+        )).toList()),
+        if (available.isNotEmpty) DropdownButtonFormField<String>(
+          initialValue: null, isExpanded: true,
+          decoration: const InputDecoration(labelText: 'Adicionar funcionário', border: OutlineInputBorder(), isDense: true),
+          items: available.map((member) => DropdownMenuItem<String>(
+            value: member['user_id'] as String,
+            child: Text('${member['name']} · ${member['role']}', overflow: TextOverflow.ellipsis),
+          )).toList(),
+          onChanged: _sending ? null : (value) { if (value != null) _addConversationMember(value); },
+        ),
+      ])),
+    );
+  }
   Widget _messageView() => Column(children: [
     if (_isOwner) _ownerParticipantControls(),
     Expanded(child: ListView.builder(padding: const EdgeInsets.all(14), itemCount: _messages.length, itemBuilder: (context, index) {
