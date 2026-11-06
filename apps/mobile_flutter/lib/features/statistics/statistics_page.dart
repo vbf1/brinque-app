@@ -147,8 +147,8 @@ class _StatisticsPageState extends State<StatisticsPage> {
     child: ListTile(
       dense: true,
       leading: CircleAvatar(radius: 16, child: Text('$rank', style: const TextStyle(fontSize: 12))),
-      title: Text(title),
-      trailing: Text(detail, style: Theme.of(context).textTheme.bodySmall),
+      title: Text(title, maxLines: 2, overflow: TextOverflow.ellipsis),
+      subtitle: Text(detail, maxLines: 2, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.bodySmall),
     ),
   );
 
@@ -158,10 +158,14 @@ class _StatisticsPageState extends State<StatisticsPage> {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 7),
       child: Row(children: [
-        SizedBox(width: 52, child: Text(label, style: Theme.of(context).textTheme.bodySmall)),
+        SizedBox(width: 46, child: Text(label, style: Theme.of(context).textTheme.bodySmall)),
         Expanded(child: LinearProgressIndicator(value: max <= 0 ? 0 : (value / max).toDouble(), minHeight: 9)),
-        const SizedBox(width: 10),
-        SizedBox(width: 92, child: Text(_money(value), textAlign: TextAlign.end, style: Theme.of(context).textTheme.bodySmall)),
+        const SizedBox(width: 8),
+        Flexible(flex: 3, child: FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.centerRight,
+          child: Text(_money(value), textAlign: TextAlign.end, style: Theme.of(context).textTheme.bodySmall),
+        )),
       ]),
     );
   }
