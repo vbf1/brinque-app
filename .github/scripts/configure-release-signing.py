@@ -16,53 +16,64 @@ if missing:
     raise SystemExit("Missing GitHub Actions signing secrets: " + ", ".join(missing))
 
 keystore = android_root / "app" / "kidsloc-upload.jks"
-keystore.write_bytes(base64.b64decode(os.environ["KIDSLOC_KEYSTORE_BASE64"], validate=True))
+try:
+    decoded = base64.b64decode(os.environ["KIDSLOC_KEYSTORE_BASE64"], validate=True)
+except Exception as error:
+    raise SystemExit("KIDSLOC_KEYSTORE_BASE64 não contém Base64 válido") from error
+if not decoded:
+    raise SystemExit("O keystore codificado está vazio")
+keystore.write_bytes(decoded)
 
 app_gradle = android_root / "app" / "build.gradle.kts"
 text = app_gradle.read_text()
 
-signing_block = """
-    signingConfigs {
-        create("kidslocRelease") {
-            storeFile = file("kidsloc-upload.jks")
-            storePassword = System.getenv("KIDSLOC_KEYSTORE_PASSWORD")
-            keyAlias = System.getenv("KIDSLOC_KEY_ALIAS")
-            keyPassword = System.getenv("KIDSLOC_KEY_PASSWORD")
-        }
-    }
-"""
+android_match = re.search(r"(?m)^([ \t]*)android[ \t]*\{", text)
+if not android_match:
+    raise SystemExit("Could not find the Android Gradle configuration block")
+
+signing_block = (
+    '\n    signingConfigs {\n'
+    '        create("kidslocRelease") {\n'
+    '            storeFile = file("kidsloc-upload.jks")\n'
+    '            storePassword = System.getenv("KIDSLOC_KEYSTORE_PASSWORD")\n'
+    '            keyAlias = System.getenv("KIDSLOC_KEY_ALIAS")\n'
+    '            keyPassword = System.getenv("KIDSLOC_KEY_PASSWORD")\n'
+    '        }\n'
+    '    }\n'
+)
 
 if 'create("kidslocRelease")' not in text:
-    if not re.search(r"^android\s*\{", text, re.MULTILINE):
-        raise SystemExit("Could not find the Android Gradle configuration block")
-    text = re.sub(
-        r"^android\s*\{",
-        lambda match: match.group(0) + signing_block,
-        text,
-        count=1,
-        flags=re.MULTILINE,
-    )
+    insert_at = android_match.end()
+    text = text[:insert_at] + signing_block + text[insert_at:]
 
-# Flutter's generated Kotlin Gradle template may indent release differently
-# across versions. Match the release block structurally instead of fixed spaces.
-release_match = re.search(r"(?m)^(\s*)release\s*\{", text)
+release_match = re.search(r"(?m)^([ \t]*)release[ \t]*\{", text)
 if not release_match:
     raise SystemExit("Could not find buildTypes.release in app/build.gradle.kts")
 
-indent = release_match.group(1) + "    "
-release_start = release_match.end()
-release_end = text.find("\n" + release_match.group(1) + "}", release_start)
-if release_end == -1:
+# Find the matching closing brace by counting braces from the release block.
+open_brace = text.find("{", release_match.start(), release_match.end())
+depth = 0
+release_end = None
+for index in range(open_brace, len(text)):
+    if text[index] == "{":
+        depth += 1
+    elif text[index] == "}":
+        depth -= 1
+        if depth == 0:
+            release_end = index
+            break
+if release_end is None:
     raise SystemExit("Could not determine the end of buildTypes.release")
 
-release_body = text[release_start:release_end]
+release_body = text[open_brace + 1:release_end]
 release_body = re.sub(
-    r"(?m)^\s*signingConfig\s*=\s*signingConfigs\.getByName\([^)]*\)\s*\n?",
+    r"(?m)^[ \t]*signingConfig[ \t]*=[ \t]*signingConfigs\.getByName\([^)]*\)[ \t]*\n?",
     "",
     release_body,
 )
+indent = release_match.group(1) + "    "
 release_body = "\n" + indent + 'signingConfig = signingConfigs.getByName("kidslocRelease")\n' + release_body.lstrip("\n")
-text = text[:release_start] + release_body + text[release_end:]
+text = text[:open_brace + 1] + release_body + text[release_end:]
 
 if 'signingConfig = signingConfigs.getByName("kidslocRelease")' not in text:
     raise SystemExit("Release signing configuration was not applied")
