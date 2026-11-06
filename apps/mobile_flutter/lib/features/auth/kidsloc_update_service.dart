@@ -19,11 +19,18 @@ class KidsLocRelease {
   final Uri apkUrl;
 
   factory KidsLocRelease.fromJson(Map<String, dynamic> json) {
-    final assets = (json['assets'] as List<dynamic>? ?? const []);
-    final apk = assets.cast<Map<String, dynamic>>().where((asset) {
-      final name = (asset['name'] ?? '').toString().toLowerCase();
-      return name.endsWith('.apk') && asset['browser_download_url'] is String;
-    }).firstOrNull;
+    final assets = json['assets'] as List<dynamic>? ?? const [];
+    Map<String, dynamic>? apk;
+    for (final item in assets) {
+      if (item is Map) {
+        final asset = Map<String, dynamic>.from(item);
+        final assetName = (asset['name'] ?? '').toString().toLowerCase();
+        if (assetName.endsWith('.apk') && asset['browser_download_url'] is String) {
+          apk = asset;
+          break;
+        }
+      }
+    }
     if (apk == null) throw const FormatException('Esta versão não possui APK.');
     final tag = (json['tag_name'] ?? '').toString();
     return KidsLocRelease(
@@ -93,7 +100,7 @@ class KidsLocUpdateService {
         await for (final chunk in response.stream) {
           sink.add(chunk);
           received += chunk.length;
-          if (total > 0) onProgress((received / total).clamp(0.0, 1.0));
+          if (total > 0) onProgress((received / total).clamp(0.0, 1.0).toDouble());
         }
         await sink.flush();
       } finally {
