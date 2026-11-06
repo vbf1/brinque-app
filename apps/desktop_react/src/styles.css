@@ -564,3 +564,19 @@ select:focus-visible{outline:3px solid #3478e52b;outline-offset:1px}
  .data-toolbar{grid-template-columns:1fr}
  .data-toolbar input{grid-column:auto}
 }
+
+
+/* Refinamento da experiência de seleção e diálogos no celular. */
+.app-select-search-wrap{padding:10px 14px 2px;border-bottom:1px solid var(--line)}
+.app-select-search-wrap input{width:100%;min-height:42px;padding:10px 12px;border:1px solid var(--line);border-radius:11px;background:var(--bg);color:var(--ink);font:inherit;font-size:13px}
+.app-select-search-wrap input:focus{outline:3px solid #3478e533;border-color:var(--blue)}
+.app-select-dialog{max-height:min(70dvh,610px)}
+.app-select-menu{min-height:0}
+.app-select-option:focus-visible{outline:3px solid #3478e544;outline-offset:1px;border-color:var(--blue)}
+.app-select-overlay{overscroll-behavior:contain}
+@media(max-width:600px){
+ .app-select-dialog{max-height:min(64dvh,540px);border-radius:19px 19px 0 0}
+ .app-select-dialog-header{gap:10px;padding:12px 14px 10px}
+ .app-select-dialog-mark{flex-basis:34px;width:34px;height:34px}
+ .app-select-dialog-footer{padding:8px 14px}
+}
