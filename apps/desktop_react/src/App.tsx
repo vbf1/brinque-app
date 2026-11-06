@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { supabase } from './lib/supabase';
+import { persistCompanySelection, resolveCompanyAccess } from './lib/companySelection';
 import { CustomersPage } from './data/CustomersPage';
 import { ProductsPage } from './data/ProductsPage';
 import { RentalsPage } from './data/RentalsPage';
@@ -151,31 +152,20 @@ export default function App() {
     setIsError(error);
   }, []);
 
-  // A preferência remota da conta é a única fonte persistente da empresa ativa.
-  // Não usamos localStorage para restaurar empresas antigas ou divergentes entre sessões.
+  // The dedicated company-selection service is the single owner of persistence/verification.
   const selectCompany = useCallback(async (selected: { id: string; name: string }) => {
-    if (!session?.user) return;
-    const selectedAt = new Date().toISOString();
-    const { data, error } = await supabase.auth.updateUser({
-      data: {
-        ...session.user.user_metadata,
-        kidsloc_selected_company_id: selected.id,
-        kidsloc_selected_company_at: selectedAt,
-      },
-    });
-    if (error) {
-      feedback('Não foi possível salvar sua empresa selecionada na conta. Tente novamente.', true);
-      return;
+    if (!session) return;
+    try {
+      const { selectedAt, user } = await persistCompanySelection(session, selected);
+      setCompany({ ...selected, role: 'owner' });
+      setCompanyDiagnostic(
+        `Conta: ${user.email ?? 'e-mail indisponível'} · Perfil global: confirmado · Preferência: ${selected.id} · Empresa ativa: ${selected.name} · Salva em: ${selectedAt}`,
+      );
+      feedback('');
+    } catch (error) {
+      feedback('Não foi possível confirmar a empresa selecionada: ' + friendlyError(error), true);
     }
-    const savedId = String(data.user?.user_metadata?.kidsloc_selected_company_id ?? '');
-    if (savedId !== selected.id) {
-      feedback('A seleção não foi confirmada pelo servidor. Tente selecionar a empresa novamente.', true);
-      return;
-    }
-    setCompany({ ...selected, role: 'owner' });
-    setCompanyDiagnostic(`Conta: ${data.user?.email ?? 'e-mail indisponível'} · ID final: ${session.user.id.slice(-8)} · Perfil global: sim · Preferência remota: ${selected.id} · Empresa ativa: ${selected.name}`);
-    feedback('');
-  }, [session?.user, feedback]);
+  }, [session, feedback]);
 
   useEffect(() => {
     document.body.dataset.theme = theme === 'dark' ? 'dark' : '';
@@ -276,6 +266,12 @@ export default function App() {
       setCompanyDiagnostic('Sem sessão autenticada.');
       return;
     }
+
+    // Start every account resolution from a neutral state. No company is active
+    // while the server decides whether this account is an owner or a member.
+    setCompany(null);
+    setPlatformOwner(false);
+    setAvailableCompanies([]);
     setCompanyLoading(true);
     const timeoutId = window.setTimeout(() => {
       if (active) {
@@ -283,72 +279,49 @@ export default function App() {
         feedback('O carregamento dos dados da empresa demorou mais que o esperado. Atualize a página ou tente novamente.', true);
       }
     }, 15000);
+
     void (async () => {
       try {
-        const { data: isGlobalOwner, error: ownerCheckError } = await supabase.rpc('is_platform_owner');
-        if (ownerCheckError) throw ownerCheckError;
-        if (isGlobalOwner) {
-          const { data: companyList, error: companiesError } = await supabase.from('companies')
-            .select('id, name').order('name', { ascending: true });
-          if (companiesError) throw companiesError;
-          if (!active) return;
+        const access = await resolveCompanyAccess(session);
+        if (!active) return;
+
+        setCompanyDiagnostic(access.diagnostic);
+        if (access.kind === 'platform-owner') {
           setPlatformOwner(true);
-          setAvailableCompanies(companyList ?? []);
-          if (!companyList?.length) {
-            setCompany(null);
-            feedback('Nenhuma empresa cadastrada. Acesse Gerenciar empresa e usuários para criar a primeira.', true);
-            return;
+          setAvailableCompanies(access.companies);
+          setCompany(access.selectedCompany);
+          if (!access.selectedCompany) {
+            feedback(
+              access.companies.length
+                ? 'Selecione manualmente a empresa que deseja acessar.'
+                : 'Nenhuma empresa cadastrada. Crie a primeira empresa para começar.',
+            );
+          } else {
+            feedback('');
           }
-          // Restaura somente a preferência confirmada no perfil remoto.
-          // Preferências antigas do navegador são ignoradas: sem escolha salva, fica sem empresa.
-          const { data: freshUserData, error: freshUserError } = await supabase.auth.getUser();
-          if (freshUserError) throw freshUserError;
-          if (!active) return;
-          const remoteCompanyId = String(freshUserData.user?.user_metadata?.kidsloc_selected_company_id ?? '');
-          const remoteCompanySelectedAt = String(freshUserData.user?.user_metadata?.kidsloc_selected_company_at ?? '');
-          const selectedAtTimestamp = Date.parse(remoteCompanySelectedAt);
-          // Restore only a preference written by the explicit selection flow.
-          // Incomplete legacy IDs must not silently become a default company.
-          const hasConfirmedPreference = Boolean(remoteCompanyId && remoteCompanySelectedAt && Number.isFinite(selectedAtTimestamp));
-          const savedCompany = hasConfirmedPreference ? companyList.find(item => item.id === remoteCompanyId) : undefined;
-          const preferenceDiagnostic = !remoteCompanyId ? 'vazia' : !hasConfirmedPreference ? 'antiga/incompleta ignorada' : savedCompany ? savedCompany.name : 'ID não encontrado nas empresas disponíveis';
-          setCompanyDiagnostic('Conta: ' + (freshUserData.user?.email ?? session.user.email ?? 'e-mail indisponível') + ' · ID final: ' + session.user.id.slice(-8) + ' · Perfil global: sim · Preferência remota: ' + preferenceDiagnostic + ' · Empresa ativa: ' + (savedCompany ? savedCompany.name : 'nenhuma'));
-
-          // Remove chaves locais antigas que poderiam reintroduzir uma empresa anterior.
-          try {
-            window.localStorage.removeItem(`kidsloc_selected_company_${session.user.id}`);
-            window.localStorage.removeItem(`kidsloc_selected_company_${session.user.id}_at`);
-          } catch { /* armazenamento local opcional */ }
-
-          if (!savedCompany) {
-            setCompany(null);
-            feedback('Selecione a empresa que deseja acessar.');
-            return;
-          }
-          setCompany({ id: savedCompany.id, name: savedCompany.name, role: 'owner' });
-          feedback('');
           return;
         }
+
         setPlatformOwner(false);
         setAvailableCompanies([]);
-        const { data: member, error: memberError } = await supabase.from('company_members')
-          .select('company_id, role').eq('user_id', session.user.id).limit(1).maybeSingle();
-        if (memberError) throw memberError;
-        if (!member) throw new Error('Esta conta ainda não está vinculada a uma empresa. Peça ao proprietário para conferir seu acesso.');
-        const { data: companyData, error: companyError } = await supabase.from('companies')
-          .select('id, name').eq('id', member.company_id).single();
-        if (companyError) throw companyError;
-        if (active) {
-          setCompanyDiagnostic(`Conta: ${session.user.email ?? 'e-mail indisponível'} · ID final: ${session.user.id.slice(-8)} · Perfil global: não · Vínculo: ${member.role} · Empresa do vínculo: ${companyData.name} · Empresa ativa: ${companyData.name}`);
-          setCompany({ id: companyData.id, name: companyData.name, role: member.role });
-        }
+        setCompany(access.selectedCompany);
+        feedback('');
       } catch (error) {
-        if (active) { setCompany(null); setCompanyDiagnostic(`Conta: ${session.user.email ?? 'e-mail indisponível'} · ID final: ${session.user.id.slice(-8)} · Diagnóstico: ${friendlyError(error)}`); feedback(friendlyError(error), true); }
+        if (active) {
+          setCompany(null);
+          setPlatformOwner(false);
+          setAvailableCompanies([]);
+          setCompanyDiagnostic(
+            `Conta: ${session.user.email ?? 'e-mail indisponível'} · Diagnóstico: ${friendlyError(error)}`,
+          );
+          feedback(friendlyError(error), true);
+        }
       } finally {
         window.clearTimeout(timeoutId);
         if (active) setCompanyLoading(false);
       }
     })();
+
     return () => {
       active = false;
       window.clearTimeout(timeoutId);
