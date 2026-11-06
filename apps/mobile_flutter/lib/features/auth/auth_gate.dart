@@ -21,6 +21,9 @@ class _AuthGateState extends State<AuthGate> {
   double _progress = 0;
   String? _error;
   bool _dialogOpen = false;
+  StateSetter? _dialogSetState;
+
+  void _refreshDialog() => _dialogSetState?.call(() {});
 
   @override
   void initState() {
@@ -53,7 +56,10 @@ class _AuthGateState extends State<AuthGate> {
     await showDialog<void>(
       context: context,
       barrierDismissible: !_downloading,
-      builder: (dialogContext) => PopScope(
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, dialogSetState) {
+          _dialogSetState = dialogSetState;
+          return PopScope(
         canPop: !_downloading,
         child: AlertDialog(
           icon: const Icon(Icons.system_update_alt_rounded, color: Color(0xFF218653), size: 34),
@@ -96,8 +102,11 @@ class _AuthGateState extends State<AuthGate> {
             ),
           ],
         ),
+      );
+        },
       ),
     );
+    _dialogSetState = null;
     _dialogOpen = false;
   }
 
@@ -105,11 +114,15 @@ class _AuthGateState extends State<AuthGate> {
     final release = _release;
     if (release == null || !mounted) return;
     setState(() { _downloading = true; _progress = 0; _error = null; });
+    _refreshDialog();
     try {
       final apk = await _updates.downloadApk(
         release,
         onProgress: (value) {
-          if (mounted) setState(() => _progress = value);
+          if (mounted) {
+            setState(() => _progress = value);
+            _refreshDialog();
+          }
         },
       );
       if (!mounted) return;
@@ -119,14 +132,24 @@ class _AuthGateState extends State<AuthGate> {
           _error = 'O Android abriu a autorização para instalar apps desta origem. Permita a instalação e toque em “Atualizar agora” novamente.';
           _downloading = false;
         });
+        _refreshDialog();
         return;
       }
     } on PlatformException catch (error) {
-      if (mounted) setState(() => _error = error.message ?? 'O Android não conseguiu iniciar a instalação.');
+      if (mounted) {
+        setState(() => _error = error.message ?? 'O Android não conseguiu iniciar a instalação.');
+        _refreshDialog();
+      }
     } catch (error) {
-      if (mounted) setState(() => _error = 'Não foi possível atualizar: $error');
+      if (mounted) {
+        setState(() => _error = 'Não foi possível atualizar: $error');
+        _refreshDialog();
+      }
     } finally {
-      if (mounted && _downloading) setState(() => _downloading = false);
+      if (mounted && _downloading) {
+        setState(() => _downloading = false);
+        _refreshDialog();
+      }
     }
   }
 
