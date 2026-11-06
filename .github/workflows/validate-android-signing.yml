@@ -63,6 +63,8 @@ jobs:
           flutter create --platforms=android --org br.com.sonhokids --project-name kidsloc /tmp/kidsloc-android
           cp -R apps/mobile_flutter/lib /tmp/kidsloc-android/
           cp -R apps/mobile_flutter/assets /tmp/kidsloc-android/
+          rm -rf /tmp/kidsloc-android/test
+          cp -R apps/mobile_flutter/test /tmp/kidsloc-android/
           cp apps/mobile_flutter/pubspec.yaml /tmp/kidsloc-android/pubspec.yaml
           cp apps/mobile_flutter/pubspec.lock /tmp/kidsloc-android/pubspec.lock
           cp google-services.json /tmp/kidsloc-android/android/app/google-services.json
