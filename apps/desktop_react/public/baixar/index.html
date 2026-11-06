@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#f7b928">
+  <title>Baixar KidsLoc App</title>
+  <style>
+    *{box-sizing:border-box}body{margin:0;min-height:100vh;background:linear-gradient(145deg,#fff9e9,#f2f7ff);font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif;color:#172033;display:grid;place-items:center;padding:24px}
+    main{width:min(100%,520px);background:#fff;border:1px solid #e8edf5;border-radius:26px;padding:34px;box-shadow:0 22px 70px #1c35551a;text-align:center}
+    .logo{width:88px;height:88px;object-fit:contain;border-radius:22px;margin:0 auto 16px}
+    h1{font-size:28px;margin:0 0 8px;letter-spacing:-.7px}.sub{color:#657187;line-height:1.6;margin:0 auto 24px;max-width:390px}
+    .version{display:inline-flex;background:#fff5d7;color:#825b00;border-radius:999px;padding:7px 13px;font-size:13px;font-weight:700;margin-bottom:18px}
+    a.primary{display:flex;align-items:center;justify-content:center;gap:10px;text-decoration:none;background:#f5b51b;color:#241b08;font-weight:800;padding:16px 20px;border-radius:14px;min-height:54px;transition:transform .15s,opacity .15s}
+    a.primary:hover{transform:translateY(-1px)}a.disabled{opacity:.5;pointer-events:none}
+    .status{font-size:14px;color:#68758b;line-height:1.5;margin:16px 0 0;min-height:22px}
+    .notes{margin-top:22px;text-align:left;background:#f7f9fc;border-radius:14px;padding:15px;color:#58657a;font-size:13px;line-height:1.55;white-space:pre-wrap;display:none}
+    .help{margin-top:24px;font-size:13px;color:#7b8799}.help a{color:#355fa8}
+    @media(max-width:480px){main{padding:27px 21px;border-radius:21px}h1{font-size:25px}}
+  </style>
+</head>
+<body>
+<main>
+  <img class="logo" src="../assets/kidsloc-brand.webp" alt="KidsLoc App">
+  <h1>KidsLoc App</h1>
+  <p class="sub">Aplicativo de gestão de locações da Sonho Kids Brinquedos. Baixe a versão oficial e acesse com seu usuário e senha.</p>
+  <div id="version" class="version">Verificando versão...</div>
+  <a id="download" class="primary disabled" href="https://github.com/vbf1/kidsloc-app/releases/latest">Preparando download</a>
+  <p id="status" class="status" role="status" aria-live="polite">Buscando a versão estável mais recente...</p>
+  <div id="notes" class="notes"></div>
+  <p class="help">Após baixar, abra o arquivo e permita a instalação quando o Android solicitar. Se precisar, <a href="https://github.com/vbf1/kidsloc-app/releases/latest">acesse as versões publicadas aqui</a>.</p>
+</main>
+<script>
+(async()=>{
+  const api='https://api.github.com/repos/vbf1/kidsloc-app/releases/latest';
+  const link=document.getElementById('download'),status=document.getElementById('status'),version=document.getElementById('version'),notes=document.getElementById('notes');
+  try{
+    const response=await fetch(api,{headers:{Accept:'application/vnd.github+json'}});
+    if(response.status===404){version.textContent='Primeira versão em preparação';link.textContent='Ver página de versões';status.textContent='O APK ainda não foi publicado. Volte a este mesmo endereço quando a equipe liberar a primeira versão.';return;}
+    if(!response.ok)throw new Error('Não foi possível consultar as versões agora.');
+    const release=await response.json();
+    const apk=(release.assets||[]).find(asset=>String(asset.name||'').toLowerCase().endsWith('.apk'));
+    if(!apk){version.textContent='APK ainda não disponível';link.textContent='Abrir página de versões';status.textContent='A versão foi criada, mas o arquivo APK ainda não está anexado.';return;}
+    version.textContent='Versão '+String(release.tag_name||'').replace(/^v/,'');
+    link.href=apk.browser_download_url;link.textContent='⬇ Baixar KidsLoc App para Android';link.classList.remove('disabled');
+    const mb=(apk.size/1024/1024).toFixed(1);
+    status.textContent='Arquivo oficial · '+mb+' MB · Atualizado em '+new Date(release.published_at||release.created_at).toLocaleDateString('pt-BR');
+    if(release.body){notes.style.display='block';notes.textContent='Novidades desta versão\n'+release.body;}
+  }catch(error){version.textContent='Download disponível pelo GitHub';link.textContent='Abrir página oficial de versões';status.textContent=error.message+' Você também pode acessar diretamente a página oficial de versões.';}
+})();
+</script>
+</body>
+</html>
