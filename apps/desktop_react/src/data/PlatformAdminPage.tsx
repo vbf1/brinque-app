@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
 import { supabase } from '../lib/supabase';
+import { AppSelect } from '../components/AppSelect';
 
 type Company = { id: string; name: string };
 type Membership = { id: string; company_id: string; company: string; role: string };
@@ -189,14 +190,9 @@ export function PlatformAdminPage({ currentCompanyId, companies, onCompaniesChan
       <form className="customer-form" onSubmit={addMembership}>
         <h3>Vincular conta a uma empresa</h3>
         <p className="module-description">Vincule uma conta já cadastrada e escolha o nível de acesso. Isso não cria uma nova conta nem envia convite.</p>
-        <label>Conta<select value={newMembershipUser} onChange={event => setNewMembershipUser(event.target.value)} required>
-          <option value="">Selecione uma conta</option>
-          {users.map(user => <option key={user.id} value={user.id}>{user.name || user.email} · {user.email}</option>)}
-        </select></label>
-        <label>Empresa<select value={newMembershipCompany} onChange={event => setNewMembershipCompany(event.target.value)} required>
-          <option value="">Selecione uma empresa</option>{companies.map(company => <option key={company.id} value={company.id}>{company.name}</option>)}
-        </select></label>
-        <label>Perfil<select value={newMembershipRole} onChange={event => setNewMembershipRole(event.target.value)}>{roles.map(role => <option key={role.value} value={role.value}>{role.label}</option>)}</select></label>
+        <label>Conta<AppSelect value={newMembershipUser} onChange={setNewMembershipUser} required placeholder="Selecione uma conta" options={users.map(user => ({ value: user.id, label: `${user.name || user.email} · ${user.email}` }))} /></label>
+        <label>Empresa<AppSelect value={newMembershipCompany} onChange={setNewMembershipCompany} required placeholder="Selecione uma empresa" options={companies.map(company => ({ value: company.id, label: company.name }))} /></label>
+        <label>Perfil<AppSelect value={newMembershipRole} onChange={setNewMembershipRole} options={roles} placeholder="Selecione o perfil" /></label>
         <div className="form-actions"><button type="submit" disabled={!managementReady || membershipBusy === 'add' || !newMembershipUser || !newMembershipCompany}>{membershipBusy === 'add' ? 'Vinculando...' : 'Vincular usuário'}</button></div>
       </form>
       <div className="users-filters"><input aria-label="Buscar conta" value={userSearch} onChange={event => setUserSearch(event.target.value)} placeholder="Buscar por nome, e-mail, telefone ou ID..." /><button type="button" className="secondary-button" onClick={() => void loadUsers()} disabled={usersLoading}>↻ Atualizar</button></div>
@@ -208,9 +204,7 @@ export function PlatformAdminPage({ currentCompanyId, companies, onCompaniesChan
           <div className="users-memberships"><strong>Vínculos com empresas</strong>
             {!user.memberships?.length ? <p className="module-empty">Esta conta não está vinculada a nenhuma empresa.</p> : user.memberships.map(membership => <div key={membership.id || membership.company + membership.role} className="users-details">
               <div><small>Empresa</small><strong>{membership.company}</strong></div>
-              <label style={{ display: 'grid', gap: 6, minWidth: 180 }}>Perfil<select value={membership.role} onChange={event => void membershipAction('platform_change_membership', { membership_id: membership.id, role: event.target.value }, membership.id)} disabled={!managementReady || !!membershipBusy}>
-                {roles.map(role => <option key={role.value} value={role.value}>{role.label}</option>)}
-              </select></label>
+              <label className="membership-role-field">Perfil<AppSelect value={membership.role} onChange={value => void membershipAction('platform_change_membership', { membership_id: membership.id, role: value }, membership.id)} disabled={!managementReady || !!membershipBusy} options={roles} placeholder="Perfil" /></label>
               <button type="button" className="secondary-button" disabled={!managementReady || !!membershipBusy || membership.role === 'owner'} onClick={() => {
                 if (window.confirm('Remover o vínculo desta conta com ' + membership.company + '? A conta continuará existindo.')) {
                   void membershipAction('platform_remove_membership', { membership_id: membership.id }, membership.id);
