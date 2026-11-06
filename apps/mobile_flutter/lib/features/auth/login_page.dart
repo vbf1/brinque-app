@@ -126,8 +126,6 @@ class _LoginPageState extends State<LoginPage> {
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Image.asset('assets/kidsloc-brand.webp', width: 116, height: 116, fit: BoxFit.contain),
-                        const SizedBox(height: 8),
                         RichText(textAlign: TextAlign.center, text: TextSpan(
                           style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900, letterSpacing: -0.8),
                           children: const [TextSpan(text: 'KidsLoc '), TextSpan(text: 'App', style: TextStyle(color: Color(0xFF3478E5)))],
