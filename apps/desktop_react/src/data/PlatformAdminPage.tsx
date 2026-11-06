@@ -143,6 +143,7 @@ export function PlatformAdminPage({ currentCompanyId, companies, onCompaniesChan
   }
 
   return <section className="module-content platform-admin-page">
+    <AppConfirmDialog open={!!confirmMembership} title="Remover vínculo da empresa?" description={confirmMembership ? "A conta deixará de ter acesso à empresa " + confirmMembership.company + ". A conta de usuário continuará existindo." : ""} confirmLabel="Remover vínculo" busy={!!membershipBusy} onCancel={() => setConfirmMembership(null)} onConfirm={() => { if (confirmMembership) { const item = confirmMembership; setConfirmMembership(null); void membershipAction("platform_remove_membership", { membership_id: item.id }, item.id); } }} />
     <div className="module-header">
       <div><h2>Administração da plataforma</h2><p className="module-description">Gerencie as empresas cadastradas e os acessos das contas em toda a plataforma.</p></div>
       <span className="users-role role-owner">Proprietário global</span>
