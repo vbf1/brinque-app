@@ -263,7 +263,25 @@ export default function App() {
             feedback('Nenhuma empresa cadastrada. Acesse Gerenciar empresa e usuários para criar a primeira.', true);
             return;
           }
-          setCompany({ id: companyList[0].id, name: companyList[0].name, role: 'owner' });
+          // Para o proprietário da plataforma, prioriza a empresa em que sua conta
+          // já possui vínculo administrativo. Isso evita abrir outra empresa por ordem alfabética.
+          const { data: memberships, error: membershipsError } = await supabase
+            .from('company_members')
+            .select('company_id, role')
+            .eq('user_id', session.user.id);
+          if (membershipsError) throw membershipsError;
+          const preferenceKey = `kidsloc_selected_company_${session.user.id}`;
+          let savedCompanyId = '';
+          try { savedCompanyId = window.localStorage.getItem(preferenceKey) ?? ''; } catch { /* preferência opcional */ }
+          const savedCompany = companyList.find(item => item.id === savedCompanyId);
+          const adminMembership = (memberships ?? []).find(member =>
+            ['owner', 'admin'].includes(member.role) && companyList.some(item => item.id === member.company_id),
+          );
+          const defaultCompany = savedCompany
+            ?? companyList.find(item => item.id === adminMembership?.company_id)
+            ?? companyList[0];
+          try { window.localStorage.setItem(preferenceKey, defaultCompany.id); } catch { /* preferência opcional */ }
+          setCompany({ id: defaultCompany.id, name: defaultCompany.name, role: 'owner' });
           feedback('');
           return;
         }
@@ -405,7 +423,7 @@ export default function App() {
             <button type="button" className="legacy-menu-trigger" aria-label="Abrir menu" aria-expanded={menuOpen} onClick={() => setMenuOpen(value => !value)}><span /><span /><span /></button>
           </div>
         </div>
-        <div className="legacy-greeting">Olá, {userLabel} 👋<small>{company.name} · Gestão de locações sincronizada.</small>{platformOwner && <label className="legacy-company-switcher-label">Empresa selecionada<select className="legacy-company-switcher" value={company.id} onChange={event => { const selected = availableCompanies.find(item => item.id === event.target.value); if (selected) { setCompany({ ...selected, role: 'owner' }); setPage('inicio'); } }}>{availableCompanies.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>}</div>
+        <div className="legacy-greeting">Olá, {userLabel} 👋<small>{company.name} · Gestão de locações sincronizada.</small>{platformOwner && <label className="legacy-company-switcher-label">Empresa selecionada<select className="legacy-company-switcher" value={company.id} onChange={event => { const selected = availableCompanies.find(item => item.id === event.target.value); if (selected) { try { window.localStorage.setItem(`kidsloc_selected_company_${session.user.id}`, selected.id); } catch { /* preferência opcional */ } setCompany({ ...selected, role: 'owner' }); setPage('inicio'); } }}>{availableCompanies.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>}</div>
       </header>
       {menuOpen && <button className="legacy-menu-backdrop" aria-label="Fechar menu" onClick={() => setMenuOpen(false)} />}
       <nav className={menuOpen ? 'legacy-menu-panel open' : 'legacy-menu-panel'} aria-label="Menus de navegação">
