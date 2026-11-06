@@ -538,3 +538,15 @@ img,video,canvas{max-width:100%}
   .team-chat-panel{min-height:360px}
   .team-chat-message-list{min-height:180px;max-height:42vh}
 }
+
+/* Owner controls for team conversation participants */
+.team-chat-owner-members{display:grid;gap:9px;padding:11px 12px;margin:10px 0;border:1px solid var(--line);border-radius:12px;background:var(--bg);min-width:0}
+.team-chat-owner-members>strong{font-size:12px;color:var(--muted)}
+.team-chat-owner-members>div:first-of-type{display:flex;flex-wrap:wrap;gap:7px;min-width:0}
+.team-chat-member-chip{display:inline-flex;align-items:center;gap:6px;max-width:100%;padding:5px 9px;border:1px solid var(--line);border-radius:999px;background:var(--surface);font-size:12px;overflow-wrap:anywhere}
+.team-chat-member-chip button{display:inline-grid;place-items:center;width:20px;height:20px;padding:0;border:0;border-radius:50%;background:transparent;color:var(--muted);font-size:17px;line-height:1;cursor:pointer}
+.team-chat-member-chip button:hover{background:var(--bg);color:var(--danger,#b42318)}
+.team-chat-add-member{display:flex;align-items:center;gap:8px;min-width:0}
+.team-chat-add-member select{flex:1;min-width:0;max-width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:9px;background:var(--surface);color:var(--ink)}
+.team-chat-add-member button{flex:0 0 auto;white-space:nowrap}
+@media(max-width:480px){.team-chat-add-member{align-items:stretch;flex-direction:column}.team-chat-add-member button{width:100%}}
