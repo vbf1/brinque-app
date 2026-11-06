@@ -459,7 +459,7 @@ export default function App() {
         {page === 'estoque' && <ProductsPage companyId={company.id} />}
         {page === 'servicos' && <ServicesPage companyId={company.id} />}
         {page === 'orcamentos' && <QuotesPage companyId={company.id} />}
-        {page === 'locacoes' && <RentalsPage companyId={company.id} />}
+        {page === 'locacoes' && <RentalsPage key={company.id} companyId={company.id} />}
         {page === 'contratos' && <ContractsPage companyId={company.id} companyName={company.name} />}
         {page === 'financeiro' && isAdmin && <FinancePage companyId={company.id} />}
         {page === 'ocorrencias' && <OccurrencesPage companyId={company.id} role={company.role} />}
