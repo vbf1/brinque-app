@@ -445,7 +445,7 @@ export default function App() {
         {page === 'contratos' && <ContractsPage companyId={company.id} companyName={company.name} />}
         {page === 'financeiro' && isAdmin && <FinancePage companyId={company.id} />}
         {page === 'ocorrencias' && <OccurrencesPage companyId={company.id} role={company.role} />}
-        {page === 'mensagens' && <TeamChatPage companyId={company.id} />}
+        {page === 'mensagens' && <TeamChatPage companyId={company.id} viewerRole={company.role} />}
         {page === 'marketing' && isAdmin && <MarketingPage companyId={company.id} userId={session.user.id} />}
         {page === 'usuarios' && isAdmin && <UsersPage companyId={company.id} viewerRole={platformOwner ? 'owner' : company.role} />}
         {page === 'configuracoes' && isAdmin && <CompanySettingsPage companyId={company.id} companyName={company.name} platformOwner={false} userId={session.user.id} onSaved={name => setCompany(current => current ? { ...current, name } : current)} onCompanyCreated={() => undefined} />}
