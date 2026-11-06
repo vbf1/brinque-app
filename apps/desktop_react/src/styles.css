@@ -463,3 +463,7 @@ select:focus-visible{outline:3px solid #3478e52b;outline-offset:1px}
 .legacy-company-switcher-label{display:flex;align-items:center;gap:8px;margin-top:8px;color:#c6d3e5;font-size:11px}.legacy-company-switcher{width:auto;max-width:min(100%,360px);min-height:34px;margin:0;padding:6px 30px 6px 9px;border:1px solid #ffffff45;border-radius:9px;background:#ffffff12;color:#fff;font-size:11px}.legacy-company-switcher option{color:#172b4d;background:#fff}
 
 /* Preserve the current production web build while the isolated admin layout is validated. */
+
+/* Login reference: centered wordmark only, without the square brand symbol. */
+.legacy-auth-brand{align-items:center;justify-content:center;text-align:center}
+.legacy-auth-brand .legacy-auth-wordmark{width:100%;text-align:center}
