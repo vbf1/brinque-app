@@ -47,8 +47,11 @@ class _UsersPageState extends State<UsersPage> {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(success)));
       await _load();
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString().replaceFirst('Exception: ',''))));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString().replaceFirst('Exception: ',''))),
+        );
+      }
     } finally { if (mounted) setState(() => _saving = false); }
   }
 
