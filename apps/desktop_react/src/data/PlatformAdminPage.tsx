@@ -46,7 +46,6 @@ export function PlatformAdminPage({ currentCompanyId, companies, onCompaniesChan
   const [expandedCompanyIds, setExpandedCompanyIds] = useState<string[]>([]);
 
   const loadUsers = useCallback(async () => {
-    if (!currentCompanyId) return;
     setUsersLoading(true);
     setUsersError('');
     setManagementReady(false);
