@@ -150,7 +150,7 @@ async function installSupabaseMocks(page, mode) {
         throw new Error('A conta de funcionário recebeu acesso visual ao Marketing.');
       }
       await navigation.getByRole('button', { name: 'Clientes' }).click();
-      await page.getByRole('heading', { name: 'Clientes', exact: true }).waitFor({ state: 'visible' });
+      await page.locator('h1').filter({ hasText: /^Clientes$/ }).waitFor({ state: 'visible' });
       await page.goBack();
       await page.getByText('Resumo do negócio', { exact: true }).waitFor({ state: 'visible' });
       await page.getByRole('button', { name: 'Abrir menu' }).click();
