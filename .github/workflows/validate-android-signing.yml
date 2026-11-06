@@ -1,6 +1,11 @@
 name: Validate KidsLoc Android signing
 
 on:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/validate-android-signing.yml"
   workflow_dispatch:
 
 permissions:
@@ -49,6 +54,11 @@ jobs:
           java-version: '21'
 
       - name: Generate Android host project
+        env:
+          KIDSLOC_KEYSTORE_BASE64: ${{ secrets.KIDSLOC_KEYSTORE_BASE64 }}
+          KIDSLOC_KEYSTORE_PASSWORD: ${{ secrets.KIDSLOC_KEYSTORE_PASSWORD }}
+          KIDSLOC_KEY_ALIAS: ${{ secrets.KIDSLOC_KEY_ALIAS }}
+          KIDSLOC_KEY_PASSWORD: ${{ secrets.KIDSLOC_KEY_PASSWORD }}
         run: |
           flutter create --platforms=android --org br.com.sonhokids --project-name kidsloc /tmp/kidsloc-android
           cp -R apps/mobile_flutter/lib /tmp/kidsloc-android/
