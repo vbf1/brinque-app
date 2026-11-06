@@ -101,6 +101,11 @@ jobs:
         run: |
           APK="build/app/outputs/flutter-apk/app-release.apk"
           test -s "$APK"
+          BUILD_TOOLS="$(find "$ANDROID_SDK_ROOT/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -n 1)"
+          test -n "$BUILD_TOOLS"
+          export PATH="$BUILD_TOOLS:$PATH"
+          command -v apksigner
+          command -v aapt
           apksigner verify --verbose --print-certs "$APK"
           aapt dump badging "$APK" | grep -F "package: name='br.com.sonhokids.kidsloc'"
 
