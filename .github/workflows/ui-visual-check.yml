@@ -36,9 +36,13 @@ jobs:
         working-directory: apps/desktop_react
         run: npm ci --no-audit --no-fund
 
+      - name: Type-check the React application
+        working-directory: apps/desktop_react
+        run: npm run typecheck
+
       - name: Build the actual React application
         working-directory: apps/desktop_react
-        run: npm run build
+        run: npm run build:assets
 
       - name: Install Playwright
         run: |
@@ -62,6 +66,7 @@ jobs:
           mkdir -p artifacts
           node tests/ui-visual-check.cjs
           node tests/company-selection-check.cjs
+          node tests/auth-navigation-check.cjs
 
       - name: Upload screenshots
         if: always()
