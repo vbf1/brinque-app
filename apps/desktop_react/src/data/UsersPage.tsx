@@ -20,7 +20,7 @@ export function UsersPage({ companyId, viewerRole }: Props) {
   const [roleFilter, setRoleFilter] = useState('all');
   const [inviteName, setInviteName] = useState('');
   const [inviteEmail, setInviteEmail] = useState('');
-  const [inviteRole, setInviteRole] = useState<'staff' | 'admin'>('staff');
+  const [inviteRole, setInviteRole] = useState<'staff' | 'manager' | 'admin'>('staff');
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState('');
   const isOwner = viewerRole === 'owner';
@@ -52,7 +52,7 @@ export function UsersPage({ companyId, viewerRole }: Props) {
     finally { setSaving(false); }
   }
 
-  async function changeRole(user: AppUser, role: 'staff' | 'admin') {
+  async function changeRole(user: AppUser, role: 'staff' | 'manager' | 'admin') {
     setSaving(true); setNotice(''); setError('');
     try {
       const { data, error: invokeError } = await supabase.functions.invoke('manage-employees', {
@@ -97,8 +97,8 @@ export function UsersPage({ companyId, viewerRole }: Props) {
       <h3>Convidar usuário</h3>
       <label>Nome<input value={inviteName} onChange={e=>setInviteName(e.target.value)} minLength={2} maxLength={100} required placeholder="Nome completo" /></label>
       <label>E-mail<input type="email" value={inviteEmail} onChange={e=>setInviteEmail(e.target.value)} required placeholder="usuario@exemplo.com" /></label>
-      <label>Perfil<select value={inviteRole} onChange={e=>setInviteRole(e.target.value as 'staff'|'admin')}>
-        <option value="staff">Funcionário</option>{isOwner && <option value="admin">Administrador</option>}
+      <label>Perfil<select value={inviteRole} onChange={e=>setInviteRole(e.target.value as 'staff'|'manager'|'admin')}>
+        <option value="staff">Funcionário</option>{isOwner && <><option value="manager">Gerente</option><option value="admin">Administrador</option></>}
       </select></label>
       <div className="form-actions"><button type="submit" disabled={saving}>{saving ? 'Enviando...' : 'Enviar convite'}</button></div>
     </form>}
@@ -112,8 +112,8 @@ export function UsersPage({ companyId, viewerRole }: Props) {
       {isOwner && user.memberships?.length>1 && <div className="users-memberships"><small>Vínculos e perfis</small><strong>{user.memberships.map(item=>item.company+' · '+(roleNames[item.role]||item.role)).join(' | ')}</strong></div>}
       <div className="users-id"><small>ID da conta</small><strong>{user.id}</strong></div></div>
       {canManageTeam && user.role !== 'owner' && (isOwner || user.role === 'staff') && <div className="form-actions">
-        {isOwner && <label>Perfil<select value={user.role === 'admin' ? 'admin' : 'staff'} disabled={saving} onChange={e=>void changeRole(user, e.target.value as 'staff'|'admin')}>
-          <option value="staff">Funcionário</option><option value="admin">Administrador</option>
+        {isOwner && <label>Perfil<select value={user.role === 'admin' ? 'admin' : user.role === 'manager' ? 'manager' : 'staff'} disabled={saving} onChange={e=>void changeRole(user, e.target.value as 'staff'|'admin')}>
+          <option value="staff">Funcionário</option><option value="manager">Gerente</option><option value="admin">Administrador</option>
         </select></label>}
         <button type="button" className="secondary-button" disabled={saving} onClick={()=>void removeUser(user)}>Remover acesso</button>
       </div>}
