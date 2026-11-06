@@ -5,7 +5,8 @@ type Member = { user_id: string; name: string; role: string };
 type Conversation = { id: string; conversation_type: string; title: string | null; created_at: string };
 type Message = { id: string; conversation_id: string; sender_id: string; body: string; created_at: string };
 
-export function TeamChatPage({ companyId }: { companyId: string }) {
+export function TeamChatPage({ companyId, viewerRole }: { companyId: string; viewerRole: string }) {
+  const isOwner = viewerRole === 'owner';
   const [viewerId, setViewerId] = useState('');
   const [members, setMembers] = useState<Member[]>([]);
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -31,7 +32,7 @@ export function TeamChatPage({ companyId }: { companyId: string }) {
       .select('conversation_id, user_id').in('conversation_id', ids);
     if (memberError) throw memberError;
     const mine = new Set((memberships ?? []).filter(row => row.user_id === uid).map(row => row.conversation_id));
-    const visible = (rows ?? []).filter(row => mine.has(row.id)) as Conversation[];
+    const visible = (rows ?? []).filter(row => isOwner || mine.has(row.id)) as Conversation[];
     setConversations(visible);
     setConversationPeers(new Map((memberships ?? []).filter(row => row.user_id !== uid).map(row => [row.conversation_id, row.user_id])));
     const { data: recentMessages, error: recentError } = await supabase.from('team_messages')
@@ -44,7 +45,7 @@ export function TeamChatPage({ companyId }: { companyId: string }) {
         (item.sender_id === uid ? 'Você: ' : '') + item.body);
     }
     setPreviews(recent);
-  }, [companyId]);
+  }, [companyId, isOwner]);
 
   const load = useCallback(async () => {
     setLoading(true); setMessage('');
