@@ -39,6 +39,8 @@ jobs:
         run: npm run build
       - name: Publish built files to GitHub Pages branch root
         run: |
+          git fetch origin main
+          git rebase origin/main
           cp -a apps/desktop_react/dist/. .
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
