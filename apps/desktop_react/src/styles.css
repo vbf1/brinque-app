@@ -501,3 +501,66 @@ select:focus-visible{outline:3px solid #3478e52b;outline-offset:1px}
  .kidsloc-tour-coach p{font-size:11px;line-height:1.4}
  .kidsloc-tour-coach .kidsloc-tour-actions{margin-top:9px}
 }
+
+
+/* Componentes de seleção e modais: padrão único, acessível e confortável no Android/WebView. */
+.app-select{position:relative;width:100%;min-width:0;margin:0 0 12px}
+.app-select-trigger{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;min-height:48px;padding:11px 14px;border:1px solid var(--line);border-radius:13px;background:var(--surface);color:var(--ink);text-align:left;font-size:14px;font-weight:600;box-shadow:0 2px 7px #172b4d08}
+.app-select-trigger:focus-visible{outline:3px solid #3478e533;outline-offset:2px;border-color:var(--blue)}
+.app-select-value,.app-select-placeholder{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.app-select-placeholder{color:var(--muted);font-weight:500}
+.app-select-chevron{flex:0 0 auto;color:var(--muted);font-size:20px;line-height:1;transition:transform .18s}
+.app-select.is-open .app-select-chevron{transform:rotate(180deg)}
+.app-select-overlay{position:fixed;inset:0;z-index:12000;display:grid;place-items:center;padding:18px;background:#08142666;backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)}
+.app-select-dialog{display:flex;flex-direction:column;width:min(100%,480px);max-height:min(76dvh,680px);overflow:hidden;border:1px solid var(--line);border-radius:22px;background:var(--surface);color:var(--ink);box-shadow:0 24px 70px #07152b40;animation:appSelectIn .16s ease-out}
+.app-select-dialog-header{display:flex;align-items:center;gap:12px;padding:17px 18px 14px;border-bottom:1px solid var(--line)}
+.app-select-dialog-mark{display:grid;place-items:center;flex:0 0 38px;width:38px;height:38px;border-radius:12px;background:#eaf1ff;color:var(--blue);font-size:23px;font-weight:800}
+[data-theme=dark] .app-select-dialog-mark{background:#263b5d}
+.app-select-dialog-heading{flex:1;min-width:0}
+.app-select-dialog-eyebrow{color:var(--blue);font-size:9px;font-weight:850;letter-spacing:.12em}
+.app-select-dialog-heading h2{margin:2px 0;font-size:17px;line-height:1.3}
+.app-select-dialog-heading p{margin:0;color:var(--muted);font-size:11px}
+.app-select-dialog-close{flex:0 0 34px;width:34px;min-height:34px;padding:0;border:1px solid var(--line);border-radius:50%;background:var(--bg);color:var(--ink);font-size:21px}
+.app-select-menu{display:grid;gap:5px;overflow:auto;padding:9px 12px;overscroll-behavior:contain}
+.app-select-option{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;min-height:45px;padding:10px 12px;border:1px solid transparent;border-radius:11px;background:var(--bg);color:var(--ink);text-align:left;font-size:13px;font-weight:550;line-height:1.4;overflow-wrap:anywhere}
+.app-select-option.selected{border-color:#b9d0fa;background:#edf4ff;color:#205bb8}
+[data-theme=dark] .app-select-option.selected{border-color:#42669b;background:#263b5d;color:#dce9ff}
+.app-select-check{flex:0 0 auto;color:var(--green);font-weight:900}
+.app-select-empty{padding:20px;color:var(--muted);font-size:12px;text-align:center}
+.app-select-dialog-footer{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 16px;border-top:1px solid var(--line);color:var(--muted);font-size:10px}
+.app-select-dialog-footer button{min-height:33px;padding:6px 12px;border-radius:9px;font-size:11px}
+@keyframes appSelectIn{from{opacity:0;transform:translateY(8px) scale(.985)}to{opacity:1;transform:translateY(0) scale(1)}}
+
+/* Ajustes de cartões e formulários observados nas capturas do Android. */
+.customer-row{display:flex;flex-wrap:wrap;align-items:center;min-width:0}
+.customer-row>.customer-info{flex:1 1 calc(100% - 115px)}
+.customer-row>.record-card-units{flex:0 0 100%;min-width:0}
+.record-card-units{grid-template-columns:minmax(0,1fr)}
+.record-unit-row{grid-template-columns:minmax(0,1fr) auto}
+.record-unit-row>span{min-width:0}
+.record-unit-row .record-unit-history{overflow-wrap:anywhere;word-break:break-word}
+.platform-admin-page .users-card form{min-width:0}
+.platform-admin-page .users-card .users-details{grid-template-columns:minmax(0,1fr);align-items:stretch}
+.platform-admin-page .users-card .users-details>.form-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));min-width:0}
+.platform-admin-page .users-card .users-details>.form-actions button{width:100%;min-width:0;white-space:normal}
+.platform-admin-page .membership-role-field{display:grid;gap:6px;min-width:0}
+.platform-admin-page .users-memberships .users-details{grid-template-columns:minmax(0,1fr)}
+.platform-admin-page .users-memberships .users-details>button{justify-self:start;max-width:100%}
+.data-toolbar{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:9px}
+.data-toolbar input,.data-toolbar .app-select{min-width:0;margin:0}
+.data-toolbar input{grid-column:1/-1}
+@media(max-width:600px){
+ .app-select-overlay{align-items:end;padding:0}
+ .app-select-dialog{width:100%;max-height:min(72dvh,620px);border-radius:22px 22px 0 0;padding-bottom:env(safe-area-inset-bottom,0px)}
+ .app-select-dialog-header{padding:15px 16px 12px}
+ .app-select-dialog-heading h2{font-size:16px}
+ .app-select-option{min-height:48px;font-size:13px}
+ .customer-row{gap:9px}
+ .customer-row>.customer-info{flex:1 1 calc(100% - 110px)}
+ .record-card-units{gap:7px}
+ .record-unit-row{grid-template-columns:minmax(0,1fr) auto;padding:9px}
+ .platform-admin-page .users-card .users-details>.form-actions{grid-template-columns:1fr}
+ .platform-admin-page .users-card-top{align-items:center}
+ .data-toolbar{grid-template-columns:1fr}
+ .data-toolbar input{grid-column:auto}
+}
