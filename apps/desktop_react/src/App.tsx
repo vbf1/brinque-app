@@ -142,6 +142,30 @@ export default function App() {
     setIsError(error);
   }, []);
 
+  // A seleção é sincronizada no navegador e no perfil do usuário no Supabase.
+  // Isso evita que sessões independentes (web/PWA/WebView) restaurem empresas diferentes.
+  const selectCompany = useCallback((selected: { id: string; name: string }) => {
+    const selectedAt = new Date().toISOString();
+    const preferenceKey = `kidsloc_selected_company_${session?.user.id ?? ''}`;
+    const preferenceAtKey = `${preferenceKey}_at`;
+    try {
+      window.localStorage.setItem(preferenceKey, selected.id);
+      window.localStorage.setItem(preferenceAtKey, selectedAt);
+    } catch { /* preferência local opcional */ }
+    setCompany({ ...selected, role: 'owner' });
+    if (session?.user) {
+      void supabase.auth.updateUser({
+        data: {
+          ...session.user.user_metadata,
+          kidsloc_selected_company_id: selected.id,
+          kidsloc_selected_company_at: selectedAt,
+        },
+      }).then(({ error }) => {
+        if (error) feedback('Empresa selecionada neste dispositivo, mas não foi possível sincronizar a preferência entre sessões.', true);
+      });
+    }
+  }, [session?.user, feedback]);
+
   useEffect(() => {
     document.body.dataset.theme = theme === 'dark' ? 'dark' : '';
     try { localStorage.setItem('brq_theme', theme === 'dark' ? 'dark' : ''); } catch { /* storage is optional */ }
@@ -266,9 +290,46 @@ export default function App() {
           // Restaura exclusivamente a última empresa escolhida pelo usuário.
           // Sem preferência válida, não seleciona empresa automaticamente.
           const preferenceKey = `kidsloc_selected_company_${session.user.id}`;
-          let savedCompanyId = '';
-          try { savedCompanyId = window.localStorage.getItem(preferenceKey) ?? ''; } catch { /* preferência opcional */ }
-          const savedCompany = companyList.find(item => item.id === savedCompanyId);
+          const preferenceAtKey = `${preferenceKey}_at`;
+          let localCompanyId = '';
+          let localSelectedAt = '';
+          try {
+            localCompanyId = window.localStorage.getItem(preferenceKey) ?? '';
+            localSelectedAt = window.localStorage.getItem(preferenceAtKey) ?? '';
+          } catch { /* preferência local opcional */ }
+
+          // Lê os metadados atuais do servidor, não apenas os dados possivelmente antigos
+          // que vieram dentro de uma sessão aberta em outro dispositivo/instância.
+          const { data: freshUserData, error: freshUserError } = await supabase.auth.getUser();
+          if (freshUserError) throw freshUserError;
+          if (!active) return;
+          const remoteCompanyId = String(freshUserData.user?.user_metadata?.kidsloc_selected_company_id ?? '');
+          const remoteSelectedAt = String(freshUserData.user?.user_metadata?.kidsloc_selected_company_at ?? '');
+          const localCompany = companyList.find(item => item.id === localCompanyId);
+          const remoteCompany = companyList.find(item => item.id === remoteCompanyId);
+
+          let savedCompany = remoteCompany;
+          const localTime = Date.parse(localSelectedAt) || 0;
+          const remoteTime = Date.parse(remoteSelectedAt) || 0;
+          if (localCompany && (!remoteCompany || localTime > remoteTime)) {
+            savedCompany = localCompany;
+            const selectedAt = localSelectedAt || new Date().toISOString();
+            try { window.localStorage.setItem(preferenceAtKey, selectedAt); } catch { /* preferência local opcional */ }
+            void supabase.auth.updateUser({
+              data: {
+                ...freshUserData.user?.user_metadata,
+                kidsloc_selected_company_id: localCompany.id,
+                kidsloc_selected_company_at: selectedAt,
+              },
+            });
+          } else if (remoteCompany) {
+            // O valor remoto é a preferência mais recente e prevalece entre sessões.
+            try {
+              window.localStorage.setItem(preferenceKey, remoteCompany.id);
+              window.localStorage.setItem(preferenceAtKey, remoteSelectedAt || new Date().toISOString());
+            } catch { /* preferência local opcional */ }
+          }
+
           if (!savedCompany) {
             setCompany(null);
             feedback('Selecione a empresa que deseja acessar.');
@@ -403,7 +464,7 @@ export default function App() {
   );
 
   if (companyLoading) return <main className="legacy-auth-screen"><section className="legacy-auth-card"><div className="legacy-auth-brand"><div className="legacy-auth-wordmark"><strong>KidsLoc <span>App</span></strong><small>GESTÃO DE LOCAÇÕES</small></div><div className="legacy-login-accent" /></div><div className="legacy-loading">Carregando os dados da empresa...</div></section></main>;
-  if (!company && platformOwner) return <main className="legacy-auth-screen"><section className="legacy-auth-card" style={{ width: 'min(920px, 100%)' }}><div className="legacy-auth-brand"><div className="legacy-auth-wordmark"><strong>KidsLoc <span>App</span></strong><small>GESTÃO DE LOCAÇÕES</small></div><div className="legacy-login-accent" /></div><CompanyManagementPage companies={availableCompanies} selectedCompanyId="" userId={session.user.id} onCompaniesChanged={setAvailableCompanies} onCompanySelected={created => { try { window.localStorage.setItem(`kidsloc_selected_company_${session.user.id}`, created.id); } catch { /* preferência opcional */ } setCompany({ ...created, role: 'owner' }); }} /><button onClick={logout} disabled={busy} className="legacy-secondary-button">Sair</button></section></main>;
+  if (!company && platformOwner) return <main className="legacy-auth-screen"><section className="legacy-auth-card" style={{ width: 'min(920px, 100%)' }}><div className="legacy-auth-brand"><div className="legacy-auth-wordmark"><strong>KidsLoc <span>App</span></strong><small>GESTÃO DE LOCAÇÕES</small></div><div className="legacy-login-accent" /></div><CompanyManagementPage companies={availableCompanies} selectedCompanyId="" userId={session.user.id} onCompaniesChanged={setAvailableCompanies} onCompanySelected={created => selectCompany(created)} /><button onClick={logout} disabled={busy} className="legacy-secondary-button">Sair</button></section></main>;
   if (!company) return <main className="legacy-auth-screen"><section className="legacy-auth-card"><div className="legacy-auth-brand"><div className="legacy-auth-wordmark"><strong>KidsLoc <span>App</span></strong><small>GESTÃO DE LOCAÇÕES</small></div><div className="legacy-login-accent" /></div><h1>Acesso sem empresa vinculada</h1><p className="legacy-intro">{message || 'Esta conta não está vinculada a uma empresa.'}</p><button onClick={logout} disabled={busy} className="legacy-primary-button">Sair</button></section></main>;
 
   return (
@@ -416,7 +477,7 @@ export default function App() {
             <button type="button" className="legacy-menu-trigger" aria-label="Abrir menu" aria-expanded={menuOpen} onClick={() => setMenuOpen(value => !value)}><span /><span /><span /></button>
           </div>
         </div>
-        <div className="legacy-greeting">Olá, {userLabel} 👋<small>{company.name} · Gestão de locações sincronizada.</small>{platformOwner && <label className="legacy-company-switcher-label">Empresa selecionada<select className="legacy-company-switcher" value={company.id} onChange={event => { const selected = availableCompanies.find(item => item.id === event.target.value); if (selected) { try { window.localStorage.setItem(`kidsloc_selected_company_${session.user.id}`, selected.id); } catch { /* preferência opcional */ } setCompany({ ...selected, role: 'owner' }); setPage('inicio'); } }}>{availableCompanies.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>}</div>
+        <div className="legacy-greeting">Olá, {userLabel} 👋<small>{company.name} · Gestão de locações sincronizada.</small>{platformOwner && <label className="legacy-company-switcher-label">Empresa selecionada<select className="legacy-company-switcher" value={company.id} onChange={event => { const selected = availableCompanies.find(item => item.id === event.target.value); if (selected) { selectCompany(selected); setPage('inicio'); } }}>{availableCompanies.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>}</div>
       </header>
       {menuOpen && <button className="legacy-menu-backdrop" aria-label="Fechar menu" onClick={() => setMenuOpen(false)} />}
       <nav className={menuOpen ? 'legacy-menu-panel open' : 'legacy-menu-panel'} aria-label="Menus de navegação">
@@ -460,7 +521,7 @@ export default function App() {
         {page === 'marketing' && isAdmin && <MarketingPage companyId={company.id} userId={session.user.id} />}
         {page === 'usuarios' && isAdmin && <UsersPage companyId={company.id} viewerRole={platformOwner ? 'owner' : company.role} />}
         {page === 'configuracoes' && isAdmin && <CompanySettingsPage companyId={company.id} companyName={company.name} platformOwner={false} userId={session.user.id} onSaved={name => setCompany(current => current ? { ...current, name } : current)} onCompanyCreated={() => undefined} />}
-        {page === 'gerenciar-empresa' && platformOwner && <CompanyManagementPage companies={availableCompanies} selectedCompanyId={company.id} userId={session.user.id} onCompaniesChanged={setAvailableCompanies} onCompanySelected={selected => { setCompany({ ...selected, role: 'owner' }); }} />}
+        {page === 'gerenciar-empresa' && platformOwner && <CompanyManagementPage companies={availableCompanies} selectedCompanyId={company.id} userId={session.user.id} onCompaniesChanged={setAvailableCompanies} onCompanySelected={selected => selectCompany(selected)} />}
       </main>
       <footer className="legacy-footer">KIDSLOC APP <span>·</span> {company.name}</footer>
     </div>
