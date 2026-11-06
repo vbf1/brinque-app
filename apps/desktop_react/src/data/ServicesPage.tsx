@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
+import { AppSelect } from '../components/AppSelect';
 import { supabase } from '../lib/supabase';
 
 type Service = { id: string; name: string; description: string | null; price: number; price_unit: string; active: boolean; notes: string | null; imageUrl?: string | null };
@@ -95,7 +96,7 @@ export function ServicesPage({ companyId }: { companyId: string }) {
       <h3>{editing ? 'Editar serviço' : 'Cadastrar serviço'}</h3>
       <label>Nome do serviço *<input required value={name} onChange={e => setName(e.target.value)} placeholder="Ex.: Monitoria, montagem, recreação" /></label>
       <label>Descrição<textarea rows={3} value={description} onChange={e => setDescription(e.target.value)} /></label>
-      <div className="form-grid"><label>Preço (R$) *<input required inputMode="decimal" value={price} onChange={e => setPrice(e.target.value)} /></label><label>Forma de cobrança<select value={unit} onChange={e => setUnit(e.target.value)}><option value="fixed">Valor fixo</option><option value="hour">Por hora</option><option value="day">Por dia</option><option value="event">Por evento</option></select></label></div>
+      <div className="form-grid"><label>Preço (R$) *<input required inputMode="decimal" value={price} onChange={e => setPrice(e.target.value)} /></label><label>Forma de cobrança<AppSelect value={unit} onChange={setUnit} placeholder="Forma de cobrança" options={[{value:'fixed',label:'Valor fixo'},{value:'hour',label:'Por hora'},{value:'day',label:'Por dia'},{value:'event',label:'Por evento'}]} /></label></div>
       <label>Foto do serviço<input type="file" accept="image/png,image/jpeg,image/webp" onChange={e => setPhoto(e.target.files?.[0] ?? null)} /><small>JPG, PNG ou WebP · até 8 MB. Enviada ao armazenamento privado da empresa.</small></label>
       <label>Observações internas<textarea rows={2} value={notes} onChange={e => setNotes(e.target.value)} /></label>
       <div className="form-actions"><button type="button" className="secondary-button" onClick={() => setFormOpen(false)}>Cancelar</button><button type="submit" disabled={saving}>{saving ? 'Salvando...' : 'Salvar serviço'}</button></div>
