@@ -4,6 +4,9 @@ name: Validate KidsLoc Android signing and update
 # não a cada alteração de código. A compilação normal já valida e gera o APK.
 on:
   workflow_dispatch:
+  push:
+    paths:
+      - '.github/validation-trigger-once.txt'
 
 permissions:
   contents: read
