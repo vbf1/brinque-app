@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
+import { AppSelect } from '../components/AppSelect';
 import { supabase } from '../lib/supabase';
 
 type Row = Record<string, any>;
@@ -99,13 +100,13 @@ export function QuotesPage({ companyId }: { companyId: string }) {
     {message && <p className="module-feedback" role="status">{message}</p>}
     {open && <form className="customer-form" onSubmit={save}>
       <h3>Montar orçamento</h3>
-      <label>Cliente<select value={customerId} onChange={e=>setCustomerId(e.target.value)}><option value="">Sem cliente vinculado</option>{customers.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select></label>
+      <label>Cliente<AppSelect value={customerId} onChange={setCustomerId} placeholder="Sem cliente vinculado" options={[{ value: '', label: 'Sem cliente vinculado' }, ...customers.map(c => ({ value: c.id, label: c.name }))]} /></label>
       <div className="form-grid"><label>Válido até<input type="date" min={today()} value={validUntil} onChange={e=>setValidUntil(e.target.value)} /></label><label>Desconto (R$)<input inputMode="decimal" value={discount} onChange={e=>setDiscount(e.target.value)} /></label></div>
       <div className="rental-items-heading"><h3>Itens</h3><button type="button" className="secondary-button" onClick={()=>setItems(current=>[...current,{kind:'product',refId:'',description:'',quantity:'1',price:'0'}])}>+ Adicionar item</button></div>
       {items.map((item,index)=><div className="rental-item-editor" key={index}>
         <div className="rental-item-top"><strong>Item {index+1}</strong><button type="button" className="remove-item-button" disabled={items.length===1} onClick={()=>setItems(current=>current.filter((_,i)=>i!==index))}>Remover</button></div>
-        <div className="form-grid"><label>Tipo<select value={item.kind} onChange={e=>updateItem(index,{kind:e.target.value as QuoteDraftItem['kind'],refId:'',description:'',price:'0'})}><option value="product">Brinquedo</option><option value="service">Serviço</option><option value="custom">Personalizado</option></select></label>
-        {item.kind==='custom' ? <label>Descrição<input value={item.description} onChange={e=>updateItem(index,{description:e.target.value})} /></label> : <label>{item.kind==='product'?'Brinquedo':'Serviço'}<select value={item.refId} onChange={e=>{const list=item.kind==='product'?products:services;const chosen=list.find((x:Row)=>x.id===e.target.value);updateItem(index,{refId:e.target.value,price:String(item.kind==='product'?chosen?.daily_price??0:chosen?.price??0)});}}><option value="">Selecione</option>{(item.kind==='product'?products:services).map((x:Row)=><option key={x.id} value={x.id}>{x.name}</option>)}</select></label>}</div>
+        <div className="form-grid"><label>Tipo<AppSelect value={item.kind} onChange={value=>updateItem(index,{kind:value as QuoteDraftItem['kind'],refId:'',description:'',price:'0'})} placeholder="Tipo de item" options={[{value:'product',label:'Brinquedo'},{value:'service',label:'Serviço'},{value:'custom',label:'Personalizado'}]} /></label>
+        {item.kind==='custom' ? <label>Descrição<input value={item.description} onChange={e=>updateItem(index,{description:e.target.value})} /></label> : <label>{item.kind==='product'?'Brinquedo':'Serviço'}<AppSelect value={item.refId} onChange={value=>{const list=item.kind==='product'?products:services;const chosen=list.find((x:Row)=>x.id===value);updateItem(index,{refId:value,price:String(item.kind==='product'?chosen?.daily_price??0:chosen?.price??0)});}} placeholder="Selecione" options={[{value:'',label:'Selecione'},...(item.kind==='product'?products:services).map((x:Row)=>({value:x.id,label:x.name}))]} /></label>}</div>
         <div className="form-grid"><label>Quantidade<input required inputMode="decimal" value={item.quantity} onChange={e=>updateItem(index,{quantity:e.target.value})} /></label><label>Preço unitário (R$)<input required inputMode="decimal" value={item.price} onChange={e=>updateItem(index,{price:e.target.value})} /></label></div>
       </div>)}
       <label>Observações da proposta<textarea rows={3} value={notes} onChange={e=>setNotes(e.target.value)} /></label>
