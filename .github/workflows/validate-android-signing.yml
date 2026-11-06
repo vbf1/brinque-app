@@ -1,25 +1,29 @@
-name: Validate KidsLoc Android signing
+name: Validate KidsLoc Android signing and update
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
     paths:
+      - "apps/mobile_flutter/**"
+      - "google-services.json"
+      - ".github/scripts/configure-preview-android.py"
+      - ".github/scripts/configure-release-signing.py"
       - ".github/workflows/validate-android-signing.yml"
   workflow_dispatch:
 
 permissions:
   contents: read
+  actions: read
 
 jobs:
   signed-apk-validation:
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 45
     steps:
-      - name: Checkout prototype branch
+      - name: Checkout current commit
         uses: actions/checkout@v4
         with:
-          ref: prototype/first-test-build
+          ref: ${{ github.sha }}
 
       - name: Validate signing secrets
         env:
@@ -86,26 +90,72 @@ jobs:
           flutter analyze
           flutter test
 
-      - name: Build signed APK
+      - name: Build signed APK with increasing version code
         working-directory: /tmp/kidsloc-android
         env:
           KIDSLOC_KEYSTORE_PASSWORD: ${{ secrets.KIDSLOC_KEYSTORE_PASSWORD }}
           KIDSLOC_KEY_ALIAS: ${{ secrets.KIDSLOC_KEY_ALIAS }}
           KIDSLOC_KEY_PASSWORD: ${{ secrets.KIDSLOC_KEY_PASSWORD }}
-        run: flutter build apk --release --build-number=${GITHUB_RUN_NUMBER}
+        run: |
+          BUILD_NUMBER="$(date +%s)"
+          flutter build apk --release --build-number="$BUILD_NUMBER"
+          test -s build/app/outputs/flutter-apk/app-release.apk
 
-      - name: Verify APK signature and package
+      - name: Download previous signed baseline APK
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p /tmp/kidsloc-baseline
+          curl -fsSL -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/vbf1/kidsloc-app/actions/artifacts/13475903281/zip" \
+            -o /tmp/kidsloc-baseline.zip
+          unzip -q /tmp/kidsloc-baseline.zip -d /tmp/kidsloc-baseline
+          BASELINE_APK="$(find /tmp/kidsloc-baseline -type f -name '*.apk' -print -quit)"
+          test -n "$BASELINE_APK" && test -s "$BASELINE_APK"
+          echo "KIDSLOC_BASELINE_APK=$BASELINE_APK" >> "$GITHUB_ENV"
+
+      - name: Verify package, signature continuity and version increase
         working-directory: /tmp/kidsloc-android
         run: |
           APK="build/app/outputs/flutter-apk/app-release.apk"
-          test -s "$APK"
           BUILD_TOOLS="$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -n 1)"
-          "$BUILD_TOOLS/apksigner" verify --verbose --print-certs "$APK"
+          "$BUILD_TOOLS/apksigner" verify --verbose "$APK"
+          "$BUILD_TOOLS/apksigner" verify --verbose "$KIDSLOC_BASELINE_APK"
+          NEW_CERT="$("$BUILD_TOOLS/apksigner" verify --print-certs "$APK" | sed -n 's/.*SHA-256 digest: //p' | head -n 1 | tr -d '[:space:]')"
+          OLD_CERT="$("$BUILD_TOOLS/apksigner" verify --print-certs "$KIDSLOC_BASELINE_APK" | sed -n 's/.*SHA-256 digest: //p' | head -n 1 | tr -d '[:space:]')"
+          test -n "$NEW_CERT" && test "$NEW_CERT" = "$OLD_CERT"
           "$BUILD_TOOLS/aapt" dump badging "$APK" | grep -F "package: name='br.com.sonhokids.kidsloc'"
+          "$BUILD_TOOLS/aapt" dump badging "$KIDSLOC_BASELINE_APK" | grep -F "package: name='br.com.sonhokids.kidsloc'"
+          OLD_CODE="$("$BUILD_TOOLS/aapt" dump badging "$KIDSLOC_BASELINE_APK" | sed -n "s/.*versionCode='\([^']*\)'.*/\1/p")"
+          NEW_CODE="$("$BUILD_TOOLS/aapt" dump badging "$APK" | sed -n "s/.*versionCode='\([^']*\)'.*/\1/p")"
+          test -n "$OLD_CODE" && test -n "$NEW_CODE"
+          test "$NEW_CODE" -gt "$OLD_CODE"
+          echo "Certificado SHA-256 mantido; versionCode $OLD_CODE -> $NEW_CODE."
 
-      - name: Upload signed test APK
+      - name: Verify update preserves installed app data on Android emulator
+        uses: ReactiveCircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          profile: pixel_2
+          script: |
+            adb install "$KIDSLOC_BASELINE_APK"
+            adb root
+            adb wait-for-device
+            PACKAGE="br.com.sonhokids.kidsloc"
+            APP_UID="$(adb shell dumpsys package "$PACKAGE" | sed -n 's/.*userId=\([0-9]*\).*/\1/p' | head -n 1 | tr -d '\r')"
+            test -n "$APP_UID"
+            adb shell "mkdir -p /data/user/0/$PACKAGE/files && printf 'kidsloc-data-preserved' > /data/user/0/$PACKAGE/files/update-preservation-check.txt && chown -R $APP_UID:$APP_UID /data/user/0/$PACKAGE"
+            adb install -r /tmp/kidsloc-android/build/app/outputs/flutter-apk/app-release.apk
+            MARKER="$(adb shell cat /data/user/0/$PACKAGE/files/update-preservation-check.txt | tr -d '\r')"
+            test "$MARKER" = "kidsloc-data-preserved"
+            echo "Atualização instalada sobre o app existente sem apagar os dados privados."
+
+      - name: Upload signed test APK after validation
         uses: actions/upload-artifact@v4
         with:
-          name: KidsLoc-signed-validation-${{ github.run_number }}
+          name: KidsLoc-signed-update-validation-${{ github.run_number }}
           path: /tmp/kidsloc-android/build/app/outputs/flutter-apk/app-release.apk
+          if-no-files-found: error
           retention-days: 7
