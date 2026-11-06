@@ -672,3 +672,25 @@ select:focus-visible{outline:3px solid #3478e52b;outline-offset:1px}
   .legacy-auth-screen{overflow-y:auto;align-content:start}
   .legacy-auth-card{max-height:none;margin:0 auto}
 }
+
+/* Administração global: grupos de usuários por empresa, recolhidos para reduzir a poluição visual. */
+.platform-admin-action{margin:12px 0;border:1px solid var(--line);border-radius:13px;background:var(--surface);overflow:hidden}
+.platform-admin-action>summary{padding:13px 15px;color:var(--blue);font-size:13px;font-weight:750;cursor:pointer;list-style:none}
+.platform-admin-action>summary::-webkit-details-marker{display:none}
+.platform-admin-action[open]>summary{border-bottom:1px solid var(--line)}
+.platform-admin-action .customer-form{margin:0;border:0;border-radius:0;box-shadow:none}
+.platform-company-groups{display:grid;gap:10px;margin:14px 0}
+.platform-company-group{overflow:hidden;border:1px solid var(--line);border-radius:15px;background:var(--surface);box-shadow:var(--shadow)}
+.platform-company-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;min-height:68px;padding:11px 14px;border:0;border-radius:0;background:var(--surface);color:var(--ink);text-align:left}
+.platform-company-heading:hover{background:var(--bg)}
+.platform-company-heading-main{display:flex;align-items:center;gap:11px;min-width:0}
+.platform-company-avatar{display:grid;place-items:center;flex:0 0 40px;width:40px;height:40px;border-radius:12px;background:#eaf1ff;color:var(--blue);font-weight:800}
+[data-theme=dark] .platform-company-avatar{background:#263b5d}
+.platform-company-heading-main>span:last-child{display:grid;gap:2px;min-width:0}
+.platform-company-heading-main strong{font-size:13px;overflow-wrap:anywhere}
+.platform-company-heading-main small,.platform-company-heading-action{color:var(--muted);font-size:11px;font-weight:550}
+.platform-company-heading-action{white-space:nowrap}
+.platform-company-group>.users-list{margin:0;padding:0 12px 10px;border-top:1px solid var(--line)}
+.platform-company-group .users-card{padding:13px 2px;border:0;border-bottom:1px solid var(--line);border-radius:0;background:transparent;box-shadow:none}
+.platform-company-group .users-card:last-child{border-bottom:0}
+@media(max-width:480px){.platform-company-heading{padding:10px}.platform-company-heading-action{font-size:10px}.platform-company-group>.users-list{padding:0 9px 8px}}
