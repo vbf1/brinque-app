@@ -115,3 +115,5 @@ jobs:
           name: KidsLoc-signed-validation-${{ github.run_number }}
           path: /tmp/kidsloc-android/build/app/outputs/flutter-apk/app-release.apk
           retention-days: 7
+
+# Re-run signing validation after the Android build-tools path fix.
