@@ -29,7 +29,12 @@ function json(body, status = 200, headers = {}) {
   return {
     status,
     contentType: 'application/json',
-    headers,
+    headers: {
+      'access-control-allow-origin': '*',
+      'access-control-allow-headers': 'apikey,authorization,content-type,x-client-info',
+      'access-control-allow-methods': 'GET,POST,PUT,PATCH,DELETE,OPTIONS',
+      ...headers,
+    },
     body: JSON.stringify(body),
   };
 }
@@ -47,6 +52,16 @@ function json(body, status = 200, headers = {}) {
       const method = request.method();
       apiCalls.push(method + ' ' + url.pathname);
 
+      if (method === 'OPTIONS') {
+        return route.fulfill({
+          status: 204,
+          headers: {
+            'access-control-allow-origin': '*',
+            'access-control-allow-headers': 'apikey,authorization,content-type,x-client-info',
+            'access-control-allow-methods': 'GET,POST,PUT,PATCH,DELETE,OPTIONS',
+          },
+        });
+      }
       if (url.pathname === '/auth/v1/token' && method === 'POST') {
         return route.fulfill(json({
           access_token: 'test-access-token',
@@ -60,9 +75,9 @@ function json(body, status = 200, headers = {}) {
       if (url.pathname === '/auth/v1/user' && method === 'GET') {
         return route.fulfill(json(makeUser()));
       }
-      if (url.pathname === '/auth/v1/user' && method === 'PUT') {
+      if (url.pathname === '/auth/v1/user' && (method === 'PUT' || method === 'PATCH')) {
         const body = request.postDataJSON();
-        state.userMetadata = { ...state.userMetadata, ...(body.user_metadata || {}) };
+        state.userMetadata = { ...state.userMetadata, ...(body.user_metadata || body.data || {}) };
         return route.fulfill(json(makeUser()));
       }
       if (url.pathname === '/rest/v1/rpc/is_platform_owner' && method === 'POST') {
