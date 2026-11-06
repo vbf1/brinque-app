@@ -580,3 +580,16 @@ select:focus-visible{outline:3px solid #3478e52b;outline-offset:1px}
  .app-select-dialog-mark{flex-basis:34px;width:34px;height:34px}
  .app-select-dialog-footer{padding:8px 14px}
 }
+
+
+/* Diálogos de confirmação padronizados para web e Android. */
+.app-confirm-overlay{position:fixed;inset:0;z-index:12000;display:flex;align-items:center;justify-content:center;padding:18px;background:rgba(12,23,42,.48);backdrop-filter:blur(3px);overscroll-behavior:contain}
+.app-confirm-dialog{width:min(440px,100%);max-height:min(82dvh,620px);overflow:auto;padding:25px;border:1px solid var(--line);border-radius:22px;background:var(--surface);color:var(--ink);box-shadow:0 22px 70px rgba(8,20,40,.25);animation:appConfirmIn .16s ease-out}
+.app-confirm-dialog .eyebrow{margin:13px 0 5px;color:var(--muted);font-size:10px;font-weight:850;letter-spacing:.12em}
+.app-confirm-dialog h2{margin:0 0 9px;font-size:21px;line-height:1.2}
+.app-confirm-dialog>p:not(.eyebrow){margin:0;color:var(--muted);font-size:14px;line-height:1.55}
+.app-confirm-icon{display:grid;width:42px;height:42px;place-items:center;border-radius:14px;background:#ef44441a;color:#dc4545;font-size:22px;font-weight:850}
+.app-confirm-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:24px}
+.app-confirm-actions button{min-height:42px;padding:9px 15px}
+@keyframes appConfirmIn{from{opacity:0;transform:translateY(8px) scale(.985)}to{opacity:1;transform:translateY(0) scale(1)}}
+@media(max-width:600px){.app-confirm-overlay{align-items:flex-end;padding:0}.app-confirm-dialog{width:100%;max-height:78dvh;padding:22px 18px calc(18px + env(safe-area-inset-bottom));border-radius:22px 22px 0 0}.app-confirm-dialog h2{font-size:19px}.app-confirm-actions button{flex:1}}
