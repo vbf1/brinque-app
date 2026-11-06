@@ -19,7 +19,7 @@ permissions:
 # Se novas alterações chegarem enquanto um APK está sendo compilado,
 # cancela a execução antiga e mantém somente a versão mais recente.
 concurrency:
-  group: kidsloc-android-apk-{ github.ref }}
+  group: kidsloc-android-apk-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
