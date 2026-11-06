@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
+import { AppSelect } from './components/AppSelect';
 import type { Session } from '@supabase/supabase-js';
 import { supabase } from './lib/supabase';
 import { CustomersPage } from './data/CustomersPage';
@@ -471,7 +472,7 @@ export default function App() {
             <button type="button" className="legacy-menu-trigger" aria-label="Abrir menu" aria-expanded={menuOpen} onClick={() => setMenuOpen(value => !value)}><span /><span /><span /></button>
           </div>
         </div>
-        <div className="legacy-greeting">Olá, {userLabel} 👋<small>{company.name} · Gestão de locações sincronizada.</small>{platformOwner && <label className="legacy-company-switcher-label">Empresa selecionada<select className="legacy-company-switcher" value={company.id} onChange={event => { const selected = availableCompanies.find(item => item.id === event.target.value); if (selected) { setCompany({ ...selected, role: 'owner' }); setPage('inicio'); } }}>{availableCompanies.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>}</div>
+        <div className="legacy-greeting">Olá, {userLabel} 👋<small>{company.name} · Gestão de locações sincronizada.</small>{platformOwner && <label className="legacy-company-switcher-label">Empresa selecionada<AppSelect value={company.id} onChange={value => { const selected = availableCompanies.find(item => item.id === value); if (selected) { setCompany({ ...selected, role: 'owner' }); setPage('inicio'); } }} placeholder="Empresa selecionada" options={availableCompanies.map(item => ({ value: item.id, label: item.name }))} /></label>}</div>
       </header>
       {menuOpen && <button className="legacy-menu-backdrop" aria-label="Fechar menu" onClick={() => setMenuOpen(false)} />}
       <nav className={menuOpen ? 'legacy-menu-panel open' : 'legacy-menu-panel'} aria-label="Menus de navegação">
