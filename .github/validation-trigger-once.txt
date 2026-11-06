@@ -1,0 +1,1 @@
+Arquivo de acionamento único para validar instalação e preservação de dados do KidsLoc App.
