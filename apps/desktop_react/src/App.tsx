@@ -263,25 +263,18 @@ export default function App() {
             feedback('Nenhuma empresa cadastrada. Acesse Gerenciar empresa e usuários para criar a primeira.', true);
             return;
           }
-          // Para o proprietário da plataforma, prioriza a empresa em que sua conta
-          // já possui vínculo administrativo. Isso evita abrir outra empresa por ordem alfabética.
-          const { data: memberships, error: membershipsError } = await supabase
-            .from('company_members')
-            .select('company_id, role')
-            .eq('user_id', session.user.id);
-          if (membershipsError) throw membershipsError;
+          // Restaura exclusivamente a última empresa escolhida pelo usuário.
+          // Sem preferência válida, não seleciona empresa automaticamente.
           const preferenceKey = `kidsloc_selected_company_${session.user.id}`;
           let savedCompanyId = '';
           try { savedCompanyId = window.localStorage.getItem(preferenceKey) ?? ''; } catch { /* preferência opcional */ }
           const savedCompany = companyList.find(item => item.id === savedCompanyId);
-          const adminMembership = (memberships ?? []).find(member =>
-            ['owner', 'admin'].includes(member.role) && companyList.some(item => item.id === member.company_id),
-          );
-          const defaultCompany = savedCompany
-            ?? companyList.find(item => item.id === adminMembership?.company_id)
-            ?? companyList[0];
-          try { window.localStorage.setItem(preferenceKey, defaultCompany.id); } catch { /* preferência opcional */ }
-          setCompany({ id: defaultCompany.id, name: defaultCompany.name, role: 'owner' });
+          if (!savedCompany) {
+            setCompany(null);
+            feedback('Selecione a empresa que deseja acessar.');
+            return;
+          }
+          setCompany({ id: savedCompany.id, name: savedCompany.name, role: 'owner' });
           feedback('');
           return;
         }
@@ -410,7 +403,7 @@ export default function App() {
   );
 
   if (companyLoading) return <main className="legacy-auth-screen"><section className="legacy-auth-card"><div className="legacy-auth-brand"><div className="legacy-auth-wordmark"><strong>KidsLoc <span>App</span></strong><small>GESTÃO DE LOCAÇÕES</small></div><div className="legacy-login-accent" /></div><div className="legacy-loading">Carregando os dados da empresa...</div></section></main>;
-  if (!company && platformOwner) return <main className="legacy-auth-screen"><section className="legacy-auth-card" style={{ width: 'min(920px, 100%)' }}><div className="legacy-auth-brand"><div className="legacy-auth-wordmark"><strong>KidsLoc <span>App</span></strong><small>GESTÃO DE LOCAÇÕES</small></div><div className="legacy-login-accent" /></div><CompanyManagementPage companies={availableCompanies} selectedCompanyId="" userId={session.user.id} onCompaniesChanged={setAvailableCompanies} onCompanySelected={created => setCompany({ ...created, role: 'owner' })} /><button onClick={logout} disabled={busy} className="legacy-secondary-button">Sair</button></section></main>;
+  if (!company && platformOwner) return <main className="legacy-auth-screen"><section className="legacy-auth-card" style={{ width: 'min(920px, 100%)' }}><div className="legacy-auth-brand"><div className="legacy-auth-wordmark"><strong>KidsLoc <span>App</span></strong><small>GESTÃO DE LOCAÇÕES</small></div><div className="legacy-login-accent" /></div><CompanyManagementPage companies={availableCompanies} selectedCompanyId="" userId={session.user.id} onCompaniesChanged={setAvailableCompanies} onCompanySelected={created => { try { window.localStorage.setItem(`kidsloc_selected_company_${session.user.id}`, created.id); } catch { /* preferência opcional */ } setCompany({ ...created, role: 'owner' }); }} /><button onClick={logout} disabled={busy} className="legacy-secondary-button">Sair</button></section></main>;
   if (!company) return <main className="legacy-auth-screen"><section className="legacy-auth-card"><div className="legacy-auth-brand"><div className="legacy-auth-wordmark"><strong>KidsLoc <span>App</span></strong><small>GESTÃO DE LOCAÇÕES</small></div><div className="legacy-login-accent" /></div><h1>Acesso sem empresa vinculada</h1><p className="legacy-intro">{message || 'Esta conta não está vinculada a uma empresa.'}</p><button onClick={logout} disabled={busy} className="legacy-primary-button">Sair</button></section></main>;
 
   return (
