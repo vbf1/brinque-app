@@ -64,6 +64,10 @@ jobs:
         run: flutter test
       - name: Build installable APK
         working-directory: /tmp/kidsloc-android
+        env:
+          KIDSLOC_KEYSTORE_PASSWORD: ${{ secrets.KIDSLOC_KEYSTORE_PASSWORD }}
+          KIDSLOC_KEY_ALIAS: ${{ secrets.KIDSLOC_KEY_ALIAS }}
+          KIDSLOC_KEY_PASSWORD: ${{ secrets.KIDSLOC_KEY_PASSWORD }}
         run: |
           flutter build apk --release --build-number=${GITHUB_RUN_NUMBER}
           test -s build/app/outputs/flutter-apk/app-release.apk
