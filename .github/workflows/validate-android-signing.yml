@@ -150,6 +150,16 @@ jobs:
           test "$NEW_CODE" -gt "$OLD_CODE"
           echo "Assinatura persistente, identidade e versionCode confirmados."
 
+      - name: Enable KVM access for Android emulator
+        run: |
+          if [ -e /dev/kvm ]; then
+            sudo chmod 666 /dev/kvm
+            ls -l /dev/kvm
+          else
+            echo "::error::KVM não está disponível neste runner; o teste Android não pode continuar com emulação x86 acelerada."
+            exit 1
+          fi
+
       - name: Verify install and app data preservation on Android emulator
         uses: ReactiveCircus/android-emulator-runner@v2
         with:
@@ -157,6 +167,10 @@ jobs:
           target: google_apis
           arch: x86_64
           profile: pixel_2
+          cores: 2
+          emulator-boot-timeout: 900
+          disable-linux-hw-accel: false
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
           script: |
             APK="/tmp/kidsloc-android/build/app/outputs/flutter-apk/app-release.apk"
             PACKAGE="br.com.sonhokids.kidsloc"
