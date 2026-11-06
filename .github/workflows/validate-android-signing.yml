@@ -166,21 +166,48 @@ jobs:
           disable-linux-hw-accel: false
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
           script: |
-            bash -euo pipefail -c '
-              APK="/tmp/kidsloc-android/build/app/outputs/flutter-apk/app-release.apk"
-              PACKAGE="br.com.sonhokids.kidsloc"
-              test -s "$APK"
-              adb install "$APK"
-              adb root
-              adb wait-for-device
-              APP_UID="$(adb shell dumpsys package "$PACKAGE" | grep -oE "userId=[0-9]+" | head -n 1 | cut -d= -f2 | tr -d "\\r")"
-              test -n "$APP_UID"
-              adb shell "mkdir -p /data/user/0/$PACKAGE/files && printf kidsloc-data-preserved > /data/user/0/$PACKAGE/files/update-preservation-check.txt && chown -R $APP_UID:$APP_UID /data/user/0/$PACKAGE"
-              adb install -r "$APK"
-              MARKER="$(adb shell cat /data/user/0/$PACKAGE/files/update-preservation-check.txt | tr -d "\\r")"
-              test "$MARKER" = "kidsloc-data-preserved"
-              echo "Instalação assinada e reinstalação preservaram os dados privados do aplicativo."
-            '
+            set -euo pipefail
+            APK="/tmp/kidsloc-android/build/app/outputs/flutter-apk/app-release.apk"
+            PACKAGE="br.com.sonhokids.kidsloc"
+
+            test -s "$APK"
+            adb start-server
+            adb wait-for-device
+
+            # Aguarda o Android concluir a inicialização antes de instalar.
+            for attempt in $(seq 1 60); do
+              BOOT_COMPLETED="$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r' || true)"
+              if [ "$BOOT_COMPLETED" = "1" ]; then
+                break
+              fi
+              sleep 2
+            done
+            test "$(adb shell getprop sys.boot_completed | tr -d '\r')" = "1"
+
+            adb install "$APK"
+
+            # Reinicia o daemon ADB como root e aguarda a reconexão completa.
+            adb root
+            adb wait-for-device
+            for attempt in $(seq 1 30); do
+              BOOT_COMPLETED="$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r' || true)"
+              if [ "$BOOT_COMPLETED" = "1" ]; then
+                break
+              fi
+              sleep 2
+            done
+            test "$(adb shell getprop sys.boot_completed | tr -d '\r')" = "1"
+
+            APP_UID="$(adb shell dumpsys package "$PACKAGE" | sed -n 's/.*userId=\([0-9][0-9]*\).*/\1/p' | head -n 1 | tr -d '\r')"
+            test -n "$APP_UID"
+            adb shell "mkdir -p /data/user/0/$PACKAGE/files"
+            adb shell "printf kidsloc-data-preserved > /data/user/0/$PACKAGE/files/update-preservation-check.txt"
+            adb shell "chown -R $APP_UID:$APP_UID /data/user/0/$PACKAGE"
+
+            adb install -r "$APK"
+            MARKER="$(adb shell "cat /data/user/0/$PACKAGE/files/update-preservation-check.txt" | tr -d '\r')"
+            test "$MARKER" = "kidsloc-data-preserved"
+            echo "Instalação assinada e reinstalação preservaram os dados privados do aplicativo."
 
       - name: Upload signed test APK after validation
         uses: actions/upload-artifact@v4
