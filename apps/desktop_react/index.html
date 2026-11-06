@@ -8,6 +8,31 @@
     <link rel="apple-touch-icon" href="%BASE_URL%kidsloc-brand.webp" />
     <meta name="description" content="KidsLoc App — gestão de locações da Sonho Kids Brinquedos." />
     <title>KidsLoc App</title>
+    <style>
+      /* Ajuste fino do guia: um pouco mais compacto sem esconder o aplicativo. */
+      .kidsloc-tour-coach {
+        width: min(340px, calc(100vw - 32px)) !important;
+        max-height: min(280px, 38vh) !important;
+        padding: 12px 14px !important;
+      }
+      .kidsloc-tour-coach h2 { font-size: 16px !important; }
+      .kidsloc-tour-coach p { font-size: 11px !important; line-height: 1.4 !important; }
+      .kidsloc-tour-coach .kidsloc-tour-actions { margin-top: 9px !important; }
+      .kidsloc-tour-coach .kidsloc-tour-actions button {
+        min-height: 33px !important;
+        padding: 6px 9px !important;
+        font-size: 10px !important;
+      }
+      @media (max-width: 600px) {
+        .kidsloc-tour-coach {
+          max-height: 30vh !important;
+          padding: 10px 12px !important;
+        }
+        .kidsloc-tour-coach h2 { font-size: 14px !important; }
+        .kidsloc-tour-coach p { font-size: 10px !important; line-height: 1.35 !important; }
+        .kidsloc-tour-coach .kidsloc-tour-actions { margin-top: 7px !important; }
+      }
+    </style>
   </head>
   <body>
     <div id="root"></div>
