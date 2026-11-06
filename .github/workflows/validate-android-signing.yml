@@ -1,0 +1,105 @@
+name: Validate KidsLoc Android signing
+
+on:
+  push:
+    branches:
+      - prototype/first-test-build
+    paths:
+      - ".github/workflows/validate-android-signing.yml"
+      - ".github/scripts/configure-preview-android.py"
+      - ".github/scripts/configure-release-signing.py"
+      - "apps/mobile_flutter/**"
+      - "google-services.json"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  signed-apk-validation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate signing secrets
+        env:
+          KIDSLOC_KEYSTORE_BASE64: ${{ secrets.KIDSLOC_KEYSTORE_BASE64 }}
+          KIDSLOC_KEYSTORE_PASSWORD: ${{ secrets.KIDSLOC_KEYSTORE_PASSWORD }}
+          KIDSLOC_KEY_ALIAS: ${{ secrets.KIDSLOC_KEY_ALIAS }}
+          KIDSLOC_KEY_PASSWORD: ${{ secrets.KIDSLOC_KEY_PASSWORD }}
+        run: |
+          python3 - <<'PY'
+          import os, base64
+          names = ["KIDSLOC_KEYSTORE_BASE64", "KIDSLOC_KEYSTORE_PASSWORD", "KIDSLOC_KEY_ALIAS", "KIDSLOC_KEY_PASSWORD"]
+          missing = [name for name in names if not os.environ.get(name)]
+          if missing:
+              raise SystemExit("Secrets ausentes: " + ", ".join(missing))
+          try:
+              data = base64.b64decode(os.environ["KIDSLOC_KEYSTORE_BASE64"], validate=True)
+          except Exception as error:
+              raise SystemExit("KIDSLOC_KEYSTORE_BASE64 não contém Base64 válido") from error
+          if not data:
+              raise SystemExit("O keystore codificado está vazio")
+          PY
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Generate Android host project
+        run: |
+          flutter create --platforms=android --org br.com.sonhokids --project-name kidsloc /tmp/kidsloc-android
+          cp -R apps/mobile_flutter/lib /tmp/kidsloc-android/
+          cp -R apps/mobile_flutter/assets /tmp/kidsloc-android/
+          cp apps/mobile_flutter/pubspec.yaml /tmp/kidsloc-android/pubspec.yaml
+          cp apps/mobile_flutter/pubspec.lock /tmp/kidsloc-android/pubspec.lock
+          cp google-services.json /tmp/kidsloc-android/android/app/google-services.json
+          python3 .github/scripts/configure-preview-android.py /tmp/kidsloc-android/android
+          python3 .github/scripts/configure-release-signing.py /tmp/kidsloc-android/android
+
+      - name: Verify keystore and alias
+        working-directory: /tmp/kidsloc-android/android/app
+        env:
+          KIDSLOC_KEYSTORE_PASSWORD: ${{ secrets.KIDSLOC_KEYSTORE_PASSWORD }}
+          KIDSLOC_KEY_ALIAS: ${{ secrets.KIDSLOC_KEY_ALIAS }}
+        run: |
+          keytool -list -keystore kidsloc-upload.jks -storepass "$KIDSLOC_KEYSTORE_PASSWORD" -alias "$KIDSLOC_KEY_ALIAS"
+
+      - name: Resolve dependencies and analyze
+        working-directory: /tmp/kidsloc-android
+        run: |
+          flutter pub get
+          flutter analyze
+          flutter test
+
+      - name: Build signed APK
+        working-directory: /tmp/kidsloc-android
+        env:
+          KIDSLOC_KEYSTORE_PASSWORD: ${{ secrets.KIDSLOC_KEYSTORE_PASSWORD }}
+          KIDSLOC_KEY_ALIAS: ${{ secrets.KIDSLOC_KEY_ALIAS }}
+          KIDSLOC_KEY_PASSWORD: ${{ secrets.KIDSLOC_KEY_PASSWORD }}
+        run: flutter build apk --release --build-number=${GITHUB_RUN_NUMBER}
+
+      - name: Verify APK signature and package
+        working-directory: /tmp/kidsloc-android
+        run: |
+          APK="build/app/outputs/flutter-apk/app-release.apk"
+          test -s "$APK"
+          apksigner verify --verbose --print-certs "$APK"
+          aapt dump badging "$APK" | grep -F "package: name='br.com.sonhokids.kidsloc'"
+
+      - name: Upload signed test APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: KidsLoc-signed-validation-${{ github.run_number }}
+          path: /tmp/kidsloc-android/build/app/outputs/flutter-apk/app-release.apk
+          retention-days: 7
