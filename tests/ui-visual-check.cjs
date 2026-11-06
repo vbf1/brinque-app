@@ -92,10 +92,11 @@ const viewports = [
         const rectProblems = [...document.querySelectorAll('.module-shell,.data-list-row,.agenda-layout,.team-chat-layout,.users-card')].filter(el => {
           const r = el.getBoundingClientRect(); return r.left < -1 || r.right > window.innerWidth + 1 || r.width > window.innerWidth + 1;
         }).map(el => el.className);
-        return { viewport: window.innerWidth, documentWidth: document.documentElement.scrollWidth, overflow: document.documentElement.scrollWidth > window.innerWidth + 1, rectProblems };
+        const usersPrimaryWidth = document.querySelector('.users-primary')?.getBoundingClientRect().width ?? 0;
+        return { viewport: window.innerWidth, documentWidth: document.documentElement.scrollWidth, overflow: document.documentElement.scrollWidth > window.innerWidth + 1, rectProblems, usersPrimaryWidth };
       });
       await page.screenshot({ path: `artifacts/modules-${viewport.name}.png`, fullPage: true });
-      if (layout.overflow || layout.rectProblems.length) { failures++; console.error(`FAIL module-layout ${viewport.name}: ${JSON.stringify(layout)}`); }
+      if (layout.overflow || layout.rectProblems.length || (viewport.width <= 340 && layout.usersPrimaryWidth < 145)) { failures++; console.error(`FAIL module-layout ${viewport.name}: ${JSON.stringify(layout)}`); }
       else console.log(`PASS module-layout ${viewport.name}: componentes compartilhados dentro da largura disponível`);
       await page.close();
     }
