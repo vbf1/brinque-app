@@ -61,6 +61,7 @@ jobs:
         run: |
           mkdir -p artifacts
           node tests/ui-visual-check.cjs
+          node tests/company-selection-check.cjs
 
       - name: Upload screenshots
         if: always()
