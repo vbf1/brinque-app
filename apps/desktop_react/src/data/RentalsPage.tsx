@@ -160,8 +160,8 @@ export function RentalsPage({ companyId }: { companyId: string }) {
       {items.map((item, index) => <div className="rental-item-editor" key={index}>
         <div className="rental-item-top"><strong>Brinquedo {index + 1}</strong><button type="button" className="remove-item-button" disabled={items.length === 1} onClick={() => setItems(items.filter((_, i) => i !== index))}>Remover</button></div>
         <label>Brinquedo<AppSelect required value={item.productId} onChange={value => {
-          const product = products.find(p => p.id === e.target.value);
-          setItems(items.map((current, i) => i === index ? { ...current, productId: e.target.value, price: String(product?.daily_price ?? current.price) } : current));
+          const product = products.find(p => p.id === value);
+          setItems(items.map((current, i) => i === index ? { ...current, productId: value, price: String(product?.daily_price ?? current.price) } : current));
         }} placeholder="Selecione um brinquedo" options={[{ value: '', label: 'Selecione' }, ...products.map(p => ({ value: p.id, label: p.name }))]} /></label>
         <div className="form-grid"><label>Quantidade<input type="number" min="1" step="1" required value={item.quantity} onChange={e => setItems(items.map((current, i) => i === index ? { ...current, quantity: Number(e.target.value) } : current))} /></label><label>Diária por unidade (R$)<input inputMode="decimal" required value={item.price} onChange={e => setItems(items.map((current, i) => i === index ? { ...current, price: e.target.value } : current))} /></label></div>
       </div>)}
