@@ -24,8 +24,10 @@ export function AppSelect({
   'aria-label': ariaLabel,
 }: AppSelectProps) {
   const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState('');
   const rootRef = useRef<HTMLDivElement>(null);
   const selected = options.find(option => option.value === value);
+  const filteredOptions = options.filter(option => option.label.toLocaleLowerCase('pt-BR').includes(search.trim().toLocaleLowerCase('pt-BR')));
 
   useEffect(() => {
     if (!open) return;
@@ -62,7 +64,7 @@ export function AppSelect({
         <span className="app-select-chevron" aria-hidden="true">⌄</span>
       </button>
       {open && (
-        <div className="app-select-overlay">
+        <div className="app-select-overlay" onClick={event => { if (event.target === event.currentTarget) setOpen(false); }}>
           <section className="app-select-dialog" role="dialog" aria-modal="true" aria-label={ariaLabel || placeholder}>
             <header className="app-select-dialog-header">
               <div className="app-select-dialog-mark" aria-hidden="true">⌄</div>
@@ -73,8 +75,9 @@ export function AppSelect({
               </div>
               <button type="button" className="app-select-dialog-close" aria-label="Fechar opções" onClick={() => setOpen(false)}>×</button>
             </header>
+            {options.length > 6 && <div className="app-select-search-wrap"><input autoFocus type="search" value={search} onChange={event => setSearch(event.target.value)} placeholder="Buscar opção..." aria-label="Buscar opção" /></div>}
             <div className="app-select-menu" role="listbox" aria-label={ariaLabel}>
-          {options.map(option => (
+          {filteredOptions.map(option => (
             <button
               type="button"
               role="option"
@@ -84,17 +87,18 @@ export function AppSelect({
               onClick={() => {
                 onChange(option.value);
                 setOpen(false);
+                setSearch('');
               }}
             >
               <span>{option.label}</span>
               {option.value === value && <span className="app-select-check" aria-hidden="true">✓</span>}
             </button>
           ))}
-              {!options.length && <span className="app-select-empty">Nenhuma opção disponível</span>}
+              {!filteredOptions.length && <span className="app-select-empty">{options.length ? 'Nenhuma opção encontrada' : 'Nenhuma opção disponível'}</span>}
             </div>
             <footer className="app-select-dialog-footer">
               <span>{options.length} {options.length === 1 ? 'opção disponível' : 'opções disponíveis'}</span>
-              <button type="button" onClick={() => setOpen(false)}>Fechar</button>
+              <button type="button" onClick={() => { setOpen(false); setSearch(''); }}>Fechar</button>
             </footer>
           </section>
         </div>
