@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
 import { AppSelect } from '../components/AppSelect';
+import { AppConfirmDialog } from '../components/AppConfirmDialog';
 import { supabase } from '../lib/supabase';
 import { createCompanyDataRepository } from './companyDataRepository';
 
@@ -39,6 +40,7 @@ export function RentalsPage({ companyId }: { companyId: string }) {
   const [responsibleIds, setResponsibleIds] = useState<string[]>([]);
   const [items, setItems] = useState<DraftItem[]>([{ productId: '', quantity: 1, price: '0' }]);
   const [message, setMessage] = useState('');
+  const [confirmRental, setConfirmRental] = useState<Row | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -118,6 +120,7 @@ export function RentalsPage({ companyId }: { companyId: string }) {
 
 
   async function deleteRental(rental: Row) {
+    setConfirmRental(null);
     setSaving(true);
     try {
       const { data: existingContract, error: contractError } = await supabase
@@ -127,8 +130,6 @@ export function RentalsPage({ companyId }: { companyId: string }) {
         setMessage('Esta locação possui um contrato enviado ou assinado. A exclusão foi bloqueada para preservar o histórico e os documentos.');
         return;
       }
-      const confirmed = window.confirm('Excluir esta locação? Os itens e eventos vinculados serão removidos. Lançamentos financeiros e pagamentos relacionados serão preservados quando houver vínculo configurado. Esta ação não poderá ser desfeita.');
-      if (!confirmed) return;
       await repo.deleteRental(rental.id);
       await load();
       setMessage('Locação excluída.');
@@ -140,6 +141,7 @@ export function RentalsPage({ companyId }: { companyId: string }) {
   const visible = rentals.filter(rental => String(rental.customers?.name ?? '').toLocaleLowerCase('pt-BR').includes(search.toLocaleLowerCase('pt-BR')));
 
   return <section className="module-shell">
+    <AppConfirmDialog open={!!confirmRental} title="Excluir locação?" description="Os itens e eventos vinculados serão removidos. Lançamentos financeiros e pagamentos relacionados serão preservados quando houver vínculo configurado. Esta ação não poderá ser desfeita." confirmLabel="Excluir locação" busy={saving} onCancel={() => setConfirmRental(null)} onConfirm={() => { if (confirmRental) void deleteRental(confirmRental); }} />
     <header className="module-header"><div><p className="eyebrow">OPERAÇÃO</p><h2>Locações</h2><p className="module-description">Crie e edite locações com vários brinquedos no mesmo pedido.</p></div><button type="button" onClick={() => openForm()}>Nova locação</button></header>
     <div className="module-toolbar"><input aria-label="Buscar locações" placeholder="Buscar por cliente" value={search} onChange={e => setSearch(e.target.value)} /><button type="button" className="secondary-button" onClick={() => void load()}>Atualizar</button></div>
     {message && <p className="module-feedback" role="status">{message}</p>}
@@ -171,7 +173,7 @@ export function RentalsPage({ companyId }: { companyId: string }) {
       <div className="form-actions"><button type="button" className="secondary-button" onClick={() => setFormOpen(false)}>Cancelar</button><button type="submit" disabled={saving}>{saving ? 'Salvando...' : 'Salvar locação'}</button></div>
     </form>}
     {loading ? <p className="module-empty">Carregando locações...</p> : visible.length === 0 ? <p className="module-empty">Nenhuma locação encontrada.</p> : <div className="customer-list">{visible.map(rental => <article className="customer-row rental-row" key={rental.id}>
-      <div className="customer-avatar">📅</div><div className="customer-info"><strong>{rental.customers?.name ?? 'Cliente'}</strong><span>{dateLabel(rental.start_date)} a {dateLabel(rental.end_date)} · {(rental.rental_items ?? []).map((item: Row) => item.products?.name ?? 'Brinquedo').join(', ')} · {money(Number(rental.total_amount ?? 0))} · {rental.status}</span></div><div className="rental-row-actions"><button type="button" className="secondary-button" disabled={!canManageRentals || saving} title={!canManageRentals ? 'Edição restrita ao proprietário e administradores' : 'Editar locação'} onClick={() => openForm(rental)}>Editar</button><button type="button" className="remove-item-button" disabled={!canManageRentals || saving} title={!canManageRentals ? 'Exclusão restrita ao proprietário e administradores' : 'Excluir locação'} onClick={() => void deleteRental(rental)}>Excluir</button></div>
+      <div className="customer-avatar">📅</div><div className="customer-info"><strong>{rental.customers?.name ?? 'Cliente'}</strong><span>{dateLabel(rental.start_date)} a {dateLabel(rental.end_date)} · {(rental.rental_items ?? []).map((item: Row) => item.products?.name ?? 'Brinquedo').join(', ')} · {money(Number(rental.total_amount ?? 0))} · {rental.status}</span></div><div className="rental-row-actions"><button type="button" className="secondary-button" disabled={!canManageRentals || saving} title={!canManageRentals ? 'Edição restrita ao proprietário e administradores' : 'Editar locação'} onClick={() => openForm(rental)}>Editar</button><button type="button" className="remove-item-button" disabled={!canManageRentals || saving} title={!canManageRentals ? 'Exclusão restrita ao proprietário e administradores' : 'Excluir locação'} onClick={() => setConfirmRental(rental)}>Excluir</button></div>
     </article>)}</div>}
   </section>;
 }
