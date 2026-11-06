@@ -74,7 +74,7 @@ class _NativeCompanyHomePageState extends State<NativeCompanyHomePage> {
       'quotes' => QuotesPage(companyId: company.id),
       'finance' => FinancePage(companyId: company.id),
       'marketing' => MarketingPage(companyId: company.id, userId: Supabase.instance.client.auth.currentUser!.id),
-      'chat' => TeamChatPage(companyId: company.id),
+      'chat' => TeamChatPage(companyId: company.id, viewerRole: company.role),
       'occurrences' => OccurrencesPage(companyId: company.id, role: company.role),
       'users' => UsersPage(companyId: company.id, viewerRole: company.role),
       'reminders' => ReminderSettingsPage(companyId: company.id, role: company.role),
