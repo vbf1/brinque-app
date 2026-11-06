@@ -101,6 +101,18 @@ const viewports = [
       else console.log(`PASS module-layout ${viewport.name}: componentes compartilhados dentro da largura disponível`);
       await page.close();
     }
+    // Static regression guards for the owner/company startup flow.
+    const appSource = fs.readFileSync('apps/desktop_react/src/App.tsx', 'utf8');
+    const managementSource = fs.readFileSync('apps/desktop_react/src/data/CompanyManagementPage.tsx', 'utf8');
+    const startupGuards = [
+      ['session initialization is deduplicated', appSource.includes('function sameSessionSnapshot')],
+      ['legacy company IDs require a confirmed selection timestamp', appSource.includes('hasConfirmedPreference') && appSource.includes('kidsloc_selected_company_at')],
+      ['owner company manager starts with no selected company', appSource.includes('selectedCompanyId=""') && managementSource.includes('value={selected?.id ?? \'\'}')],
+    ];
+    for (const [label, passed] of startupGuards) {
+      if (!passed) { failures++; console.error('FAIL company-startup: ' + label); }
+      else console.log('PASS company-startup: ' + label);
+    }
   } finally {
     await browser.close();
   }
