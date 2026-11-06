@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class TeamChatPage extends StatefulWidget {
-  const TeamChatPage({super.key, required this.companyId});
+  const TeamChatPage({super.key, required this.companyId, required this.viewerRole});
   final String companyId;
+  final String viewerRole;
   @override
   State<TeamChatPage> createState() => _TeamChatPageState();
 }
@@ -14,6 +15,7 @@ class _TeamChatPageState extends State<TeamChatPage> {
   List<Map<String, dynamic>> _members = [], _conversations = [], _messages = [];
   final Map<String, String> _conversationPeers = {};
   final Map<String, String> _conversationPreviews = {};
+  bool get _isOwner => widget.viewerRole == 'owner';
   String? _viewerId, _recipientId, _error;
   Map<String, dynamic>? _active;
   dynamic _channel;
@@ -54,7 +56,7 @@ class _TeamChatPageState extends State<TeamChatPage> {
           ..clear()
           ..addEntries(membershipRows.where((row) => row['user_id'] != _viewerId)
             .map((row) => MapEntry(row['conversation_id'] as String, row['user_id'] as String)));
-        _conversations = conversations.where((row) => visibleIds.contains(row['id'])).toList();
+        _conversations = _isOwner ? conversations : conversations.where((row) => visibleIds.contains(row['id'])).toList();
       } else { _conversations = []; }
       _conversationPreviews.clear();
       if (conversationIds.isNotEmpty) {
