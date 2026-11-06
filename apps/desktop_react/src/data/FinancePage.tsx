@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { AppSelect } from '../components/AppSelect';
+import { AppConfirmDialog } from '../components/AppConfirmDialog';
 import { createCompanyDataRepository } from './companyDataRepository';
 import { supabase } from '../lib/supabase';
 
@@ -27,6 +28,7 @@ export function FinancePage({ companyId }: { companyId: string }) {
   const [paymentAmount, setPaymentAmount] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('pix');
   const [paymentNotes, setPaymentNotes] = useState('');
+  const [confirmRow, setConfirmRow] = useState<Transaction | null>(null);
 
   async function reload() {
     setLoading(true);
@@ -89,7 +91,7 @@ export function FinancePage({ companyId }: { companyId: string }) {
   }
 
   async function remove(row: Transaction) {
-    if (!window.confirm('Excluir este lançamento financeiro?')) return;
+    setConfirmRow(null);
     setBusy(true);
     try { await repository.deleteTransaction(row.id); await reload(); }
     catch (error) { setMessage(error instanceof Error ? error.message : 'Não foi possível excluir.'); }
@@ -97,6 +99,7 @@ export function FinancePage({ companyId }: { companyId: string }) {
   }
 
   return <section className="data-page">
+    <AppConfirmDialog open={!!confirmRow} title="Excluir lançamento?" description="Este lançamento financeiro será removido permanentemente. Essa ação não poderá ser desfeita." confirmLabel="Excluir lançamento" busy={busy} onCancel={() => setConfirmRow(null)} onConfirm={() => { if (confirmRow) void remove(confirmRow); }} />
     <div className="data-page-heading"><div><p className="eyebrow">GESTÃO FINANCEIRA</p><h1>Financeiro</h1><p>Entradas, saídas e movimentações registradas.</p></div><div className="finance-heading-actions"><button type="button" className="secondary-button" onClick={() => setPaymentOpen(value => !value)}>Registrar recebimento</button><button type="button" onClick={() => openForm()}>Novo lançamento</button></div></div>
     <div className="data-summary-grid"><article className="data-summary"><span>Entradas</span><strong>{money(income)}</strong></article><article className="data-summary"><span>Saídas</span><strong>{money(expense)}</strong></article><article className="data-summary"><span>Saldo registrado</span><strong>{money(income-expense)}</strong></article></div>
     {paymentOpen && <form className="data-form" onSubmit={registerPayment}>
@@ -119,7 +122,7 @@ export function FinancePage({ companyId }: { companyId: string }) {
     {message && <p className="feedback error" role="alert">{message}</p>}
     {loading ? <p>Carregando movimentações...</p> : filtered.length === 0 ? <p>Nenhuma movimentação encontrada.</p> : <div className="data-list">{filtered.map(row => <article className="data-list-row" key={row.id}>
       <div><strong>{row.description}</strong><span>{row.transaction_type === 'income' ? 'Entrada' : 'Saída'} · {row.paid_at ? new Date(row.paid_at + 'T12:00:00').toLocaleDateString('pt-BR') : new Date(row.created_at).toLocaleDateString('pt-BR')}</span></div>
-      <strong>{money(Number(row.amount))}</strong><div className="data-row-actions"><button type="button" className="secondary-button" onClick={() => openForm(row)}>Editar</button><button type="button" className="danger-button" disabled={busy} onClick={() => void remove(row)}>Excluir</button></div>
+      <strong>{money(Number(row.amount))}</strong><div className="data-row-actions"><button type="button" className="secondary-button" onClick={() => openForm(row)}>Editar</button><button type="button" className="danger-button" disabled={busy} onClick={() => setConfirmRow(row)}>Excluir</button></div>
     </article>)}</div>}
   </section>;
 }
