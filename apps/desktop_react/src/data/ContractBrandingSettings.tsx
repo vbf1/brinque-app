@@ -48,8 +48,8 @@ export function ContractBrandingSettings({companyId,companyName}:{companyId:stri
     setUploading(true);setError('');setMessage('');
     try{
       const ext=file.name.split('.').pop()?.toLowerCase()||'png';
-      const path=companyId+'/contract-logo.'+ext;
-      const {error:uploadError}=await supabase.storage.from('company-branding').upload(path,file,{upsert:true,contentType:file.type});
+      const path=companyId+'/contract-logo-'+Date.now()+'.'+ext;
+      const {error:uploadError}=await supabase.storage.from('company-branding').upload(path,file,{contentType:file.type});
       if(uploadError)throw uploadError;
       const {data}=supabase.storage.from('company-branding').getPublicUrl(path);
       const {error:updateError}=await supabase.from('companies').update({contract_logo_url:data.publicUrl,updated_at:new Date().toISOString()}).eq('id',companyId);
