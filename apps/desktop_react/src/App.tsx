@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
-import { AppSelect } from './components/AppSelect';
 import type { Session } from '@supabase/supabase-js';
 import { supabase } from './lib/supabase';
 import { CustomersPage } from './data/CustomersPage';
@@ -513,7 +512,7 @@ export default function App() {
         {page === 'marketing' && isAdmin && <MarketingPage companyId={company.id} userId={session.user.id} />}
         {page === 'usuarios' && isAdmin && <UsersPage companyId={company.id} viewerRole={platformOwner ? 'owner' : company.role} />}
         {page === 'configuracoes' && isAdmin && <CompanySettingsPage companyId={company.id} companyName={company.name} theme={theme} onThemeChange={setTheme} onSaved={name => { setCompany(current => current ? { ...current, name } : current); setAvailableCompanies(current => current.map(item => item.id === company.id ? { ...item, name } : item)); }} />}
-        {page === 'administracao' && platformOwner && <PlatformAdminPage currentCompanyId={company.id} companies={availableCompanies} onCompaniesChanged={setAvailableCompanies} onSelectCompany={selected => setCompany({ ...selected, role: 'owner' })} />}
+        {page === 'administracao' && platformOwner && <PlatformAdminPage currentCompanyId={company.id} companies={availableCompanies} onCompaniesChanged={setAvailableCompanies} />}
       </main>
       {tourOpen && currentTourStep && <aside className="kidsloc-tour-coach" role="region" aria-labelledby="kidsloc-tour-title">
         <div className="kidsloc-tour-top"><span><i /> GUIA DO KIDSLOC</span><button type="button" className="kidsloc-tour-close" onClick={() => void finishTour()} aria-label="Fechar tutorial">×</button></div>
