@@ -5,16 +5,6 @@ import { ContractBrandingSettings } from './ContractBrandingSettings';
 
 type Rental = Record<string, any>;
 type Contract = Record<string, any>;
-const clauses = [
-  'O LOCADOR realizará a locação dos seguintes equipamentos para utilização no evento. Os equipamentos serão disponibilizados ao CONTRATANTE durante o período e nas condições estabelecidas neste instrumento.',
-  'Data do evento, retirada dos equipamentos, horários e endereço de entrega serão os informados no quadro de dados deste contrato.',
-  'O sinal integra o preço total da locação e será abatido do saldo, não sendo cobrado em duplicidade.',
-  'O LOCADOR será responsável pela entrega, montagem e retirada dos equipamentos, conforme o serviço contratado. O CONTRATANTE deverá disponibilizar espaço adequado e seguro para a instalação. Os equipamentos deverão ser utilizados de forma adequada, observando-se as orientações de segurança fornecidas pelo LOCADOR.',
-  'O CONTRATANTE deverá zelar pelos equipamentos durante o período da locação e comunicar imediatamente ao LOCADOR qualquer ocorrência ou dano. Danos comprovadamente causados por uso inadequado, negligência ou descumprimento das orientações de segurança serão avaliados, cabendo ao responsável arcar com os prejuízos efetivamente comprovados, respeitada a legislação aplicável. O LOCADOR deverá entregar os equipamentos em condições adequadas de funcionamento e segurança.',
-  'Em caso de desistência por parte do CONTRATANTE, comunicada com antecedência de até 2 (dois) dias corridos da data do evento, será retido o equivalente a 15% (quinze por cento) do valor total da locação. Esse valor equivale a 50% (cinquenta por cento) do sinal pago, sendo os outros valores devolvidos ao CONTRATANTE. Nos demais casos de cancelamento ou em solicitações de alteração da data, as partes buscarão uma solução de comum acordo, observando a legislação aplicável e os direitos do consumidor.',
-  'Qualquer alteração nas condições deste contrato deverá ser acordada entre as partes, preferencialmente por escrito. Este instrumento registra as condições ajustadas para a locação e produzirá efeitos após a aceitação pelas partes.',
-  'As partes reconhecem a validade das assinaturas realizadas fisicamente ou por meio eletrônico, desde que seja possível identificar os signatários e verificar a integridade do documento. Estando de acordo com todas as condições, as partes assinam o presente instrumento.'
-];
 const date = (value: string) => value ? new Date(value + 'T12:00:00').toLocaleDateString('pt-BR') : '—';
 const statusLabels: Record<string,string> = { draft:'Pendente', sent:'Enviado', viewed:'Visualizado', signed:'Assinado', cancelled:'Cancelado', expired:'Vencido' };
 
@@ -90,9 +80,8 @@ export function ContractsPage({ companyId, companyName }: { companyId: string; c
         payment: { total, signal, signalPercent, dueDateText: extraFields.dueDateText || date(rental.start_date) + ', na entrega do equipamento' },
         startDate: rental.start_date, endDate: rental.end_date, totalAmount: total, rentalNumber: rental.rental_number,
         items: (rental.rental_items ?? []).map((item: any) => ({ name: item.products?.name ?? 'Brinquedo', quantity: item.quantity, dailyPrice: item.unit_price, subtotal: item.subtotal ?? Number(item.unit_price) * Number(item.quantity) })),
-        clauses, depositAmount: rental.deposit_amount ?? 0, deliveryAddress: extraFields.eventAddress || rental.delivery_address || '',
+        depositAmount: rental.deposit_amount ?? 0, deliveryAddress: extraFields.eventAddress || rental.delivery_address || '',
         rentalNotes: rental.notes ?? '', signaturePlace: extraFields.signaturePlace || config.landlordCityState || '',
-        signatureDate: new Date().toISOString()
       };
       const { data, error } = await supabase.from('rental_contracts').insert({
         company_id: companyId, rental_id: rental.id, signature_method: method, status: 'draft',
