@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { validateRentalDraft } from './rentalDomain';
 
 /**
  * Company-scoped data access for the React desktop/web migration.
@@ -97,6 +98,10 @@ export function createCompanyDataRepository(
       deliveryAddress?: string | null;
       responsibleUserIds?: string[];
     }) {
+      validateRentalDraft(input);
+      if (!['pending', 'confirmed', 'ongoing'].includes(input.status)) {
+        throw new Error('Uma nova locação só pode ser criada como pendente, confirmada ou em andamento.');
+      }
       const { data, error } = await client.rpc('create_rental_with_items', {
         p_company_id: companyId,
         p_customer_id: input.customerId,
@@ -129,6 +134,7 @@ export function createCompanyDataRepository(
       deliveryAddress?: string | null;
       responsibleUserIds?: string[];
     }) {
+      validateRentalDraft(input);
       const { error } = await client.rpc('update_rental_with_items', {
         p_company_id: companyId,
         p_rental_id: input.rentalId,
