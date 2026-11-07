@@ -67,9 +67,22 @@ class _CompanyHomePageState extends State<CompanyHomePage> {
             setState(() { _loading = false; _pageFailed = true; });
           }
         },
-      ))
-      ..loadRequest(launchUri);
+      ));
+    _loadLatestWebApp(launchUri);
     _syncExistingNativeSession();
+  }
+
+  Future<void> _loadLatestWebApp(Uri launchUri) async {
+    try {
+      // The web app is the single source of truth for both platforms.
+      // Clear only WebView's HTTP cache so each app launch fetches the latest
+      // deployed HTML/assets while preserving cookies and the Supabase session.
+      await _controller.clearCache();
+      await _controller.loadRequest(launchUri);
+    } catch (error) {
+      debugPrint('KidsLoc: não foi possível atualizar o conteúdo web: $error');
+      if (mounted) setState(() { _loading = false; _pageFailed = true; });
+    }
   }
 
   Future<void> _syncExistingNativeSession() async {
