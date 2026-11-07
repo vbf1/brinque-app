@@ -14,7 +14,6 @@ type Props = {
   currentCompanyId: string;
   companies: Company[];
   onCompaniesChanged: (companies: Company[]) => void;
-  onSelectCompany: (company: Company) => void;
 };
 const roles = [
   { value: 'staff', label: 'Funcionário' },
@@ -25,7 +24,7 @@ const roles = [
 const dateLabel = (value?: string | null) => value
   ? new Date(value).toLocaleDateString('pt-BR') : 'Nunca';
 
-export function PlatformAdminPage({ currentCompanyId, companies, onCompaniesChanged, onSelectCompany }: Props) {
+export function PlatformAdminPage({ currentCompanyId, companies, onCompaniesChanged }: Props) {
   const [tab, setTab] = useState<'companies' | 'users'>('companies');
   const [companyName, setCompanyName] = useState('');
   const [creatingCompany, setCreatingCompany] = useState(false);
@@ -95,7 +94,6 @@ export function PlatformAdminPage({ currentCompanyId, companies, onCompaniesChan
       if (error) throw error;
       const next = [...companies, data as Company].sort((a, b) => a.name.localeCompare(b.name));
       onCompaniesChanged(next);
-      onSelectCompany(data as Company);
       setCompanyName('');
       setCompanyMessage('Empresa cadastrada com sucesso.');
     } catch (error) {
@@ -117,7 +115,6 @@ export function PlatformAdminPage({ currentCompanyId, companies, onCompaniesChan
       const next = companies.map(item => item.id === company.id ? { ...item, name } : item)
         .sort((a, b) => a.name.localeCompare(b.name));
       onCompaniesChanged(next);
-      if (currentCompanyId === company.id) onSelectCompany({ id: company.id, name });
       setCompanyMessage('Nome da empresa atualizado.');
     } catch (error) {
       setCompanyError(error instanceof Error ? error.message : 'Não foi possível atualizar a empresa.');
@@ -168,7 +165,7 @@ export function PlatformAdminPage({ currentCompanyId, companies, onCompaniesChan
         <label>Nome da empresa<input value={companyName} onChange={event => setCompanyName(event.target.value)} maxLength={120} required placeholder="Nome da nova empresa" /></label>
         <div className="form-actions"><button type="submit" disabled={creatingCompany}>{creatingCompany ? 'Cadastrando...' : 'Cadastrar empresa'}</button></div>
       </form>
-      <div className="module-header"><div><h3>Empresas cadastradas</h3><p className="module-description">Selecione uma empresa para abrir sua operação ou altere seu nome.</p></div></div>
+      <div className="module-header"><div><h3>Empresas cadastradas</h3><p className="module-description">Consulte as empresas registradas e seus dados cadastrais. A administração global não entra nas operações das empresas.</p></div></div>
       {!companies.length ? <p className="module-empty">Nenhuma empresa cadastrada.</p> : <div className="users-list">
         {companies.map(company => <article className="users-card" key={company.id}>
           <form onSubmit={event => void renameCompany(event, company)}>
@@ -181,7 +178,6 @@ export function PlatformAdminPage({ currentCompanyId, companies, onCompaniesChan
               <label style={{ display: 'grid', gap: 6, flex: '1 1 240px' }}>Nome da empresa<input name="company-name" defaultValue={company.name} maxLength={120} required /></label>
               <div className="form-actions">
                 <button type="submit" disabled={savingCompany === company.id}>{savingCompany === company.id ? 'Salvando...' : 'Salvar nome'}</button>
-                <button type="button" className="secondary-button" onClick={() => onSelectCompany(company)}>Abrir empresa</button>
               </div>
             </div>
           </form>
