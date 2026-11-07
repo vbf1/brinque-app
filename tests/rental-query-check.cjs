@@ -28,17 +28,21 @@ const stateGuards = [
   {
     label: 'Rentals',
     path: 'apps/desktop_react/src/data/RentalsPage.tsx',
-    expected: 'try {\\n        const { data: auth, error: authError } = await supabase.auth.getUser();',
+    expected: `try {
+        const { data: auth, error: authError } = await supabase.auth.getUser();`,
   },
   {
     label: 'Occurrences',
     path: 'apps/desktop_react/src/data/OccurrencesPage.tsx',
-    expected: 'setLoading(true); setError(\\'\\');\\n    try {\\n      const { data: auth, error: authError } = await supabase.auth.getUser();',
+    expected: `setLoading(true); setError('');
+    try {
+      const { data: auth, error: authError } = await supabase.auth.getUser();`,
   },
   {
     label: 'Contracts',
     path: 'apps/desktop_react/src/data/ContractsPage.tsx',
-    expected: 'try {\\n      const [r, c] = await Promise.all([',
+    expected: `try {
+      const [r, c] = await Promise.all([`,
   },
 ];
 
