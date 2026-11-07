@@ -40,7 +40,7 @@ export function ContractsPage({ companyId, companyName }: { companyId: string; c
   const [message, setMessage] = useState('');
   const [uploading, setUploading] = useState('');
   const [generatedTokens, setGeneratedTokens] = useState<Record<string,string>>({});
-  const [extraFields, setExtraFields] = useState({ customerCpf:'', customerRg:'', customerZip:'', customerNeighborhood:'', customerCityState:'', eventAddress:'', eventNeighborhood:'', eventCityState:'', pickupDate:'', signalPercent:'30', dueDateText:'', signaturePlace:'' });
+  const [extraFields, setExtraFields] = useState({ customerCpf:'', customerRg:'', customerZip:'', customerNeighborhood:'', customerCityState:'', eventAddress:'', eventNeighborhood:'', eventCityState:'', pickupDate:'', dueDateText:'', signaturePlace:'' });
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -69,7 +69,7 @@ export function ContractsPage({ companyId, companyName }: { companyId: string; c
       const config = companyData.contract_settings ?? {};
       const customer = rental.customers ?? {};
       const total = Number(rental.total_amount ?? 0);
-      const signalPercent = Math.min(100, Math.max(0, Number(extraFields.signalPercent || 30)));
+      const signalPercent = 30;
       const signal = total * signalPercent / 100;
       const snapshot = {
         companyName,
@@ -227,7 +227,6 @@ export function ContractsPage({ companyId, companyName }: { companyId: string; c
         <label>Endereço do evento<input value={extraFields.eventAddress} onChange={e=>setExtraFields(v=>({...v,eventAddress:e.target.value}))}/></label>
         <label>Bairro do evento<input value={extraFields.eventNeighborhood} onChange={e=>setExtraFields(v=>({...v,eventNeighborhood:e.target.value}))}/></label>
         <label>Cidade/UF do evento<input value={extraFields.eventCityState} onChange={e=>setExtraFields(v=>({...v,eventCityState:e.target.value}))}/></label>
-        <label>Sinal para reserva (%)<input type="number" min="0" max="100" value={extraFields.signalPercent} onChange={e=>setExtraFields(v=>({...v,signalPercent:e.target.value}))}/></label>
         <label>Vencimento do saldo<input value={extraFields.dueDateText} placeholder="Ex.: na entrega do equipamento" onChange={e=>setExtraFields(v=>({...v,dueDateText:e.target.value}))}/></label>
         <label>Local da assinatura<input value={extraFields.signaturePlace} onChange={e=>setExtraFields(v=>({...v,signaturePlace:e.target.value}))}/></label>
       </div>
