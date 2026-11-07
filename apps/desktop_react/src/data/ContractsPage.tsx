@@ -45,7 +45,7 @@ export function ContractsPage({ companyId, companyName }: { companyId: string; c
   const load = useCallback(async () => {
     setLoading(true);
     const [r, c] = await Promise.all([
-      supabase.from('rentals').select('*, customers(name, phone, email, address), rental_items(quantity, unit_price, subtotal, products(name))').eq('company_id', companyId).order('created_at', { ascending: false }),
+      supabase.from('rentals').select('*, customers(name, phone, email, address, cpf, rg, zip, neighborhood, city_state), rental_items(quantity, unit_price, subtotal, products(name))').eq('company_id', companyId).order('created_at', { ascending: false }),
       supabase.from('rental_contracts').select('*').eq('company_id', companyId).order('created_at', { ascending: false })
     ]);
     if (r.error || c.error) setMessage(r.error?.message ?? c.error?.message ?? 'Não foi possível carregar os contratos.');
@@ -80,8 +80,8 @@ export function ContractsPage({ companyId, companyName }: { companyId: string; c
         },
         brand: { logoUrl: companyData.contract_logo_url ?? '', primaryColor: config.primaryColor ?? '#174b78', accentColor: config.accentColor ?? '#f4cf2e' },
         customer: {
-          name: customer.name ?? '', cpf: extraFields.customerCpf, phone: customer.phone ?? '', rg: extraFields.customerRg,
-          address: customer.address ?? '', zip: extraFields.customerZip, neighborhood: extraFields.customerNeighborhood, cityState: extraFields.customerCityState
+          name: customer.name ?? '', cpf: customer.cpf || extraFields.customerCpf, phone: customer.phone ?? '', rg: customer.rg || extraFields.customerRg,
+          address: customer.address ?? '', zip: customer.zip || extraFields.customerZip, neighborhood: customer.neighborhood || extraFields.customerNeighborhood, cityState: customer.city_state || extraFields.customerCityState
         },
         customerName: customer.name ?? 'Cliente', customerPhone: customer.phone ?? '', customerAddress: customer.address ?? '',
         event: {
@@ -214,7 +214,7 @@ export function ContractsPage({ companyId, companyName }: { companyId: string; c
       <label>Locação<select value={selectedRental} onChange={event => {
         const value=event.target.value; setSelectedRental(value);
         const rental=rentals.find(item=>item.id===value);
-        setExtraFields(current=>({...current,pickupDate:rental?.start_date??'',eventAddress:rental?.delivery_address??rental?.customers?.address??''}));
+        setExtraFields(current=>({...current,pickupDate:rental?.start_date??'',eventAddress:rental?.delivery_address??rental?.customers?.address??'',customerCpf:rental?.customers?.cpf??'',customerRg:rental?.customers?.rg??'',customerZip:rental?.customers?.zip??'',customerNeighborhood:rental?.customers?.neighborhood??'',customerCityState:rental?.customers?.city_state??''}));
       }}><option value="">Selecione uma locação</option>{rentals.map(rental => <option key={rental.id} value={rental.id}>#{rental.rental_number} · {rental.customers?.name ?? 'Cliente'} · {date(rental.start_date)}</option>)}</select></label>
       <h4>Dados complementares deste contrato</h4>
       <div className="form-grid">
