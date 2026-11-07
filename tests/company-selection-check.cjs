@@ -137,7 +137,7 @@ function json(body, status = 200, headers = {}) {
 
     // Visit a page, then reopen the app from its root URL in the same browser.
     await page.getByRole('button', { name: 'Abrir menu' }).click();
-    await page.getByRole('button', { name: 'Clientes', exact: true }).click();
+    await page.getByRole('button', { name: /Clientes/ }).click();
     await page.getByRole('heading', { name: 'Clientes', exact: true }).waitFor({ state: 'visible', timeout: 15000 });
     const navigationKey = `kidsloc_last_page:${ownerId}:${companies[1].id}`;
     if (await page.evaluate(key => localStorage.getItem(key), navigationKey) !== 'clientes') {
