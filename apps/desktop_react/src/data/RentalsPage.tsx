@@ -4,6 +4,7 @@ import { createCompanyDataRepository } from './companyDataRepository';
 import { CustomerPicker } from '../components/CustomerPicker';
 
 type Row = Record<string, any>;
+type CustomerOption = { id: string; name: string };
 type DraftItem = { productId: string; quantity: number; price: string };
 
 const isoToday = () => new Date().toLocaleDateString('en-CA');
@@ -18,7 +19,7 @@ const dateLabel = (value: string) => new Date(`${value}T12:00:00`).toLocaleDateS
 export function RentalsPage({ companyId }: { companyId: string }) {
   const repo = useMemo(() => createCompanyDataRepository(supabase, companyId), [companyId]);
   const [rentals, setRentals] = useState<Row[]>([]);
-  const [customers, setCustomers] = useState<Row[]>([]);
+  const [customers, setCustomers] = useState<CustomerOption[]>([]);
   const [products, setProducts] = useState<Row[]>([]);
   const [employees, setEmployees] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
@@ -52,7 +53,7 @@ export function RentalsPage({ companyId }: { companyId: string }) {
     const errors: string[] = [];
     if (rentalsResult.status === 'fulfilled') setRentals(rentalsResult.value as Row[]);
     else errors.push('locações: ' + (rentalsResult.reason instanceof Error ? rentalsResult.reason.message : 'falha ao carregar'));
-    if (customersResult.status === 'fulfilled') setCustomers(customersResult.value as Row[]);
+    if (customersResult.status === 'fulfilled') setCustomers(customersResult.value as CustomerOption[]);
     else errors.push('clientes: ' + (customersResult.reason instanceof Error ? customersResult.reason.message : 'falha ao carregar'));
     if (productsResult.status === 'fulfilled') setProducts(productsResult.value as Row[]);
     else errors.push('brinquedos: ' + (productsResult.reason instanceof Error ? productsResult.reason.message : 'falha ao carregar'));
@@ -86,7 +87,7 @@ export function RentalsPage({ companyId }: { companyId: string }) {
     try {
       // Busca diretamente na empresa ativa ao abrir o formulário, sem depender do cache da tela.
       const latestCustomers = await repo.fetchCustomers();
-      setCustomers(latestCustomers as Row[]);
+      setCustomers(latestCustomers as CustomerOption[]);
       if (!latestCustomers.length) {
         customerLoadMessage = 'Nenhum cliente cadastrado nesta empresa. Confira se a empresa selecionada é a correta ou cadastre um cliente na seção Clientes.';
       }
