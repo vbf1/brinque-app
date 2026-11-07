@@ -77,8 +77,8 @@ export function ContractsPage({ companyId, companyName }: { companyId: string; c
         },
         brand: { logoUrl: companyData.contract_logo_url ?? '', primaryColor: config.primaryColor ?? '#174b78', accentColor: config.accentColor ?? '#f4cf2e' },
         customer: {
-          name: customer.name ?? '', cpf: customer.cpf || extraFields.customerCpf, phone: customer.phone ?? '', rg: customer.rg || extraFields.customerRg,
-          address: customer.address ?? '', zip: customer.zip || extraFields.customerZip, neighborhood: customer.neighborhood || extraFields.customerNeighborhood, cityState: customer.city_state || extraFields.customerCityState
+          name: customer.name ?? '', cpf: extraFields.customerCpf || customer.cpf, phone: customer.phone ?? '', rg: extraFields.customerRg || customer.rg,
+          address: customer.address ?? '', zip: extraFields.customerZip || customer.zip, neighborhood: extraFields.customerNeighborhood || customer.neighborhood, cityState: extraFields.customerCityState || customer.city_state
         },
         customerName: customer.name ?? 'Cliente', customerPhone: customer.phone ?? '', customerAddress: customer.address ?? '',
         event: {
