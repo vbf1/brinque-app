@@ -41,13 +41,20 @@ export function ContractsPage({ companyId, companyName }: { companyId: string; c
 
   const load = useCallback(async () => {
     setLoading(true);
-    const [r, c] = await Promise.all([
-      supabase.from('rentals').select('*, customers(name, phone, email, address, cpf, rg, zip, neighborhood, city_state), rental_items(quantity, unit_price, subtotal, products(name))').eq('company_id', companyId).order('created_at', { ascending: false }),
-      supabase.from('rental_contracts').select('*').eq('company_id', companyId).order('created_at', { ascending: false })
-    ]);
-    if (r.error || c.error) setMessage(r.error?.message ?? c.error?.message ?? 'Não foi possível carregar os contratos.');
-    else { setRentals(r.data ?? []); setContracts(c.data ?? []); }
-    setLoading(false);
+    setMessage('');
+    try {
+      const [r, c] = await Promise.all([
+        supabase.from('rentals').select('*, customers(name, phone, email, address, cpf, rg, zip, neighborhood, city_state), rental_items(quantity, unit_price, subtotal, products(name))').eq('company_id', companyId).order('created_at', { ascending: false }),
+        supabase.from('rental_contracts').select('*').eq('company_id', companyId).order('created_at', { ascending: false })
+      ]);
+      if (r.error || c.error) throw r.error ?? c.error;
+      setRentals(r.data ?? []);
+      setContracts(c.data ?? []);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Não foi possível carregar os contratos.');
+    } finally {
+      setLoading(false);
+    }
   }, [companyId]);
   useEffect(() => { void load(); }, [load]);
 
