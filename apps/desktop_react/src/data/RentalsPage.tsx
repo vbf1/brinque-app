@@ -22,6 +22,7 @@ export function RentalsPage({ companyId }: { companyId: string }) {
   const [customers, setCustomers] = useState<CustomerOption[]>([]);
   const [customersLoading, setCustomersLoading] = useState(false);
   const [customerLoadError, setCustomerLoadError] = useState('');
+  const [customerDiagnostic, setCustomerDiagnostic] = useState('Aguardando consulta.');
   const [products, setProducts] = useState<Row[]>([]);
   const [employees, setEmployees] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
@@ -85,6 +86,7 @@ export function RentalsPage({ companyId }: { companyId: string }) {
   async function openForm(rental?: Row) {
     setMessage('');
     setCustomerLoadError('');
+    setCustomerDiagnostic('Consultando a empresa ativa e a sessão autenticada...');
     setCustomers([]);
     setCustomersLoading(true);
     setEditing(rental ?? null);
@@ -115,10 +117,20 @@ export function RentalsPage({ companyId }: { companyId: string }) {
       // Always query the active company's customer table when opening the form.
       const latestCustomers = await repo.fetchCustomers();
       setCustomers(latestCustomers as CustomerOption[]);
+      let sessionDiagnostic = 'sessão não confirmada';
+      try {
+        const { data: authData, error: authError } = await supabase.auth.getUser();
+        if (authError) throw authError;
+        sessionDiagnostic = authData.user?.id ? 'usuário autenticado confirmado' : 'nenhum usuário autenticado';
+      } catch (sessionError) {
+        sessionDiagnostic = 'falha ao confirmar sessão: ' + (sessionError instanceof Error ? sessionError.message : 'erro desconhecido');
+      }
+      setCustomerDiagnostic(`Empresa ${companyId} · ${latestCustomers.length} registro(s) · ${sessionDiagnostic}`);
       if (!latestCustomers.length) {
         setCustomerLoadError('Nenhum cliente foi retornado para esta empresa. Confira a empresa ativa e o cadastro em Clientes.');
       }
     } catch (error) {
+      setCustomerDiagnostic(`Empresa ${companyId} · consulta não concluída`);
       setCustomerLoadError('Falha ao consultar clientes: ' + (error instanceof Error ? error.message : 'erro desconhecido'));
     } finally {
       setCustomersLoading(false);
@@ -190,7 +202,7 @@ export function RentalsPage({ companyId }: { companyId: string }) {
     {!canManageRentals && <p className="module-description">Nesta versão, a edição de locações fica restrita ao proprietário e aos administradores para preservar todos os funcionários responsáveis vinculados.</p>}
     {formOpen && <form className="customer-form rental-form" onSubmit={save}>
       <h3>{editing ? 'Editar locação' : 'Nova locação'}</h3>
-      <label>Cliente *<CustomerPicker customers={customers} value={customerId} onChange={setCustomerId} loading={customersLoading} error={customerLoadError} />{customers.length === 0 && <small className="module-description">A lista é atualizada diretamente do cadastro da empresa ao abrir esta tela. Confira também a mensagem de carregamento acima.</small>}</label>
+      <label>Cliente *<CustomerPicker customers={customers} value={customerId} onChange={setCustomerId} companyId={companyId} diagnostic={customerDiagnostic} loading={customersLoading} error={customerLoadError} />{customers.length === 0 && <small className="module-description">A lista é atualizada diretamente do cadastro da empresa ao abrir esta tela. Confira também a mensagem de carregamento acima.</small>}</label>
       <div className="form-grid">
         <label>Data de início *<input type="date" required value={startDate} onChange={e => setStartDate(e.target.value)} /></label>
         <label>Horário de início *<input type="time" required value={startTime} onChange={e => setStartTime(e.target.value)} /></label>

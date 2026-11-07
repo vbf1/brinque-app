@@ -18,8 +18,8 @@ export function createRentalRepository(client: SupabaseClient, companyId: string
   return {
     async fetchCustomers() {
       const { data, error } = await client.from('customers')
-        .select('id, company_id, name, phone, email, address, notes, cpf, rg, zip, neighborhood, city_state, created_at, updated_at')
-        .eq('company_id', companyId).order('name');
+        .select('id, company_id, name')
+        .eq('company_id', companyId).order('name', { ascending: true });
       if (error) throw error;
       return data ?? [];
     },

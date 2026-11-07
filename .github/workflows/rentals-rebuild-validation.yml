@@ -9,6 +9,9 @@ on:
       - main
     paths:
       - 'apps/desktop_react/src/data/rentalDomain.ts'
+      - 'apps/desktop_react/src/data/RentalsPage.tsx'
+      - 'apps/desktop_react/src/data/rentalRepository.ts'
+      - 'apps/desktop_react/src/components/CustomerPicker.tsx'
       - 'apps/desktop_react/package.json'
       - 'apps/mobile_flutter/lib/features/rentals/**'
       - 'tests/rental-domain-check.mjs'
@@ -40,6 +43,13 @@ jobs:
       - name: Build web application
         working-directory: apps/desktop_react
         run: npm run build
+      - name: Upload isolated web test build
+        uses: actions/upload-artifact@v4
+        with:
+          name: kidsloc-rental-picker-web-test
+          path: apps/desktop_react/dist
+          if-no-files-found: error
+          retention-days: 14
 
   android:
     runs-on: ubuntu-latest
