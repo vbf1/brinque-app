@@ -4,12 +4,12 @@ const sources = [
   {
     label: 'React',
     path: 'apps/desktop_react/src/data/companyDataRepository.ts',
-    expected: "'products(name), rental_item_units(product_unit_id, product_units(asset_code))), ' +\\n          'rental_responsibles(user_id, employee_name_snapshot)',",
+    expected: "'products(name), rental_item_units(product_unit_id, product_units(asset_code))), ' +\n          'rental_responsibles(user_id, employee_name_snapshot)',",
   },
   {
     label: 'Flutter',
     path: 'apps/mobile_flutter/lib/data/company_data_repository.dart',
-    expected: "'products(name), rental_item_units(product_unit_id, product_units(asset_code))), ' +\\n          'rental_responsibles(user_id, employee_name_snapshot)',",
+    expected: "'products(name), rental_item_units(product_unit_id, product_units(asset_code))), '\n          'rental_responsibles(user_id, employee_name_snapshot)',",
   },
 ];
 
