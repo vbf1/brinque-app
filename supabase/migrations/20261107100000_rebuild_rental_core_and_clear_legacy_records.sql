@@ -15,7 +15,6 @@ alter table public.rentals alter column rental_number restart with 1;
 drop function if exists public.create_rental_with_items(uuid,uuid,date,date,text,text,numeric,jsonb);
 drop function if exists public.create_rental_with_items(uuid,uuid,date,date,text,text,numeric,jsonb,text,uuid[]);
 drop function if exists public.update_rental_with_items(uuid,uuid,uuid,date,date,text,text,numeric,jsonb,text,uuid[]);
-drop function if exists public.register_rental_payment(uuid,uuid,numeric,text,text);
 
 create or replace function public.can_manage_rental(p_company_id uuid, p_rental_id uuid)
 returns boolean
