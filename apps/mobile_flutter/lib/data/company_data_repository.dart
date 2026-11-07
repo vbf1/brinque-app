@@ -1,7 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import '../features/rentals/rental_domain.dart';
-
 /// Company-scoped access to the existing KidsLoc data model.
 ///
 /// Every query is explicitly filtered by [companyId]. Authorization remains
@@ -53,35 +51,6 @@ class CompanyDataRepository {
   Future<void> deleteTransaction(String id) async {
     await _client.from('financial_transactions').delete()
         .eq('id', id).eq('company_id', companyId);
-  }
-
-  Future<String> registerRentalPayment({
-    required String rentalId,
-    required num amount,
-    required String paymentMethod,
-    String? notes,
-  }) async {
-    if (amount <= 0) throw ArgumentError('Informe um valor maior que zero.');
-    final result = await _client.rpc(
-      'register_rental_payment',
-      params: {
-        'p_company_id': companyId,
-        'p_rental_id': rentalId,
-        'p_amount': amount,
-        'p_payment_method': paymentMethod,
-        'p_notes': _nullableTrim(notes),
-      },
-    );
-    return result as String;
-  }
-
-  Future<Map<String, dynamic>> fetchRentalPayment(String paymentId) async {
-    final row = await _client.from('payments')
-        .select('id, company_id, rental_id, amount, payment_method, paid_at, notes, rentals(rental_number, customers(name))')
-        .eq('id', paymentId)
-        .eq('company_id', companyId)
-        .single();
-    return Map<String, dynamic>.from(row);
   }
 
   Future<List<Map<String, dynamic>>> fetchCustomers() async {
@@ -157,121 +126,6 @@ class CompanyDataRepository {
     final updated = await _client.from('product_units').update({'status': status})
         .eq('id', unitId).eq('company_id', companyId).select('id').maybeSingle();
     if (updated == null) throw StateError('Unidade não encontrada ou sem permissão para atualizar.');
-  }
-
-  Future<String> createRentalWithItems({
-    required String customerId,
-    required String startDate,
-    required String endDate,
-    required String startTime,
-    required String endTime,
-    required String status,
-    required String deliveryMethod,
-    required num totalAmount,
-    required List<Map<String, dynamic>> items,
-    String? deliveryAddress,
-    List<String> responsibleUserIds = const [],
-  }) async {
-    validateRentalDraft(
-      customerId: customerId, startDate: startDate, endDate: endDate,
-      startTime: startTime, endTime: endTime, status: status,
-      deliveryMethod: deliveryMethod, totalAmount: totalAmount,
-      items: items, deliveryAddress: deliveryAddress,
-    );
-    if (!const {'pending', 'confirmed', 'ongoing'}.contains(status)) {
-      throw ArgumentError('Uma nova locação só pode ser criada como pendente, confirmada ou em andamento.');
-    }
-    final result = await _client.rpc(
-      'create_rental_with_items',
-      params: {
-        'p_company_id': companyId,
-        'p_customer_id': customerId,
-        'p_start_date': startDate,
-        'p_end_date': endDate,
-        'p_start_time': startTime,
-        'p_end_time': endTime,
-        'p_status': status,
-        'p_delivery_method': deliveryMethod,
-        'p_total_amount': totalAmount,
-        'p_items': items,
-        'p_delivery_address': deliveryAddress,
-        'p_responsible_user_ids': responsibleUserIds,
-      },
-    );
-    return result as String;
-  }
-
-  /// Replaces rental details and the full toy list atomically. Sending an empty
-  /// list is rejected by the existing database function; callers must retain
-  /// at least one toy in every rental.
-  Future<void> updateRentalWithItems({
-    required String rentalId,
-    required String customerId,
-    required String startDate,
-    required String endDate,
-    required String startTime,
-    required String endTime,
-    required String status,
-    required String deliveryMethod,
-    required num totalAmount,
-    required List<Map<String, dynamic>> items,
-    String? deliveryAddress,
-    List<String> responsibleUserIds = const [],
-  }) async {
-    validateRentalDraft(
-      customerId: customerId, startDate: startDate, endDate: endDate,
-      startTime: startTime, endTime: endTime, status: status,
-      deliveryMethod: deliveryMethod, totalAmount: totalAmount,
-      items: items, deliveryAddress: deliveryAddress,
-    );
-    await _client.rpc(
-      'update_rental_with_items',
-      params: {
-        'p_company_id': companyId,
-        'p_rental_id': rentalId,
-        'p_customer_id': customerId,
-        'p_start_date': startDate,
-        'p_end_date': endDate,
-        'p_start_time': startTime,
-        'p_end_time': endTime,
-        'p_status': status,
-        'p_delivery_method': deliveryMethod,
-        'p_total_amount': totalAmount,
-        'p_items': items,
-        'p_delivery_address': deliveryAddress,
-        'p_responsible_user_ids': responsibleUserIds,
-      },
-    );
-  }
-
-  /// Loads rentals and their selected toys using the same relations consumed
-  /// by the currently deployed application.
-  Future<List<Map<String, dynamic>>> fetchRentals() async {
-    final rows = await _client
-        .from('rentals')
-        .select(
-          '*, customers(name), '
-          'rental_items(id, product_id, quantity, unit_price, subtotal, '
-          'products(name), rental_item_units(product_unit_id, product_units(asset_code))), '
-          'rental_responsibles(user_id, employee_name_snapshot)',
-        )
-        .eq('company_id', companyId)
-        .order('start_date');
-    return List<Map<String, dynamic>>.from(rows);
-  }
-
-
-
-  Future<void> deleteRental(String rentalId) async {
-    final result = await _client.from('rentals')
-        .delete()
-        .eq('id', rentalId)
-        .eq('company_id', companyId)
-        .select('id')
-        .maybeSingle();
-    if (result == null) {
-      throw StateError('A locação não foi encontrada ou você não tem permissão para excluí-la.');
-    }
   }
 
   Future<Map<String, dynamic>> saveProduct({
