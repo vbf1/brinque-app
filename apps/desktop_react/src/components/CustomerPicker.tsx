@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
+import { filterRentalCustomers } from '../data/rentalDomain';
 
 type CustomerOption = { id: string; name: string };
 
@@ -15,10 +16,7 @@ export function CustomerPicker({ customers, value, onChange, disabled = false, l
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState(false);
   const selected = customers.find(customer => customer.id === value);
-  const filtered = useMemo(() => {
-    const term = query.trim().toLocaleLowerCase('pt-BR');
-    return customers.filter(customer => !term || customer.name.toLocaleLowerCase('pt-BR').includes(term));
-  }, [customers, query]);
+  const filtered = filterRentalCustomers(customers, query);
 
   return (
     <div className="rental-customer-picker" style={{ position: 'relative', width: '100%' }}>
