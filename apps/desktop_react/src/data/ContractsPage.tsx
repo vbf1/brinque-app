@@ -1,38 +1,23 @@
 import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
+import { buildRentalContractHtml } from './contractTemplate';
+import { ContractBrandingSettings } from './ContractBrandingSettings';
 
 type Rental = Record<string, any>;
 type Contract = Record<string, any>;
 const clauses = [
-  'O contratante declara que recebeu as informações sobre os brinquedos alugados e compromete-se a utilizá-los conforme as orientações fornecidas pela locadora.',
-  'O contratante deverá zelar pela conservação dos equipamentos durante todo o período da locação e impedir o uso inadequado ou por pessoas não autorizadas.',
-  'Danos, perdas ou avarias decorrentes de mau uso, negligência ou descumprimento das orientações deverão ser comunicados imediatamente e poderão gerar obrigação de ressarcimento, mediante apuração.',
-  'A utilização deverá ocorrer no período contratado. A devolução ou retirada deverá respeitar as datas e condições combinadas com a locadora.',
-  'Os valores, descontos, taxas e condições de pagamento são os apresentados neste contrato e no resumo da locação.',
-  'O contratante declara ser responsável por supervisionar a utilização dos brinquedos e por seguir as instruções de segurança entregues pela locadora.',
-  'Alterações e cancelamentos deverão ser comunicados à locadora e dependerão de confirmação entre as partes.'
+  'O LOCADOR realizará a locação dos seguintes equipamentos para utilização no evento. Os equipamentos serão disponibilizados ao CONTRATANTE durante o período e nas condições estabelecidas neste instrumento.',
+  'Data do evento, retirada dos equipamentos, horários e endereço de entrega serão os informados no quadro de dados deste contrato.',
+  'O sinal integra o preço total da locação e será abatido do saldo, não sendo cobrado em duplicidade.',
+  'O LOCADOR será responsável pela entrega, montagem e retirada dos equipamentos, conforme o serviço contratado. O CONTRATANTE deverá disponibilizar espaço adequado e seguro para a instalação. Os equipamentos deverão ser utilizados de forma adequada, observando-se as orientações de segurança fornecidas pelo LOCADOR.',
+  'O CONTRATANTE deverá zelar pelos equipamentos durante o período da locação e comunicar imediatamente ao LOCADOR qualquer ocorrência ou dano. Danos comprovadamente causados por uso inadequado, negligência ou descumprimento das orientações de segurança serão avaliados, cabendo ao responsável arcar com os prejuízos efetivamente comprovados, respeitada a legislação aplicável. O LOCADOR deverá entregar os equipamentos em condições adequadas de funcionamento e segurança.',
+  'Em caso de desistência por parte do CONTRATANTE, comunicada com antecedência de até 2 (dois) dias corridos da data do evento, será retido o equivalente a 15% (quinze por cento) do valor total da locação. Esse valor equivale a 50% (cinquenta por cento) do sinal pago, sendo os outros valores devolvidos ao CONTRATANTE. Nos demais casos de cancelamento ou em solicitações de alteração da data, as partes buscarão uma solução de comum acordo, observando a legislação aplicável e os direitos do consumidor.',
+  'Qualquer alteração nas condições deste contrato deverá ser acordada entre as partes, preferencialmente por escrito. Este instrumento registra as condições ajustadas para a locação e produzirá efeitos após a aceitação pelas partes.',
+  'As partes reconhecem a validade das assinaturas realizadas fisicamente ou por meio eletrônico, desde que seja possível identificar os signatários e verificar a integridade do documento. Estando de acordo com todas as condições, as partes assinam o presente instrumento.'
 ];
-const money = (value: unknown) => Number(value ?? 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 const date = (value: string) => value ? new Date(value + 'T12:00:00').toLocaleDateString('pt-BR') : '—';
-const htmlEscapes: Record<string,string> = { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' };
-const escapeHtml = (value: unknown) => String(value ?? '').replace(/[&<>"']/g, char => htmlEscapes[char] ?? char);
 const statusLabels: Record<string,string> = { draft:'Pendente', sent:'Enviado', viewed:'Visualizado', signed:'Assinado', cancelled:'Cancelado', expired:'Vencido' };
 
-function printable(snapshot: Record<string, any>, number?: number) {
-  const items = (Array.isArray(snapshot.items) ? snapshot.items : []).map((item: any) =>
-    '<tr><td>' + escapeHtml(item.name) + '</td><td>' + escapeHtml(item.quantity) + '</td><td>' + money(item.dailyPrice) + '</td><td>' + money(item.subtotal) + '</td></tr>'
-  ).join('');
-  const terms = Array.isArray(snapshot.clauses) ? snapshot.clauses : clauses;
-  return '<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Contrato ' + escapeHtml(number ?? '') + '</title><style>body{font:14px Arial;color:#222;max-width:800px;margin:36px auto;line-height:1.5}h1{text-align:center;font-size:20px}h2{font-size:15px;margin-top:24px}table{width:100%;border-collapse:collapse}td,th{border:1px solid #bbb;padding:8px;text-align:left}.sign{margin-top:55px;display:flex;gap:70px}.sign div{border-top:1px solid #444;flex:1;text-align:center;padding-top:8px}@media print{body{margin:18mm}}</style></head><body>' +
-    '<h1>CONTRATO DE LOCAÇÃO DE BRINQUEDOS</h1><p><b>Locadora:</b> ' + escapeHtml(snapshot.companyName) + '</p>' +
-    '<p><b>Cliente:</b> ' + escapeHtml(snapshot.customerName) + '<br><b>Telefone:</b> ' + escapeHtml(snapshot.customerPhone || '—') + '<br><b>Endereço:</b> ' + escapeHtml(snapshot.customerAddress || '—') + '</p>' +
-    '<p><b>Locação:</b> ' + escapeHtml(number ?? '') + ' &nbsp; <b>Período:</b> ' + escapeHtml(date(snapshot.startDate)) + ' a ' + escapeHtml(date(snapshot.endDate)) + '</p>' +
-    '<h2>ITENS LOCADOS</h2><table><thead><tr><th>Brinquedo</th><th>Qtd.</th><th>Diária</th><th>Subtotal</th></tr></thead><tbody>' + items + '</tbody></table>' +
-    '<p><b>Valor total: ' + money(snapshot.totalAmount) + '</b></p><p><b>Caução/garantia:</b> ' + money(snapshot.depositAmount) + '</p><p><b>Endereço de entrega:</b> ' + escapeHtml(snapshot.deliveryAddress || '—') + '</p>' +
-    '<h2>CONDIÇÕES</h2><ol>' + terms.map((clause: unknown) => '<li>' + escapeHtml(clause) + '</li>').join('') + '</ol>' +
-    '<h2>ASSINATURAS</h2><p>As partes declaram que leram e concordam com as condições acima. ' + escapeHtml(snapshot.rentalNotes ? 'Observações da locação: ' + snapshot.rentalNotes : '') + '</p>' +
-    '<div class="sign"><div>LOCADORA</div><div>CONTRATANTE</div></div></body></html>';
-}
 
 function makeToken() {
   return Array.from(crypto.getRandomValues(new Uint8Array(32)), byte => byte.toString(16).padStart(2, '0')).join('');
@@ -52,11 +37,12 @@ export function ContractsPage({ companyId, companyName }: { companyId: string; c
   const [message, setMessage] = useState('');
   const [uploading, setUploading] = useState('');
   const [generatedTokens, setGeneratedTokens] = useState<Record<string,string>>({});
+  const [extraFields, setExtraFields] = useState({ customerCpf:'', customerRg:'', customerZip:'', customerNeighborhood:'', customerCityState:'', eventAddress:'', eventNeighborhood:'', eventCityState:'', pickupDate:'', dueDateText:'', signaturePlace:'' });
 
   const load = useCallback(async () => {
     setLoading(true);
     const [r, c] = await Promise.all([
-      supabase.from('rentals').select('*, customers(name, phone, email, address), rental_items(quantity, unit_price, subtotal, products(name))').eq('company_id', companyId).order('created_at', { ascending: false }),
+      supabase.from('rentals').select('*, customers(name, phone, email, address, cpf, rg, zip, neighborhood, city_state), rental_items(quantity, unit_price, subtotal, products(name))').eq('company_id', companyId).order('created_at', { ascending: false }),
       supabase.from('rental_contracts').select('*').eq('company_id', companyId).order('created_at', { ascending: false })
     ]);
     if (r.error || c.error) setMessage(r.error?.message ?? c.error?.message ?? 'Não foi possível carregar os contratos.');
@@ -74,13 +60,39 @@ export function ContractsPage({ companyId, companyName }: { companyId: string; c
     try {
       const rawToken = method === 'in_app' ? makeToken() : '';
       const tokenHash = rawToken ? await hashToken(rawToken) : null;
+      const { data: companyData, error: companyError } = await supabase.from('companies')
+        .select('name,contract_logo_url,contract_settings').eq('id', companyId).single();
+      if (companyError) throw companyError;
+      const config = companyData.contract_settings ?? {};
+      const customer = rental.customers ?? {};
+      const total = Number(rental.total_amount ?? 0);
+      const signalPercent = 30;
+      const signal = total * signalPercent / 100;
       const snapshot = {
-        companyName, customerName: rental.customers?.name ?? 'Cliente', customerPhone: rental.customers?.phone ?? '',
-        customerAddress: rental.customers?.address ?? rental.delivery_address ?? '',
-        startDate: rental.start_date, endDate: rental.end_date, totalAmount: rental.total_amount,
-        rentalNumber: rental.rental_number,
+        companyName,
+        landlord: {
+          name: config.landlordName ?? '', cpf: config.landlordCpf ?? '', phone: config.landlordPhone ?? '',
+          commercialName: config.commercialName || companyName, address: config.landlordAddress ?? '',
+          zip: config.landlordZip ?? '', neighborhood: config.landlordNeighborhood ?? '', cityState: config.landlordCityState ?? ''
+        },
+        brand: { logoUrl: companyData.contract_logo_url ?? '', primaryColor: config.primaryColor ?? '#174b78', accentColor: config.accentColor ?? '#f4cf2e' },
+        customer: {
+          name: customer.name ?? '', cpf: extraFields.customerCpf || customer.cpf, phone: customer.phone ?? '', rg: extraFields.customerRg || customer.rg,
+          address: customer.address ?? '', zip: extraFields.customerZip || customer.zip, neighborhood: extraFields.customerNeighborhood || customer.neighborhood, cityState: extraFields.customerCityState || customer.city_state
+        },
+        customerName: customer.name ?? 'Cliente', customerPhone: customer.phone ?? '', customerAddress: customer.address ?? '',
+        event: {
+          date: rental.start_date, pickupDate: extraFields.pickupDate || rental.start_date,
+          startTime: String(rental.start_time ?? '').slice(0,5), endTime: String(rental.end_time ?? '').slice(0,5),
+          address: extraFields.eventAddress || rental.delivery_address || customer.address || '',
+          neighborhood: extraFields.eventNeighborhood, cityState: extraFields.eventCityState
+        },
+        payment: { total, signal, signalPercent, dueDateText: extraFields.dueDateText || date(rental.start_date) + ', na entrega do equipamento' },
+        startDate: rental.start_date, endDate: rental.end_date, totalAmount: total, rentalNumber: rental.rental_number,
         items: (rental.rental_items ?? []).map((item: any) => ({ name: item.products?.name ?? 'Brinquedo', quantity: item.quantity, dailyPrice: item.unit_price, subtotal: item.subtotal ?? Number(item.unit_price) * Number(item.quantity) })),
-        clauses, depositAmount: rental.deposit_amount ?? 0, deliveryAddress: rental.delivery_address ?? '', rentalNotes: rental.notes ?? ''
+        clauses, depositAmount: rental.deposit_amount ?? 0, deliveryAddress: extraFields.eventAddress || rental.delivery_address || '',
+        rentalNotes: rental.notes ?? '', signaturePlace: extraFields.signaturePlace || config.landlordCityState || '',
+        signatureDate: new Date().toISOString()
       };
       const { data, error } = await supabase.from('rental_contracts').insert({
         company_id: companyId, rental_id: rental.id, signature_method: method, status: 'draft',
@@ -101,7 +113,7 @@ export function ContractsPage({ companyId, companyName }: { companyId: string; c
     const printWindow = window.open('', '_blank');
     if (!printWindow) { setMessage('O navegador bloqueou a janela de impressão. Permita pop-ups e tente novamente.'); return; }
     printWindow.document.open();
-    printWindow.document.write(printable(contract.contract_snapshot ?? {}, contract.contract_number));
+    printWindow.document.write(buildRentalContractHtml(contract.contract_snapshot ?? {}, contract.contract_number));
     printWindow.document.close();
     printWindow.focus();
     window.setTimeout(() => printWindow.print(), 250);
@@ -193,9 +205,28 @@ export function ContractsPage({ companyId, companyName }: { companyId: string; c
 
   return <section className="module-shell">
     <header className="module-header"><div><p className="eyebrow">DOCUMENTOS</p><h2>Contratos de locação</h2><p className="module-description">Gere contratos e acompanhe as assinaturas externas ou pelo KidsLoc.</p></div><button type="button" onClick={() => void load()}>Atualizar</button></header>
+    <ContractBrandingSettings companyId={companyId} companyName={companyName} />
     <div className="marketing-editor">
       <h3>Novo contrato</h3>
-      <label>Locação<select value={selectedRental} onChange={event => setSelectedRental(event.target.value)}><option value="">Selecione uma locação</option>{rentals.map(rental => <option key={rental.id} value={rental.id}>#{rental.rental_number} · {rental.customers?.name ?? 'Cliente'} · {date(rental.start_date)}</option>)}</select></label>
+      <label>Locação<select value={selectedRental} onChange={event => {
+        const value=event.target.value; setSelectedRental(value);
+        const rental=rentals.find(item=>item.id===value);
+        setExtraFields(current=>({...current,pickupDate:rental?.start_date??'',eventAddress:rental?.delivery_address??rental?.customers?.address??'',customerCpf:rental?.customers?.cpf??'',customerRg:rental?.customers?.rg??'',customerZip:rental?.customers?.zip??'',customerNeighborhood:rental?.customers?.neighborhood??'',customerCityState:rental?.customers?.city_state??''}));
+      }}><option value="">Selecione uma locação</option>{rentals.map(rental => <option key={rental.id} value={rental.id}>#{rental.rental_number} · {rental.customers?.name ?? 'Cliente'} · {date(rental.start_date)}</option>)}</select></label>
+      <h4>Dados complementares deste contrato</h4>
+      <div className="form-grid">
+        <label>CPF do contratante<input value={extraFields.customerCpf} onChange={e=>setExtraFields(v=>({...v,customerCpf:e.target.value}))}/></label>
+        <label>RG do contratante<input value={extraFields.customerRg} onChange={e=>setExtraFields(v=>({...v,customerRg:e.target.value}))}/></label>
+        <label>CEP do contratante<input value={extraFields.customerZip} onChange={e=>setExtraFields(v=>({...v,customerZip:e.target.value}))}/></label>
+        <label>Bairro do contratante<input value={extraFields.customerNeighborhood} onChange={e=>setExtraFields(v=>({...v,customerNeighborhood:e.target.value}))}/></label>
+        <label>Cidade/UF do contratante<input value={extraFields.customerCityState} onChange={e=>setExtraFields(v=>({...v,customerCityState:e.target.value}))}/></label>
+        <label>Data de retirada<input type="date" value={extraFields.pickupDate} onChange={e=>setExtraFields(v=>({...v,pickupDate:e.target.value}))}/></label>
+        <label>Endereço do evento<input value={extraFields.eventAddress} onChange={e=>setExtraFields(v=>({...v,eventAddress:e.target.value}))}/></label>
+        <label>Bairro do evento<input value={extraFields.eventNeighborhood} onChange={e=>setExtraFields(v=>({...v,eventNeighborhood:e.target.value}))}/></label>
+        <label>Cidade/UF do evento<input value={extraFields.eventCityState} onChange={e=>setExtraFields(v=>({...v,eventCityState:e.target.value}))}/></label>
+        <label>Vencimento do saldo<input value={extraFields.dueDateText} placeholder="Ex.: na entrega do equipamento" onChange={e=>setExtraFields(v=>({...v,dueDateText:e.target.value}))}/></label>
+        <label>Local da assinatura<input value={extraFields.signaturePlace} onChange={e=>setExtraFields(v=>({...v,signaturePlace:e.target.value}))}/></label>
+      </div>
       <label>Modalidade de assinatura<select value={method} onChange={event => setMethod(event.target.value as 'external' | 'in_app')}><option value="external">Gov.br ou outro serviço externo</option><option value="in_app">Assinar diretamente pelo KidsLoc</option></select></label>
       <button type="button" disabled={busy || !selectedRental} onClick={() => void createContract()}>{busy ? 'Gerando...' : 'Criar contrato'}</button>
     </div>

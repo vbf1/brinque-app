@@ -13,7 +13,7 @@ export function createCompanyDataRepository(
     async fetchCustomers() {
       const { data, error } = await client
         .from('customers')
-        .select('id, company_id, name, phone, email, address, notes, created_at, updated_at')
+        .select('id, company_id, name, phone, email, address, notes, cpf, rg, zip, neighborhood, city_state, created_at, updated_at')
         .eq('company_id', companyId)
         .order('name');
       if (error) throw error;
@@ -289,6 +289,7 @@ export function createCompanyDataRepository(
       email?: string | null;
       address?: string | null;
       notes?: string | null;
+      cpf?: string | null; rg?: string | null; zip?: string | null; neighborhood?: string | null; city_state?: string | null;
     }) {
       const name = input.name.trim();
       if (!name) throw new Error('Informe o nome do cliente.');
@@ -298,6 +299,8 @@ export function createCompanyDataRepository(
         email: input.email?.trim() || null,
         address: input.address?.trim() || null,
         notes: input.notes?.trim() || null,
+        cpf: input.cpf?.trim() || null, rg: input.rg?.trim() || null, zip: input.zip?.trim() || null,
+        neighborhood: input.neighborhood?.trim() || null, city_state: input.city_state?.trim() || null,
       };
       if (input.id) {
         const { data, error } = await client

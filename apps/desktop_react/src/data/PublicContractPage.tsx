@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { supabase } from '../lib/supabase';
+import { buildRentalContractHtml } from './contractTemplate';
 
 type Snapshot = Record<string, any>;
 export function PublicContractPage({ token }: { token: string }) {
@@ -75,11 +76,8 @@ export function PublicContractPage({ token }: { token: string }) {
   return <main style={{maxWidth:760,margin:'24px auto',padding:20,color:'#172b25',fontFamily:'Arial,sans-serif'}}>
     <h1>KidsLoc · Contrato de locação</h1>
     {loading ? <p>Carregando contrato...</p> : null}
-    {snapshot && !signed && <><h2>{snapshot.companyName}</h2><p><b>Cliente:</b> {snapshot.customerName} · <b>Período:</b> {snapshot.startDate} a {snapshot.endDate}</p>
-      <h3>Itens e valores</h3><ul>{(snapshot.items ?? []).map((i:any,n:number)=><li key={n}>{i.quantity} × {i.name} — R$ {Number(i.subtotal ?? 0).toFixed(2)}</li>)}</ul>
-      <p><b>Total: R$ {Number(snapshot.totalAmount ?? 0).toFixed(2)}</b></p>
-      <h3>Condições do contrato</h3><ol>{(snapshot.clauses ?? []).map((clause:string,index:number)=><li key={index}>{clause}</li>)}</ol>
-      <p><b>Endereço de entrega:</b> {snapshot.deliveryAddress || '—'}</p><p><b>Caução/garantia:</b> R$ {Number(snapshot.depositAmount ?? 0).toFixed(2)}</p>{snapshot.rentalNotes && <p><b>Observações:</b> {snapshot.rentalNotes}</p>}
+    {snapshot && !signed && <><h2>{snapshot.companyName}</h2>
+      <iframe title="Contrato completo para leitura" srcDoc={buildRentalContractHtml(snapshot, snapshot.contractNumber)} style={{width:'100%',height:1050,border:'1px solid #cbd5e1',borderRadius:8,background:'#fff'}} />
       <h3>Assinatura eletrônica</h3><p>Esta é uma assinatura eletrônica simplificada registrada pelo KidsLoc, com traçado, identificação informada, data e aceite. Para uma assinatura com validação externa mais robusta, utilize Gov.br ou outro serviço de assinatura digital.</p><label>Nome completo<input value={name} onChange={e=>setName(e.target.value)} style={field}/></label>
       <label>CPF (opcional)<input value={document} onChange={e=>setDocument(e.target.value)} style={field}/></label>
       <label>Telefone (opcional)<input value={phone} onChange={e=>setPhone(e.target.value)} style={field}/></label>

@@ -9,6 +9,7 @@ type Customer = {
   email: string | null;
   address: string | null;
   notes: string | null;
+  cpf: string | null; rg: string | null; zip: string | null; neighborhood: string | null; city_state: string | null;
 };
 
 type CustomerForm = Omit<Customer, 'id'>;
@@ -18,7 +19,7 @@ const emptyForm: CustomerForm = {
   phone: '',
   email: '',
   address: '',
-  notes: '',
+  notes: '', cpf: '', rg: '', zip: '', neighborhood: '', city_state: '',
 };
 
 export function CustomersPage({ companyId }: { companyId: string }) {
@@ -66,7 +67,8 @@ export function CustomersPage({ companyId }: { companyId: string }) {
       phone: customer.phone ?? '',
       email: customer.email ?? '',
       address: customer.address ?? '',
-      notes: customer.notes ?? '',
+      notes: customer.notes ?? '', cpf: customer.cpf ?? '', rg: customer.rg ?? '', zip: customer.zip ?? '',
+      neighborhood: customer.neighborhood ?? '', city_state: customer.city_state ?? '',
     } : emptyForm);
     setMessage('');
   }
@@ -124,6 +126,13 @@ export function CustomersPage({ companyId }: { companyId: string }) {
             <label>E-mail<input type="email" value={form.email ?? ''} onChange={e => setForm({ ...form, email: e.target.value })} /></label>
           </div>
           <label>Endereço<input value={form.address ?? ''} onChange={e => setForm({ ...form, address: e.target.value })} /></label>
+          <div className="form-grid">
+            <label>CPF<input value={form.cpf ?? ''} onChange={e => setForm({ ...form, cpf: e.target.value })} /></label>
+            <label>RG<input value={form.rg ?? ''} onChange={e => setForm({ ...form, rg: e.target.value })} /></label>
+            <label>CEP<input value={form.zip ?? ''} onChange={e => setForm({ ...form, zip: e.target.value })} /></label>
+            <label>Bairro<input value={form.neighborhood ?? ''} onChange={e => setForm({ ...form, neighborhood: e.target.value })} /></label>
+            <label>Cidade/UF<input value={form.city_state ?? ''} onChange={e => setForm({ ...form, city_state: e.target.value })} /></label>
+          </div>
           <label>Observações<textarea rows={2} value={form.notes ?? ''} onChange={e => setForm({ ...form, notes: e.target.value })} /></label>
           <div className="form-actions">
             <button type="button" className="secondary-button" onClick={() => { setEditing(null); setFormOpen(false); setForm(emptyForm); }}>Cancelar</button>
