@@ -58,9 +58,16 @@ export function RentalsPage({ companyId }: { companyId: string }) {
     if (employeesResult.status === 'fulfilled') {
       const members = employeesResult.value as Row[];
       setEmployees(members);
-      const { data: auth } = await supabase.auth.getUser();
-      const currentMember = members.find(employee => employee.user_id === auth.user?.id);
-      setCanManageRentals(['owner', 'admin'].includes(currentMember?.role));
+      try {
+        const { data: auth, error: authError } = await supabase.auth.getUser();
+        if (authError) throw authError;
+        const currentMember = members.find(employee => employee.user_id === auth.user?.id);
+        setCanManageRentals(['owner', 'admin'].includes(currentMember?.role));
+      } catch (error) {
+        // Fail closed: a temporary auth lookup failure must not grant management rights.
+        setCanManageRentals(false);
+        errors.push('permissões: ' + (error instanceof Error ? error.message : 'não foi possível confirmar a sessão'));
+      }
     } else {
       errors.push('equipe: ' + (employeesResult.reason instanceof Error ? employeesResult.reason.message : 'falha ao carregar'));
     }
@@ -97,8 +104,10 @@ export function RentalsPage({ companyId }: { companyId: string }) {
     setTotalAmount(rental ? String(rental.total_amount ?? 0) : '');
     const assigned = (rental?.rental_responsibles ?? []).map((row: Row) => row.user_id).filter(Boolean) as string[];
     setResponsibleIds(assigned);
-    if (!rental) void supabase.auth.getUser().then(({ data }) => {
-      if (data.user && employees.some(employee => employee.user_id === data.user?.id)) setResponsibleIds([data.user.id]);
+    if (!rental) void supabase.auth.getUser().then(({ data, error }) => {
+      if (!error && data.user && employees.some(employee => employee.user_id === data.user?.id)) setResponsibleIds([data.user.id]);
+    }).catch(() => {
+      // Selecting the current employee is optional; the form remains usable if auth is offline.
     });
     const oldItems = (rental?.rental_items ?? []).map((item: Row) => ({
       productId: item.product_id, quantity: Number(item.quantity),
