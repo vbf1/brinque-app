@@ -34,21 +34,39 @@ jobs:
       - name: Install dependencies
         working-directory: apps/desktop_react
         run: npm ci --no-audit --no-fund
-      - name: Build React
+      - name: Build React with Vite and TypeScript
         working-directory: apps/desktop_react
         run: npm run build
       - name: Publish built files to GitHub Pages branch root
+        shell: bash
         run: |
+          set -euo pipefail
+
           git fetch origin main
-          git rebase origin/main
+          if [ "$(git rev-parse HEAD)" != "$(git rev-parse origin/main)" ]; then
+            echo "main avançou durante a compilação; interrompendo para evitar publicar um build desatualizado."
+            exit 1
+          fi
+
+          # Replace generated assets instead of retaining obsolete hashed bundles.
+          rm -rf assets
           cp -a apps/desktop_react/dist/. .
+
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add -A index.html assets
-          if [ -d dist ]; then git add -A dist; fi
+
+          # Stage the generated asset directory, including deletions of old hashed files.
+          git add -A -- assets
+
+          # Stage every top-level file emitted by Vite (index.html, 404.html and public assets).
+          while IFS= read -r -d '' file; do
+            git add -A -- "$file"
+          done < <(find apps/desktop_react/dist -mindepth 1 -maxdepth 1 -type f -printf '%f\\0')
+
           if git diff --cached --quiet; then
             echo 'No published changes.'
             exit 0
           fi
-          git commit -m 'deploy(web): publish React application'
+
+          git commit -m 'deploy(web): publish Vite application'
           git push origin HEAD:main
