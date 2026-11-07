@@ -428,6 +428,12 @@ export default function App() {
 
   useEffect(() => {
     if (!session || !company) return;
+    // On the root URL, let the restoration effect consume an existing
+    // saved destination before the initial "inicio" state can overwrite it.
+    if (!hasExplicitPagePath()) {
+      const savedPage = readSavedPage(session.user.id, company.id);
+      if (savedPage && savedPage !== page) return;
+    }
     savePage(session.user.id, company.id, page);
   }, [session?.user.id, company?.id, page]);
 
