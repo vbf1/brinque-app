@@ -148,7 +148,7 @@ class _RentalsPageState extends State<RentalsPage> {
                 onSelected: (customer) => setDialogState(() {
                   customerId.value = customer['id'] as String;
                 }),
-                fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) =>
+                fieldViewBuilder: (context, controller, focusNode, _) =>
                   TextFormField(
                     controller: controller,
                     focusNode: focusNode,
