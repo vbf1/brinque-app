@@ -107,7 +107,7 @@ const viewports = [
     const managementSource = fs.readFileSync('apps/desktop_react/src/data/CompanyManagementPage.tsx', 'utf8');
     const startupGuards = [
       ['App delegates company access to the dedicated selection service', appSource.includes('resolveCompanyAccess(session)') && appSource.includes('persistCompanySelection')],
-      ['a saved company requires an explicit timestamped preference', selectionSource.includes('hasExplicitPreference') && selectionSource.includes('kidsloc_selected_company_at')],
+      ['a saved company requires an explicit timestamped preference', selectionSource.includes('hasServerPreference') && selectionSource.includes('kidsloc_selected_company_at')],
       ['selection is verified with a fresh server read before activation', selectionSource.includes('await supabase.auth.getUser()') && selectionSource.includes('savedAt !== selectedAt')],
       ['owner company manager starts with no selected company', appSource.includes('setCompany(null)') && managementSource.includes('value={selected?.id ?? \'\'}')],
     ];
