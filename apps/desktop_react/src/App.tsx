@@ -414,28 +414,25 @@ export default function App() {
   }
 
   useEffect(() => {
-    if (!session || !company || hasExplicitPagePath()) return;
-    const savedPage = readSavedPage(session.user.id, company.id);
-    if (!savedPage) return;
-    const allowed = navigation.some(item =>
-      item.id === savedPage
-      && (item.ownerOnly ? platformOwner : (!item.admin || platformOwner || company.role === 'owner' || company.role === 'admin')),
-    );
-    if (!allowed || savedPage === page) return;
-    window.history.replaceState({ kidsLocApp: true, page: savedPage }, '', pathForPage(savedPage));
-    setPage(savedPage);
-  }, [session?.user.id, company?.id, company?.role, platformOwner, page]);
-
-  useEffect(() => {
     if (!session || !company) return;
-    // On the root URL, let the restoration effect consume an existing
-    // saved destination before the initial "inicio" state can overwrite it.
+
+    // If the app opens at its root, restore the last allowed destination
+    // before persisting the initial in-memory "inicio" state.
     if (!hasExplicitPagePath()) {
       const savedPage = readSavedPage(session.user.id, company.id);
-      if (savedPage && savedPage !== page) return;
+      const allowed = savedPage && navigation.some(item =>
+        item.id === savedPage
+        && (item.ownerOnly ? platformOwner : (!item.admin || platformOwner || company.role === 'owner' || company.role === 'admin')),
+      );
+      if (savedPage && allowed && savedPage !== page) {
+        window.history.replaceState({ kidsLocApp: true, page: savedPage }, '', pathForPage(savedPage));
+        setPage(savedPage);
+        return;
+      }
     }
+
     savePage(session.user.id, company.id, page);
-  }, [session?.user.id, company?.id, page]);
+  }, [session?.user.id, company?.id, company?.role, platformOwner, page]);
 
   const isAdmin = platformOwner || company?.role === 'owner' || company?.role === 'admin';
   const userLabel = session?.user.user_metadata?.full_name || session?.user.email?.split('@')[0] || 'Bem-vindo';
