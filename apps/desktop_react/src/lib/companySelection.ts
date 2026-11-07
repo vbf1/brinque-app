@@ -2,6 +2,18 @@ import type { Session, User } from '@supabase/supabase-js';
 import { supabase } from './supabase';
 
 export type CompanyOption = { id: string; name: string };
+
+const SELECTED_COMPANY_STORAGE_KEY = 'kidsloc_selected_company_id';
+
+function readLocalCompanyPreference(): string {
+  try { return localStorage.getItem(SELECTED_COMPANY_STORAGE_KEY) ?? ''; }
+  catch { return ''; }
+}
+
+function writeLocalCompanyPreference(companyId: string): void {
+  try { localStorage.setItem(SELECTED_COMPANY_STORAGE_KEY, companyId); }
+  catch { /* Server-side profile metadata remains the primary persistence. */ }
+}
 export type ActiveCompany = CompanyOption & { role: string };
 
 export type CompanyAccess =
@@ -56,24 +68,27 @@ export async function resolveCompanyAccess(session: Session): Promise<CompanyAcc
     }
 
     const metadata = userResult.user.user_metadata ?? {};
-    const preferredId = typeof metadata.kidsloc_selected_company_id === 'string'
+    const metadataPreferredId = typeof metadata.kidsloc_selected_company_id === 'string'
       ? metadata.kidsloc_selected_company_id
       : '';
     const selectedAt = typeof metadata.kidsloc_selected_company_at === 'string'
       ? metadata.kidsloc_selected_company_at
       : '';
     const timestamp = Date.parse(selectedAt);
-    const hasExplicitPreference = Boolean(preferredId && selectedAt && Number.isFinite(timestamp));
-    const selected = hasExplicitPreference
+    const hasServerPreference = Boolean(metadataPreferredId && selectedAt && Number.isFinite(timestamp));
+    // The server profile is authoritative. Local storage is a same-browser
+    // recovery fallback for cases where profile metadata is delayed or absent.
+    const preferredId = hasServerPreference ? metadataPreferredId : readLocalCompanyPreference();
+    const selected = preferredId
       ? companies.find(company => company.id === preferredId) ?? null
       : null;
-    const preferenceStatus = !preferredId
-      ? 'nenhuma escolha salva'
-      : !hasExplicitPreference
-        ? 'preferência incompleta ignorada'
-        : selected
-          ? 'escolha confirmada'
-          : 'empresa salva não está mais disponível';
+    const preferenceStatus = hasServerPreference
+      ? (selected ? 'escolha confirmada no perfil' : 'empresa salva não está mais disponível')
+      : selected
+        ? 'escolha restaurada neste navegador'
+        : metadataPreferredId
+          ? 'preferência incompleta; nenhuma empresa válida restaurada'
+          : 'nenhuma escolha salva';
 
     return {
       kind: 'platform-owner',
@@ -151,5 +166,7 @@ export async function persistCompanySelection(
     throw new Error('A seleção não foi confirmada pelo servidor. Tente novamente.');
   }
 
+  // Keep a local recovery copy only after the server has confirmed the choice.
+  writeLocalCompanyPreference(company.id);
   return { selectedAt, user: fresh.user };
 }
