@@ -5,3 +5,10 @@ alter table public.companies
 
 comment on column public.companies.contract_settings is
   'Company-specific landlord identity, contract defaults and visual identity. Contract snapshots remain immutable per issued document.';
+
+alter table public.customers
+  add column if not exists cpf text,
+  add column if not exists rg text,
+  add column if not exists zip text,
+  add column if not exists neighborhood text,
+  add column if not exists city_state text;
