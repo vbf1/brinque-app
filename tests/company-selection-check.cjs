@@ -135,7 +135,25 @@ function json(body, status = 200, headers = {}) {
       throw new Error('O fluxo não chamou a persistência da preferência.');
     }
 
-    console.log('PASS company-selection: sem padrão, permanece sem empresa após recarga, salva a escolha explícita e restaura Sonho Kids Brinquedos após nova recarga.');
+    // Visit a page, then reopen the app from its root URL in the same browser.
+    await page.getByRole('button', { name: 'Abrir menu' }).click();
+    await page.getByRole('button', { name: 'Clientes', exact: true }).click();
+    await page.getByRole('heading', { name: 'Clientes', exact: true }).waitFor({ state: 'visible', timeout: 15000 });
+    const navigationKey = `kidsloc_last_page:${ownerId}:${companies[1].id}`;
+    if (await page.evaluate(key => localStorage.getItem(key), navigationKey) !== 'clientes') {
+      throw new Error('A última tela visitada não foi salva no armazenamento local.');
+    }
+
+    await page.goto(baseUrl, { waitUntil: 'domcontentloaded' });
+    await page.getByRole('heading', { name: 'Clientes', exact: true }).waitFor({ state: 'visible', timeout: 15000 });
+    if (!new URL(page.url()).pathname.endsWith('/clientes')) {
+      throw new Error('Ao reabrir o endereço principal, o app não restaurou a rota de Clientes.');
+    }
+
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await page.getByRole('heading', { name: 'Clientes', exact: true }).waitFor({ state: 'visible', timeout: 15000 });
+
+    console.log('PASS company-selection/navigation: seleção da empresa e última tela visitada são restauradas após recarga e reabertura pelo endereço principal.');
     await context.close();
   } finally {
     await browser.close();
