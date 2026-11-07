@@ -233,13 +233,15 @@ Deno.serve(async (req: Request) => {
       }
       const signedAt = new Date().toISOString();
       const signer = { name: signerName, document: signerDocument, phone: signerPhone, consent, signedAt };
-      const pdfBytes = await createSignedPdf(contract.contract_snapshot ?? {}, contract.contract_number, signer, signatureSvg);
+      const signedSnapshot = { ...(contract.contract_snapshot ?? {}), signatureDate: signedAt };
+      const pdfBytes = await createSignedPdf(signedSnapshot, contract.contract_number, signer, signatureSvg);
       const path = contract.company_id + "/" + contract.id + "/contrato-assinado-kidsloc.pdf";
       const { error: uploadError } = await admin.storage.from("rental-contracts").upload(path, pdfBytes, {
         contentType: "application/pdf", upsert: true,
       });
       if (uploadError) return json({ error: "A assinatura foi validada, mas não foi possível salvar o PDF. Tente novamente." }, 500);
       const { data: updated, error: updateError } = await admin.from("rental_contracts").update({
+        contract_snapshot: signedSnapshot,
         status: "signed", signed_at: signedAt, signer_name: signerName, signer_document: signerDocument || null,
         signer_phone: signerPhone || null, signature_svg: signatureSvg, consent_text: consent,
         signer_ip: req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null,
