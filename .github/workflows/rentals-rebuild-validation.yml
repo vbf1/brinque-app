@@ -1,0 +1,59 @@
+name: Validate rental module rebuild
+
+on:
+  push:
+    branches:
+      - 'rebuild/rentals-module-v2'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'apps/desktop_react/src/data/rentalDomain.ts'
+      - 'apps/desktop_react/package.json'
+      - 'apps/mobile_flutter/lib/features/rentals/**'
+      - 'tests/rental-domain-check.mjs'
+      - '.github/workflows/rentals-rebuild-validation.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rentals-rebuild-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: apps/desktop_react/package-lock.json
+      - name: Install dependencies
+        working-directory: apps/desktop_react
+        run: npm ci --no-audit --no-fund
+      - name: Rental domain tests
+        working-directory: apps/desktop_react
+        run: npm run test:rentals
+      - name: Build web application
+        working-directory: apps/desktop_react
+        run: npm run build
+
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - uses: actions/checkout@v4
+      - name: Resolve dependencies
+        working-directory: apps/mobile_flutter
+        run: flutter pub get
+      - name: Analyze Android app
+        working-directory: apps/mobile_flutter
+        run: flutter analyze
+      - name: Run Android tests
+        working-directory: apps/mobile_flutter
+        run: flutter test

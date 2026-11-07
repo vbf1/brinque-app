@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
+import { filterRentalCustomers } from '../data/rentalDomain';
 
 type CustomerOption = { id: string; name: string };
 
@@ -7,16 +8,15 @@ type CustomerPickerProps = {
   value: string;
   onChange: (customerId: string) => void;
   disabled?: boolean;
+  loading?: boolean;
+  error?: string;
 };
 
-export function CustomerPicker({ customers, value, onChange, disabled = false }: CustomerPickerProps) {
+export function CustomerPicker({ customers, value, onChange, disabled = false, loading = false, error = '' }: CustomerPickerProps) {
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState(false);
   const selected = customers.find(customer => customer.id === value);
-  const filtered = useMemo(() => {
-    const term = query.trim().toLocaleLowerCase('pt-BR');
-    return customers.filter(customer => !term || customer.name.toLocaleLowerCase('pt-BR').includes(term));
-  }, [customers, query]);
+  const filtered = filterRentalCustomers(customers, query);
 
   return (
     <div className="rental-customer-picker" style={{ position: 'relative', width: '100%' }}>
@@ -44,7 +44,7 @@ export function CustomerPicker({ customers, value, onChange, disabled = false }:
       {open && !disabled && (
         <div role="listbox" aria-label="Clientes disponíveis" className="rental-customer-options"
           style={{ position: 'absolute', zIndex: 30, top: 'calc(100% + 4px)', left: 0, right: 0, maxHeight: 240, overflowY: 'auto', background: 'var(--panel, #fff)', border: '1px solid var(--border, #d1d5db)', borderRadius: 10, boxShadow: '0 8px 24px rgba(0,0,0,.14)' }}>
-          {filtered.length ? filtered.map(customer => (
+          {loading ? <p role="status" style={{ padding: '12px 14px', margin: 0 }}>Carregando clientes...</p> : error ? <p role="alert" style={{ padding: '12px 14px', margin: 0 }}>{error}</p> : filtered.length ? filtered.map(customer => (
             <button key={customer.id} type="button" role="option" aria-selected={customer.id === value}
               onMouseDown={event => event.preventDefault()}
               onClick={() => { onChange(customer.id); setQuery(''); setOpen(false); }}
@@ -54,7 +54,7 @@ export function CustomerPicker({ customers, value, onChange, disabled = false }:
           )) : <p style={{ padding: '12px 14px', margin: 0 }}>{customers.length ? 'Nenhum cliente corresponde à pesquisa.' : 'Nenhum cliente cadastrado nesta empresa.'}</p>}
         </div>
       )}
-      <small className="module-description">{customers.length} cliente(s) disponível(is){selected ? ' · Selecionado: ' + selected.name : ''}</small>
+      <small className="module-description" aria-live="polite">{loading ? 'Atualizando lista de clientes...' : `${customers.length} cliente(s) carregado(s)`}{selected ? ' · Selecionado: ' + selected.name : ''}</small>
     </div>
   );
 }
