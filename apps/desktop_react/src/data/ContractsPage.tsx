@@ -6,13 +6,14 @@ import { ContractBrandingSettings } from './ContractBrandingSettings';
 type Rental = Record<string, any>;
 type Contract = Record<string, any>;
 const clauses = [
-  'O contratante declara que recebeu as informações sobre os brinquedos alugados e compromete-se a utilizá-los conforme as orientações fornecidas pela locadora.',
-  'O contratante deverá zelar pela conservação dos equipamentos durante todo o período da locação e impedir o uso inadequado ou por pessoas não autorizadas.',
-  'Danos, perdas ou avarias decorrentes de mau uso, negligência ou descumprimento das orientações deverão ser comunicados imediatamente e poderão gerar obrigação de ressarcimento, mediante apuração.',
-  'A utilização deverá ocorrer no período contratado. A devolução ou retirada deverá respeitar as datas e condições combinadas com a locadora.',
-  'Os valores, descontos, taxas e condições de pagamento são os apresentados neste contrato e no resumo da locação.',
-  'O contratante declara ser responsável por supervisionar a utilização dos brinquedos e por seguir as instruções de segurança entregues pela locadora.',
-  'Alterações e cancelamentos deverão ser comunicados à locadora e dependerão de confirmação entre as partes.'
+  'O LOCADOR realizará a locação dos seguintes equipamentos para utilização no evento. Os equipamentos serão disponibilizados ao CONTRATANTE durante o período e nas condições estabelecidas neste instrumento.',
+  'Data do evento, retirada dos equipamentos, horários e endereço de entrega serão os informados no quadro de dados deste contrato.',
+  'O sinal integra o preço total da locação e será abatido do saldo, não sendo cobrado em duplicidade.',
+  'O LOCADOR será responsável pela entrega, montagem e retirada dos equipamentos, conforme o serviço contratado. O CONTRATANTE deverá disponibilizar espaço adequado e seguro para a instalação. Os equipamentos deverão ser utilizados de forma adequada, observando-se as orientações de segurança fornecidas pelo LOCADOR.',
+  'O CONTRATANTE deverá zelar pelos equipamentos durante o período da locação e comunicar imediatamente ao LOCADOR qualquer ocorrência ou dano. Danos comprovadamente causados por uso inadequado, negligência ou descumprimento das orientações de segurança serão avaliados, cabendo ao responsável arcar com os prejuízos efetivamente comprovados, respeitada a legislação aplicável. O LOCADOR deverá entregar os equipamentos em condições adequadas de funcionamento e segurança.',
+  'Em caso de desistência por parte do CONTRATANTE, comunicada com antecedência de até 2 (dois) dias corridos da data do evento, será retido o equivalente a 15% (quinze por cento) do valor total da locação. Esse valor equivale a 50% (cinquenta por cento) do sinal pago, sendo os outros valores devolvidos ao CONTRATANTE. Nos demais casos de cancelamento ou em solicitações de alteração da data, as partes buscarão uma solução de comum acordo, observando a legislação aplicável e os direitos do consumidor.',
+  'Qualquer alteração nas condições deste contrato deverá ser acordada entre as partes, preferencialmente por escrito. Este instrumento registra as condições ajustadas para a locação e produzirá efeitos após a aceitação pelas partes.',
+  'As partes reconhecem a validade das assinaturas realizadas fisicamente ou por meio eletrônico, desde que seja possível identificar os signatários e verificar a integridade do documento. Estando de acordo com todas as condições, as partes assinam o presente instrumento.'
 ];
 const money = (value: unknown) => Number(value ?? 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 const date = (value: string) => value ? new Date(value + 'T12:00:00').toLocaleDateString('pt-BR') : '—';
