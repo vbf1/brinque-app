@@ -19,10 +19,10 @@ export function ContractBrandingSettings({companyId,companyName}:{companyId:stri
   const [error,setError]=useState('');
   useEffect(()=>{
     let active=true;
-    void supabase.from('companies').select('logo_url,contract_settings').eq('id',companyId).single().then(({data,error})=>{
+    void supabase.from('companies').select('contract_logo_url,contract_settings').eq('id',companyId).single().then(({data,error})=>{
       if(!active)return;
       if(error){setError(error.message);return;}
-      setLogoUrl(data.logo_url??'');
+      setLogoUrl(data.contract_logo_url??'');
       setSettings({...defaults,...(data.contract_settings??{}),commercialName:(data.contract_settings??{}).commercialName||companyName});
     });
     return ()=>{active=false;};
@@ -47,7 +47,7 @@ export function ContractBrandingSettings({companyId,companyName}:{companyId:stri
       const {error:uploadError}=await supabase.storage.from('company-branding').upload(path,file,{upsert:true,contentType:file.type});
       if(uploadError)throw uploadError;
       const {data}=supabase.storage.from('company-branding').getPublicUrl(path);
-      const {error:updateError}=await supabase.from('companies').update({logo_url:data.publicUrl,updated_at:new Date().toISOString()}).eq('id',companyId);
+      const {error:updateError}=await supabase.from('companies').update({contract_logo_url:data.publicUrl,updated_at:new Date().toISOString()}).eq('id',companyId);
       if(updateError)throw updateError;
       setLogoUrl(data.publicUrl+'?v='+Date.now());
       setMessage('Logo atualizada. Salve os demais dados se também os alterou.');
