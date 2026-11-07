@@ -1,60 +1,71 @@
-import { useState } from 'react';
-import { filterRentalCustomers } from '../data/rentalDomain';
-
 type CustomerOption = { id: string; name: string };
 
 type CustomerPickerProps = {
   customers: CustomerOption[];
   value: string;
   onChange: (customerId: string) => void;
+  companyId: string;
+  diagnostic?: string;
   disabled?: boolean;
   loading?: boolean;
   error?: string;
 };
 
-export function CustomerPicker({ customers, value, onChange, disabled = false, loading = false, error = '' }: CustomerPickerProps) {
-  const [query, setQuery] = useState('');
-  const [open, setOpen] = useState(false);
-  const selected = customers.find(customer => customer.id === value);
-  const filtered = filterRentalCustomers(customers, query);
-
+/**
+ * Use the browser's native select control for customer choice.
+ * This avoids custom popover/focus/stacking behavior on mobile browsers and
+ * Android WebView while keeping the data source controlled by RentalsPage.
+ */
+export function CustomerPicker({
+  customers,
+  value,
+  onChange,
+  companyId,
+  diagnostic = '',
+  disabled = false,
+  loading = false,
+  error = '',
+}: CustomerPickerProps) {
   return (
-    <div className="rental-customer-picker" style={{ position: 'relative', width: '100%' }}>
-      <input
-        type="search"
-        role="combobox"
-        aria-label="Pesquisar e selecionar cliente"
-        aria-autocomplete="list"
-        aria-expanded={open}
-        placeholder={selected ? selected.name : 'Digite para pesquisar um cliente...'}
-        value={query}
-        disabled={disabled}
-        onFocus={() => setOpen(true)}
-        onChange={event => { setQuery(event.target.value); setOpen(true); }}
-        onKeyDown={event => {
-          if (event.key === 'Escape') setOpen(false);
-          if (event.key === 'Enter' && filtered.length === 1) {
-            event.preventDefault();
-            onChange(filtered[0].id);
-            setQuery('');
-            setOpen(false);
-          }
-        }}
-      />
-      {open && !disabled && (
-        <div role="listbox" aria-label="Clientes disponíveis" className="rental-customer-options"
-          style={{ position: 'absolute', zIndex: 30, top: 'calc(100% + 4px)', left: 0, right: 0, maxHeight: 240, overflowY: 'auto', background: 'var(--panel, #fff)', border: '1px solid var(--border, #d1d5db)', borderRadius: 10, boxShadow: '0 8px 24px rgba(0,0,0,.14)' }}>
-          {loading ? <p role="status" style={{ padding: '12px 14px', margin: 0 }}>Carregando clientes...</p> : error ? <p role="alert" style={{ padding: '12px 14px', margin: 0 }}>{error}</p> : filtered.length ? filtered.map(customer => (
-            <button key={customer.id} type="button" role="option" aria-selected={customer.id === value}
-              onMouseDown={event => event.preventDefault()}
-              onClick={() => { onChange(customer.id); setQuery(''); setOpen(false); }}
-              style={{ display: 'block', width: '100%', padding: '12px 14px', textAlign: 'left', border: 0, borderBottom: '1px solid var(--border, #eee)', background: customer.id === value ? 'var(--accent-soft, #eef6f1)' : 'transparent', color: 'inherit', cursor: 'pointer' }}>
-              {customer.name}
-            </button>
-          )) : <p style={{ padding: '12px 14px', margin: 0 }}>{customers.length ? 'Nenhum cliente corresponde à pesquisa.' : 'Nenhum cliente cadastrado nesta empresa.'}</p>}
-        </div>
+    <div className="rental-customer-picker" style={{ display: 'grid', gap: 6, width: '100%' }}>
+      <select
+        aria-label="Selecionar cliente"
+        value={value}
+        required
+        disabled={disabled || loading || Boolean(error)}
+        onChange={event => onChange(event.target.value)}
+      >
+        <option value="">
+          {loading
+            ? 'Carregando clientes...'
+            : error
+              ? 'Não foi possível carregar os clientes'
+              : customers.length
+                ? 'Selecione um cliente'
+                : 'Nenhum cliente cadastrado nesta empresa'}
+        </option>
+        {customers.map(customer => (
+          <option key={customer.id} value={customer.id}>
+            {customer.name}
+          </option>
+        ))}
+      </select>
+      <small className="module-description" aria-live="polite">
+        {loading
+          ? 'Consultando clientes no Supabase...'
+          : error
+            ? 'A consulta retornou um erro.'
+            : `${customers.length} cliente(s) retornado(s) pela consulta.`}
+      </small>
+      <small className="module-description" style={{ overflowWrap: 'anywhere' }}>
+        Empresa consultada: {companyId}
+      </small>
+      {diagnostic && (
+        <small className="module-description" style={{ overflowWrap: 'anywhere' }}>
+          Diagnóstico: {diagnostic}
+        </small>
       )}
-      <small className="module-description" aria-live="polite">{loading ? 'Atualizando lista de clientes...' : `${customers.length} cliente(s) carregado(s)`}{selected ? ' · Selecionado: ' + selected.name : ''}</small>
+      {error && <p role="alert" className="module-feedback">{error}</p>}
     </div>
   );
 }
