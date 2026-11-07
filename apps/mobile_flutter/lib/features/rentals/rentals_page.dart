@@ -123,17 +123,43 @@ class _RentalsPageState extends State<RentalsPage> {
       context: context,
       builder: (dialogContext) => StatefulBuilder(builder: (context, setDialogState) {
         final days = end.value.difference(start.value).inDays + 1;
+        var selectedCustomerName = '';
+        for (final customer in data.customers) {
+          if (customer['id'] == customerId.value) {
+            selectedCustomerName = customer['name'] as String? ?? '';
+            break;
+          }
+        }
         return AlertDialog(
           title: Text(rental == null ? 'Nova locação' : 'Editar locação'),
           content: SizedBox(width: 560, child: Form(
             key: formKey,
             child: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-              DropdownButtonFormField<String>(
-                initialValue: customerId.value,
-                decoration: const InputDecoration(labelText: 'Cliente *'),
-                items: data.customers.map((c) => DropdownMenuItem<String>(value: c['id'] as String, child: Text(c['name'] as String? ?? 'Cliente', overflow: TextOverflow.ellipsis))).toList(),
-                onChanged: (v) => setDialogState(() => customerId.value = v),
-                validator: (v) => v == null ? 'Selecione um cliente.' : null,
+              Autocomplete<Map<String, dynamic>>(
+                initialValue: TextEditingValue(text: selectedCustomerName),
+                displayStringForOption: (customer) => customer['name'] as String? ?? 'Cliente',
+                optionsBuilder: (text) {
+                  final query = text.text.trim().toLowerCase();
+                  return data.customers.where((customer) {
+                    final name = (customer['name'] as String? ?? '').toLowerCase();
+                    return query.isEmpty || name.contains(query);
+                  }).toList();
+                },
+                onSelected: (customer) => setDialogState(() {
+                  customerId.value = customer['id'] as String;
+                }),
+                fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) =>
+                  TextFormField(
+                    controller: controller,
+                    focusNode: focusNode,
+                    decoration: const InputDecoration(
+                      labelText: 'Cliente *',
+                      hintText: 'Digite para pesquisar pelo nome',
+                      prefixIcon: Icon(Icons.search),
+                    ),
+                    onChanged: (_) => setDialogState(() => customerId.value = null),
+                    validator: (_) => customerId.value == null ? 'Selecione um cliente da lista.' : null,
+                  ),
               ),
               const SizedBox(height: 8),
               Row(children: [
