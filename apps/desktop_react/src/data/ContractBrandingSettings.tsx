@@ -12,6 +12,7 @@ const defaults:Settings = {
 };
 export function ContractBrandingSettings({companyId,companyName}:{companyId:string;companyName:string}) {
   const [settings,setSettings]=useState<Settings>(defaults);
+  const [authorized,setAuthorized]=useState(false);
   const [logoUrl,setLogoUrl]=useState('');
   const [saving,setSaving]=useState(false);
   const [uploading,setUploading]=useState(false);
@@ -19,9 +20,13 @@ export function ContractBrandingSettings({companyId,companyName}:{companyId:stri
   const [error,setError]=useState('');
   useEffect(()=>{
     let active=true;
-    void supabase.from('companies').select('contract_logo_url,contract_settings').eq('id',companyId).single().then(({data,error})=>{
+    void Promise.all([
+      supabase.rpc('has_company_role',{p_company_id:companyId,p_roles:['owner','admin']}),
+      supabase.from('companies').select('contract_logo_url,contract_settings').eq('id',companyId).single()
+    ]).then(([permission,{data,error}])=>{
       if(!active)return;
       if(error){setError(error.message);return;}
+      setAuthorized(permission.data===true);
       setLogoUrl(data.contract_logo_url??'');
       setSettings({...defaults,...(data.contract_settings??{}),commercialName:(data.contract_settings??{}).commercialName||companyName});
     });
@@ -54,6 +59,7 @@ export function ContractBrandingSettings({companyId,companyName}:{companyId:stri
     }catch(e){setError(e instanceof Error?e.message:'Não foi possível enviar a logo.');}
     finally{setUploading(false);}
   }
+  if(!authorized)return null;
   return <details className="marketing-editor">
     <summary><strong>Identidade visual e dados do locador</strong><span className="module-description">Personalize o contrato desta empresa sem alterar os dados das outras.</span></summary>
     <form className="customer-form" onSubmit={save}>
