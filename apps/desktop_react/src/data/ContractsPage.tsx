@@ -64,7 +64,7 @@ export function ContractsPage({ companyId, companyName }: { companyId: string; c
       const rawToken = method === 'in_app' ? makeToken() : '';
       const tokenHash = rawToken ? await hashToken(rawToken) : null;
       const { data: companyData, error: companyError } = await supabase.from('companies')
-        .select('name,logo_url,contract_settings').eq('id', companyId).single();
+        .select('name,contract_logo_url,contract_settings').eq('id', companyId).single();
       if (companyError) throw companyError;
       const config = companyData.contract_settings ?? {};
       const customer = rental.customers ?? {};
@@ -78,7 +78,7 @@ export function ContractsPage({ companyId, companyName }: { companyId: string; c
           commercialName: config.commercialName || companyName, address: config.landlordAddress ?? '',
           zip: config.landlordZip ?? '', neighborhood: config.landlordNeighborhood ?? '', cityState: config.landlordCityState ?? ''
         },
-        brand: { logoUrl: companyData.logo_url ?? '', primaryColor: config.primaryColor ?? '#174b78', accentColor: config.accentColor ?? '#f4cf2e' },
+        brand: { logoUrl: companyData.contract_logo_url ?? '', primaryColor: config.primaryColor ?? '#174b78', accentColor: config.accentColor ?? '#f4cf2e' },
         customer: {
           name: customer.name ?? '', cpf: extraFields.customerCpf, phone: customer.phone ?? '', rg: extraFields.customerRg,
           address: customer.address ?? '', zip: extraFields.customerZip, neighborhood: extraFields.customerNeighborhood, cityState: extraFields.customerCityState
