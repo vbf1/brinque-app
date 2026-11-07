@@ -15,10 +15,7 @@ const clauses = [
   'Qualquer alteração nas condições deste contrato deverá ser acordada entre as partes, preferencialmente por escrito. Este instrumento registra as condições ajustadas para a locação e produzirá efeitos após a aceitação pelas partes.',
   'As partes reconhecem a validade das assinaturas realizadas fisicamente ou por meio eletrônico, desde que seja possível identificar os signatários e verificar a integridade do documento. Estando de acordo com todas as condições, as partes assinam o presente instrumento.'
 ];
-const money = (value: unknown) => Number(value ?? 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 const date = (value: string) => value ? new Date(value + 'T12:00:00').toLocaleDateString('pt-BR') : '—';
-const htmlEscapes: Record<string,string> = { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' };
-const escapeHtml = (value: unknown) => String(value ?? '').replace(/[&<>"']/g, char => htmlEscapes[char] ?? char);
 const statusLabels: Record<string,string> = { draft:'Pendente', sent:'Enviado', viewed:'Visualizado', signed:'Assinado', cancelled:'Cancelado', expired:'Vencido' };
 
 
