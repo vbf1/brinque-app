@@ -141,7 +141,11 @@ export default function App() {
   const [companyLoading, setCompanyLoading] = useState(false);
   const [page, setPage] = useState<Page>(() => pageFromLocation());
   const [tourOpen, setTourOpen] = useState(false);
+  const [tourPromptOpen, setTourPromptOpen] = useState(false);
   const [tourStep, setTourStep] = useState(0);
+  const [supportOpen, setSupportOpen] = useState(false);
+  const [supportCategory, setSupportCategory] = useState('Dúvida sobre o aplicativo');
+  const [supportMessage, setSupportMessage] = useState('');
 
   const navigateTo = useCallback((nextPage: Page) => {
     const nextPath = pathForPage(nextPage);
@@ -161,10 +165,13 @@ export default function App() {
     return () => window.removeEventListener('popstate', handlePopState);
   }, [company?.id]);
   useEffect(() => {
-    if (!session || !company) { setTourOpen(false); return; }
+    if (!session || !company) { setTourOpen(false); setTourPromptOpen(false); return; }
     if (session.user.user_metadata?.kidsloc_tour_completed !== true) {
       setTourStep(0);
-      setTourOpen(true);
+      setTourOpen(false);
+      setTourPromptOpen(true);
+    } else {
+      setTourPromptOpen(false);
     }
   }, [session?.user.id, company?.id]);
 
@@ -392,9 +399,43 @@ export default function App() {
       const { data } = await supabase.auth.getUser();
       if (data.user) setSession(current => current ? { ...current, user: data.user! } : current);
     } catch {
-      feedback('Não foi possível salvar a conclusão do tutorial. Você pode abri-lo novamente pelo botão Ajuda.', true);
+      feedback('Não foi possível salvar a conclusão do tutorial. Tente novamente quando sua conexão estiver estável.', true);
     }
   }
+  async function declineTourOffer() {
+    setTourPromptOpen(false);
+    try {
+      const { error } = await supabase.auth.updateUser({
+        data: { ...session?.user.user_metadata, kidsloc_tour_completed: true },
+      });
+      if (error) throw error;
+      const { data } = await supabase.auth.getUser();
+      if (data.user) setSession(current => current ? { ...current, user: data.user! } : current);
+    } catch {
+      feedback('Não foi possível salvar sua escolha. Verifique a conexão e tente novamente.', true);
+    }
+  }
+  function startTour() {
+    setTourPromptOpen(false);
+    setTourStep(0);
+    setTourOpen(true);
+    navigateTo('inicio');
+    setMenuOpen(false);
+  }
+  function sendSupportMessage() {
+    const messageText = supportMessage.trim();
+    if (!messageText) {
+      feedback('Escreva uma mensagem antes de continuar.', true);
+      return;
+    }
+    const sender = session?.user.user_metadata?.full_name || session?.user.email || 'Usuário do KidsLoc';
+    const text = `Olá! Preciso de ajuda com o KidsLoc App.\\n\\nEmpresa: ${company?.name ?? 'Não identificada'}\\nUsuário: ${sender}\\nAssunto: ${supportCategory}\\n\\nMensagem: ${messageText}`;
+    const url = `https://wa.me/5531999857343?text=${encodeURIComponent(text)}`;
+    window.open(url, '_blank', 'noopener,noreferrer');
+    setSupportOpen(false);
+    setSupportMessage('');
+  }
+
   function advanceTour() {
     if (tourStep >= tourSteps.length - 1) { void finishTour(); return; }
     const next = tourStep + 1;
@@ -402,13 +443,6 @@ export default function App() {
     navigateTo(tourSteps[next].page);
     setMenuOpen(false);
   }
-  function openTour() {
-    setTourStep(0);
-    setTourOpen(true);
-    navigateTo('inicio');
-    setMenuOpen(false);
-  }
-
   const publicContractToken = new URLSearchParams(window.location.search).get('contract');
   if (publicContractToken) return <PublicContractPage token={publicContractToken} />;
   const isPublicCheckout = new URLSearchParams(window.location.search).has('checkout') || window.location.pathname.split('/').filter(Boolean).at(-1) === 'checkout';
@@ -490,7 +524,6 @@ export default function App() {
           <div className="legacy-brand"><div className="legacy-logo"></div><div><strong>KIDSLOC APP</strong><span>GESTÃO DE LOCAÇÕES</span></div></div>
           <div className="legacy-head-actions">
             <button type="button" className="legacy-theme-button" aria-label={theme === 'dark' ? 'Ativar tema claro' : 'Ativar tema escuro'} title={theme === 'dark' ? 'Tema claro' : 'Tema escuro'} onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>{theme === 'dark' ? '☾' : '☀'}</button>
-            <button type="button" className="legacy-help-button" title="Ver tutorial do aplicativo" onClick={openTour}>Ajuda</button>
             <button type="button" className="legacy-menu-trigger" aria-label="Abrir menu" aria-expanded={menuOpen} onClick={() => setMenuOpen(value => !value)}><span /><span /><span /></button>
           </div>
         </div>
@@ -501,6 +534,7 @@ export default function App() {
       {menuOpen && <button className="legacy-menu-backdrop" aria-label="Fechar menu" onClick={() => setMenuOpen(false)} />}
       <nav className={menuOpen ? 'legacy-menu-panel open' : 'legacy-menu-panel'} aria-label="Menus de navegação">
         {visibleNavigation.map(item => <button type="button" key={item.id} className={page === item.id ? 'active' : ''} onClick={() => { navigateTo(item.id); setMenuOpen(false); }}><span>{item.icon}</span>{item.label}</button>)}
+        <button type="button" onClick={() => { setMenuOpen(false); setSupportOpen(true); }}><span>?</span>Ajuda e suporte</button>
         <button type="button" className="legacy-menu-logout" onClick={() => { setMenuOpen(false); void logout(); }}><span>↪</span>Sair</button>
       </nav>
 
@@ -542,6 +576,36 @@ export default function App() {
         {page === 'configuracoes' && isAdmin && <CompanySettingsPage companyId={company.id} companyName={company.name} theme={theme} onThemeChange={setTheme} onSaved={name => { setCompany(current => current ? { ...current, name } : current); setAvailableCompanies(current => current.map(item => item.id === company.id ? { ...item, name } : item)); }} />}
         {page === 'administracao' && platformOwner && <PlatformAdminPage currentCompanyId={company.id} companies={availableCompanies} onCompaniesChanged={setAvailableCompanies} />}
       </main>
+      {tourPromptOpen && <div role="dialog" aria-modal="true" aria-labelledby="kidsloc-tour-prompt-title" style={{ position: 'fixed', inset: 0, zIndex: 1200, background: 'rgba(15, 23, 42, .62)', display: 'grid', placeItems: 'center', padding: 20 }}>
+        <section style={{ width: 'min(460px, 100%)', background: 'var(--card, #fff)', color: 'var(--text, #172033)', borderRadius: 18, padding: 24, boxShadow: '0 20px 60px rgba(0,0,0,.25)' }}>
+          <div style={{ fontSize: 28, marginBottom: 10 }}>👋</div>
+          <h2 id="kidsloc-tour-prompt-title" style={{ margin: '0 0 10px' }}>Bem-vindo ao KidsLoc App!</h2>
+          <p style={{ lineHeight: 1.55, margin: '0 0 20px' }}>Este parece ser seu primeiro acesso. Gostaria de fazer um breve tour para conhecer as principais funções do aplicativo?</p>
+          <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'flex-end', gap: 10 }}>
+            <button type="button" className="legacy-secondary-button" onClick={() => void declineTourOffer()}>Agora não</button>
+            <button type="button" className="legacy-primary-button" onClick={startTour}>Iniciar tutorial</button>
+          </div>
+        </section>
+      </div>}
+      {supportOpen && <div role="dialog" aria-modal="true" aria-labelledby="kidsloc-support-title" style={{ position: 'fixed', inset: 0, zIndex: 1300, background: 'rgba(15, 23, 42, .62)', display: 'grid', placeItems: 'center', padding: 20 }}>
+        <section style={{ width: 'min(520px, 100%)', maxHeight: '90vh', overflowY: 'auto', background: 'var(--card, #fff)', color: 'var(--text, #172033)', borderRadius: 18, padding: 24, boxShadow: '0 20px 60px rgba(0,0,0,.25)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+            <h2 id="kidsloc-support-title" style={{ margin: 0 }}>Ajuda e suporte</h2>
+            <button type="button" aria-label="Fechar suporte" onClick={() => setSupportOpen(false)} style={{ border: 0, background: 'transparent', fontSize: 26, cursor: 'pointer' }}>×</button>
+          </div>
+          <p style={{ lineHeight: 1.5 }}>Conte o que aconteceu ou envie sua dúvida. A mensagem será preparada para você enviar diretamente ao suporte pelo WhatsApp.</p>
+          <label htmlFor="kidsloc-support-category" style={{ display: 'block', fontWeight: 600, margin: '14px 0 6px' }}>Assunto</label>
+          <select id="kidsloc-support-category" value={supportCategory} onChange={event => setSupportCategory(event.target.value)} style={{ width: '100%', padding: 12, borderRadius: 9, border: '1px solid #cbd5e1', background: 'transparent', color: 'inherit' }}>
+            <option>Dúvida sobre o aplicativo</option><option>Problema ou erro</option><option>Solicitação de melhoria</option><option>Outro assunto</option>
+          </select>
+          <label htmlFor="kidsloc-support-message" style={{ display: 'block', fontWeight: 600, margin: '14px 0 6px' }}>Sua mensagem</label>
+          <textarea id="kidsloc-support-message" rows={5} value={supportMessage} onChange={event => setSupportMessage(event.target.value)} placeholder="Descreva sua dúvida ou o problema encontrado..." style={{ width: '100%', boxSizing: 'border-box', padding: 12, borderRadius: 9, border: '1px solid #cbd5e1', resize: 'vertical', background: 'transparent', color: 'inherit' }} />
+          <div style={{ display: 'flex', justifyContent: 'flex-end', flexWrap: 'wrap', gap: 10, marginTop: 16 }}>
+            <button type="button" className="legacy-secondary-button" onClick={() => setSupportOpen(false)}>Cancelar</button>
+            <button type="button" className="legacy-primary-button" onClick={sendSupportMessage}>Continuar no WhatsApp</button>
+          </div>
+        </section>
+      </div>}
       {tourOpen && currentTourStep && <aside className="kidsloc-tour-coach" role="region" aria-labelledby="kidsloc-tour-title">
         <div className="kidsloc-tour-top"><span><i /> GUIA DO KIDSLOC</span><button type="button" className="kidsloc-tour-close" onClick={() => void finishTour()} aria-label="Fechar tutorial">×</button></div>
         <div className="kidsloc-tour-progress"><span style={{ width: `${((tourStep + 1) / tourSteps.length) * 100}%` }} /></div>
