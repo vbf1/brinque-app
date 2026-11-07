@@ -172,7 +172,7 @@ async function createSignedPdf(snapshot: Record<string, any>, contractNumber: nu
   page.drawText("CPF: ___________________________",{x:305,y:wy-48,size:8,font:regular,color:ink});
   page.drawText("Assinatura: _____________________",{x:56,y:wy-62,size:7.5,font:regular,color:ink});
   page.drawText("Assinatura: _____________________",{x:305,y:wy-62,size:7.5,font:regular,color:ink});
-  [page,...pdf.getPages()].forEach((p,i)=>{
+  pdf.getPages().forEach((p,i)=>{
     p.drawText(safeText(landlord.commercialName||snapshot.companyName,100)+" - CONTRATO DE LOCAÇÃO",{x:48,y:25,size:7,font:regular,color:rgb(0.48,0.52,0.56)});
     p.drawText("Página "+(i+1),{x:500,y:25,size:7,font:regular,color:rgb(0.48,0.52,0.56)});
   });
