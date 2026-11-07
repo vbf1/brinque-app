@@ -1,5 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../features/rentals/rental_domain.dart';
+
 /// Company-scoped access to the existing KidsLoc data model.
 ///
 /// Every query is explicitly filtered by [companyId]. Authorization remains
@@ -170,6 +172,15 @@ class CompanyDataRepository {
     String? deliveryAddress,
     List<String> responsibleUserIds = const [],
   }) async {
+    validateRentalDraft(
+      customerId: customerId, startDate: startDate, endDate: endDate,
+      startTime: startTime, endTime: endTime, status: status,
+      deliveryMethod: deliveryMethod, totalAmount: totalAmount,
+      items: items, deliveryAddress: deliveryAddress,
+    );
+    if (!const {'pending', 'confirmed', 'ongoing'}.contains(status)) {
+      throw ArgumentError('Uma nova locação só pode ser criada como pendente, confirmada ou em andamento.');
+    }
     final result = await _client.rpc(
       'create_rental_with_items',
       params: {
@@ -207,6 +218,12 @@ class CompanyDataRepository {
     String? deliveryAddress,
     List<String> responsibleUserIds = const [],
   }) async {
+    validateRentalDraft(
+      customerId: customerId, startDate: startDate, endDate: endDate,
+      startTime: startTime, endTime: endTime, status: status,
+      deliveryMethod: deliveryMethod, totalAmount: totalAmount,
+      items: items, deliveryAddress: deliveryAddress,
+    );
     await _client.rpc(
       'update_rental_with_items',
       params: {
