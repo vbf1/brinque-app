@@ -53,3 +53,20 @@ for (const guard of stateGuards) {
   }
   console.log(`PASS ${guard.label}: async load path has explicit failure handling.`);
 }
+
+const platformOwnerMigration = fs.readFileSync(
+  'supabase/migrations/20261107070000_allow_platform_owner_team_group.sql',
+  'utf8',
+);
+for (const expected of [
+  'create or replace function public.ensure_team_group',
+  "set search_path = ''",
+  'if not private.is_platform_owner()',
+  'from public.company_members cm',
+  'on conflict (conversation_id, user_id) do nothing',
+]) {
+  if (!platformOwnerMigration.includes(expected)) {
+    throw new Error(`FAIL platform-owner team group migration: missing ${expected}.`);
+  }
+}
+console.log('PASS platform-owner team group migration: global owner is explicitly authorized; regular membership checks remain enforced.');
