@@ -40,6 +40,7 @@ textarea{resize:vertical}
 .legacy-theme-button{font-size:20px}
 .legacy-menu-trigger{gap:5px;align-content:center}
 .legacy-menu-trigger span{display:block;width:21px;height:2px;border-radius:4px;background:#fff}
+.legacy-menu-trigger:focus,.legacy-menu-trigger:focus-visible,.legacy-menu-trigger:active{outline:none;box-shadow:none;background:transparent;-webkit-tap-highlight-color:transparent}
 .legacy-greeting{margin-top:11px;font-size:20px;font-weight:750;line-height:1.3}
 .legacy-greeting small{display:block;margin-top:4px;color:#c6d3e5;font-size:11px;font-weight:400;line-height:1.4}
 .legacy-menu-backdrop{position:fixed;inset:0;z-index:11;background:#08142655;border-radius:0}
