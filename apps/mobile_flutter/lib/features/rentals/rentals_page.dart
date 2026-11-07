@@ -3,7 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'rental_repository.dart';
-import 'rental_time.dart';
+import '../../data/rental_time.dart';
 
 class RentalsPage extends StatefulWidget {
   const RentalsPage({super.key, required this.companyId});
