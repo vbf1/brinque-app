@@ -294,12 +294,9 @@ export default function App() {
           if (!active) return;
           setPlatformOwner(true);
           setAvailableCompanies(companyList ?? []);
-          if (!companyList?.length) {
-            setCompany(null);
-            feedback('Nenhuma empresa cadastrada. Crie a primeira empresa nas configurações.', true);
-            return;
-          }
-          setCompany({ id: companyList[0].id, name: companyList[0].name, role: 'owner' });
+          setCompany(null);
+          setPage('administracao');
+          window.history.replaceState({ kidsLocApp: true, page: 'administracao' }, '', pathForPage('administracao'));
           feedback('');
           return;
         }
@@ -458,7 +455,7 @@ export default function App() {
   );
 
   if (companyLoading) return <main className="legacy-auth-screen"><section className="legacy-auth-card"><div className="legacy-auth-brand"><div className="legacy-auth-wordmark"><strong>KidsLoc <span>App</span></strong><small>GESTÃO DE LOCAÇÕES</small></div><div className="legacy-login-accent" /></div><div className="legacy-loading">Carregando os dados da empresa...</div></section></main>;
-  if (!company && platformOwner) return <main className="legacy-auth-screen"><section className="legacy-auth-card" style={{ width: 'min(900px, 100%)' }}><div className="legacy-auth-brand"><div className="legacy-auth-wordmark"><strong>KidsLoc <span>App</span></strong><small>GESTÃO DE LOCAÇÕES</small></div><div className="legacy-login-accent" /></div><PlatformAdminPage currentCompanyId="" companies={availableCompanies} onCompaniesChanged={setAvailableCompanies} onSelectCompany={selected => setCompany({ ...selected, role: 'owner' })} /><button onClick={logout} disabled={busy} className="legacy-secondary-button">Sair</button></section></main>;
+  if (!company && platformOwner) return <main className="legacy-auth-screen"><section className="legacy-auth-card" style={{ width: 'min(1100px, 100%)' }}><div className="legacy-auth-brand"><div className="legacy-auth-wordmark"><strong>KidsLoc <span>App</span></strong><small>ADMINISTRAÇÃO DA PLATAFORMA</small></div><div className="legacy-login-accent" /></div><PlatformAdminPage currentCompanyId="" companies={availableCompanies} onCompaniesChanged={setAvailableCompanies} /><button onClick={logout} disabled={busy} className="legacy-secondary-button">Sair</button></section></main>;
   if (!company) return <main className="legacy-auth-screen"><section className="legacy-auth-card"><div className="legacy-auth-brand"><div className="legacy-auth-wordmark"><strong>KidsLoc <span>App</span></strong><small>GESTÃO DE LOCAÇÕES</small></div><div className="legacy-login-accent" /></div><h1>Acesso sem empresa vinculada</h1><p className="legacy-intro">{message || 'Esta conta não está vinculada a uma empresa.'}</p><button onClick={logout} disabled={busy} className="legacy-primary-button">Sair</button></section></main>;
 
   return (
@@ -472,7 +469,7 @@ export default function App() {
             <button type="button" className="legacy-menu-trigger" aria-label="Abrir menu" aria-expanded={menuOpen} onClick={() => setMenuOpen(value => !value)}><span /><span /><span /></button>
           </div>
         </div>
-        <div className="legacy-greeting">Olá, {userLabel} 👋<small>{company.name} · Gestão de locações sincronizada.</small>{platformOwner && <label className="legacy-company-switcher-label">Empresa selecionada<AppSelect value={company.id} onChange={value => { const selected = availableCompanies.find(item => item.id === value); if (selected) { setCompany({ ...selected, role: 'owner' }); setPage('inicio'); } }} placeholder="Empresa selecionada" options={availableCompanies.map(item => ({ value: item.id, label: item.name }))} /></label>}</div>
+        <div className="legacy-greeting">Olá, {userLabel} 👋<small>{company.name} · Gestão de locações sincronizada.</small></div>
       </header>
       {menuOpen && <button className="legacy-menu-backdrop" aria-label="Fechar menu" onClick={() => setMenuOpen(false)} />}
       <nav className={menuOpen ? 'legacy-menu-panel open' : 'legacy-menu-panel'} aria-label="Menus de navegação">
@@ -497,7 +494,6 @@ export default function App() {
               <button className="legacy-dashboard-card" onClick={() => navigateTo('mensagens')}><span className="legacy-card-icon">▰</span><strong>Mensagens da equipe</strong><small>Converse com os funcionários</small></button>
               <button className="legacy-dashboard-card" onClick={() => navigateTo('ocorrencias')}><span className="legacy-card-icon">⚠</span><strong>Ocorrências</strong><small>Registre e acompanhe relatos</small></button>
               {isAdmin && <button className="legacy-dashboard-card" onClick={() => navigateTo('marketing')}><span className="legacy-card-icon">✧</span><strong>Marketing e anúncios</strong><small>Crie, revise e organize divulgações</small></button>}
-              {platformOwner && <button className="legacy-dashboard-card" onClick={() => navigateTo('administracao')}><span className="legacy-card-icon">⌘</span><strong>Administração da plataforma</strong><small>Gerencie empresas e usuários globalmente</small></button>}
             </div>
             <section className="legacy-panel legacy-welcome-panel"><div><strong>Sessão ativa</strong><span>Conectado à empresa {company.name}</span></div><span className="legacy-status"><i /> {company.role === 'owner' ? 'Proprietário' : company.role === 'admin' ? 'Administrador' : 'Funcionário'}</span></section>
           </section>
