@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
 import { supabase } from '../lib/supabase';
 import { createCompanyDataRepository } from './companyDataRepository';
+import { CustomerPicker } from '../components/CustomerPicker';
 
 type Row = Record<string, any>;
 type DraftItem = { productId: string; quantity: number; price: string };
@@ -184,7 +185,7 @@ export function RentalsPage({ companyId }: { companyId: string }) {
     {!canManageRentals && <p className="module-description">Nesta versão, a edição de locações fica restrita ao proprietário e aos administradores para preservar todos os funcionários responsáveis vinculados.</p>}
     {formOpen && <form className="customer-form rental-form" onSubmit={save}>
       <h3>{editing ? 'Editar locação' : 'Nova locação'}</h3>
-      <label>Cliente *<select required value={customerId} onChange={e => setCustomerId(e.target.value)}><option value="">{customers.length ? 'Selecione o cliente' : 'Nenhum cliente disponível'}</option>{customers.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select>{customers.length === 0 && <small className="module-description">Cadastre primeiro em Clientes. Se já existem cadastros, atualize a página e confira a mensagem de carregamento.</small>}</label>
+      <label>Cliente *<CustomerPicker customers={customers} value={customerId} onChange={setCustomerId} />{customers.length === 0 && <small className="module-description">A lista é atualizada diretamente do cadastro da empresa ao abrir esta tela. Confira também a mensagem de carregamento acima.</small>}</label>
       <div className="form-grid">
         <label>Data de início *<input type="date" required value={startDate} onChange={e => setStartDate(e.target.value)} /></label>
         <label>Horário de início *<input type="time" required value={startTime} onChange={e => setStartTime(e.target.value)} /></label>
