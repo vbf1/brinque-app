@@ -44,7 +44,7 @@ export function ContractBrandingSettings({companyId,companyName}:{companyId:stri
   }
   async function uploadLogo(file?:File){
     if(!file)return;
-    if(!['image/png','image/jpeg','image/webp','image/svg+xml'].includes(file.type)||file.size>5*1024*1024){setError('Use PNG, JPG, WEBP ou SVG de até 5 MB.');return;}
+    if(!['image/png','image/jpeg'].includes(file.type)||file.size>5*1024*1024){setError('Use PNG ou JPG de até 5 MB.');return;}
     setUploading(true);setError('');setMessage('');
     try{
       const ext=file.name.split('.').pop()?.toLowerCase()||'png';
@@ -65,7 +65,7 @@ export function ContractBrandingSettings({companyId,companyName}:{companyId:stri
     <form className="customer-form" onSubmit={save}>
       <h4>Logo do contrato</h4>
       {logoUrl&&<img src={logoUrl} alt="Logo da empresa" style={{maxWidth:160,maxHeight:90,objectFit:'contain'}}/>}
-      <label>Enviar logo (PNG, JPG, WEBP ou SVG)<input type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" disabled={uploading} onChange={e=>void uploadLogo(e.target.files?.[0])}/></label>
+      <label>Enviar logo (PNG ou JPG)<input type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" disabled={uploading} onChange={e=>void uploadLogo(e.target.files?.[0])}/></label>
       <div className="form-grid">
         <label>Cor principal<input type="color" value={settings.primaryColor} onChange={e=>set('primaryColor',e.target.value)}/></label>
         <label>Cor de destaque<input type="color" value={settings.accentColor} onChange={e=>set('accentColor',e.target.value)}/></label>
