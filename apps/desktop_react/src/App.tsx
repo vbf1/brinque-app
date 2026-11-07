@@ -59,6 +59,37 @@ function pageFromLocation(): Page {
 function pathForPage(page: Page): string {
   return import.meta.env.BASE_URL + pagePaths[page];
 }
+
+function navigationStorageKey(userId: string, companyId: string): string {
+  return `kidsloc_last_page:${userId}:${companyId}`;
+}
+
+function readSavedPage(userId: string, companyId: string): Page | null {
+  try {
+    const saved = localStorage.getItem(navigationStorageKey(userId, companyId));
+    return saved && Object.prototype.hasOwnProperty.call(pagePaths, saved) ? saved as Page : null;
+  } catch {
+    return null;
+  }
+}
+
+function savePage(userId: string, companyId: string, page: Page): void {
+  try { localStorage.setItem(navigationStorageKey(userId, companyId), page); }
+  catch { /* Navigation persistence is best-effort when browser storage is unavailable. */ }
+}
+
+function clearSavedPage(userId: string, companyId: string | null): void {
+  if (!companyId) return;
+  try { localStorage.removeItem(navigationStorageKey(userId, companyId)); }
+  catch { /* Ignore unavailable browser storage. */ }
+}
+
+function hasExplicitPagePath(): boolean {
+  const base = import.meta.env.BASE_URL;
+  const pathname = window.location.pathname;
+  const relativePath = pathname.startsWith(base) ? pathname.slice(base.length) : pathname.replace(/^\\/+/, '');
+  return relativePath.split('/').filter(Boolean).length > 0;
+}
 const PASSWORD_RESET_REDIRECT = 'https://vbf1.github.io/kidsloc-app/';
 
 function withTimeout<T>(promise: Promise<T>, milliseconds: number, message: string): Promise<T> {
@@ -372,6 +403,7 @@ export default function App() {
   }
 
   async function logout() {
+    if (session) clearSavedPage(session.user.id, company?.id ?? null);
     setBusy(true);
     try {
       const { error } = await supabase.auth.signOut({ scope: 'local' });
@@ -380,6 +412,24 @@ export default function App() {
     } catch (error) { feedback(friendlyError(error), true); }
     finally { setBusy(false); }
   }
+
+  useEffect(() => {
+    if (!session || !company || hasExplicitPagePath()) return;
+    const savedPage = readSavedPage(session.user.id, company.id);
+    if (!savedPage) return;
+    const allowed = navigation.some(item =>
+      item.id === savedPage
+      && (item.ownerOnly ? platformOwner : (!item.admin || platformOwner || company.role === 'owner' || company.role === 'admin')),
+    );
+    if (!allowed || savedPage === page) return;
+    window.history.replaceState({ kidsLocApp: true, page: savedPage }, '', pathForPage(savedPage));
+    setPage(savedPage);
+  }, [session?.user.id, company?.id, company?.role, platformOwner, page]);
+
+  useEffect(() => {
+    if (!session || !company) return;
+    savePage(session.user.id, company.id, page);
+  }, [session?.user.id, company?.id, page]);
 
   const isAdmin = platformOwner || company?.role === 'owner' || company?.role === 'admin';
   const userLabel = session?.user.user_metadata?.full_name || session?.user.email?.split('@')[0] || 'Bem-vindo';
