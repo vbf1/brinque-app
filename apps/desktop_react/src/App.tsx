@@ -70,6 +70,21 @@ function withTimeout<T>(promise: Promise<T>, milliseconds: number, message: stri
   });
 }
 
+function getUserDisplayName(user: Session['user'] | null): string {
+  if (!user) return 'Bem-vindo';
+
+  const metadataName = user.user_metadata?.full_name ?? user.user_metadata?.name;
+  const registeredName = typeof metadataName === 'string' ? metadataName.trim().replace(/\\s+/g, ' ') : '';
+  if (registeredName) {
+    const parts = registeredName.split(' ').filter(Boolean);
+    return parts.length > 1 ? parts[0] + ' ' + parts[parts.length - 1] : parts[0];
+  }
+
+  const emailName = user.email?.split('@')[0]?.split(/[._+-]/)[0]?.trim() ?? '';
+  if (!emailName) return 'Bem-vindo';
+  return emailName.charAt(0).toLocaleUpperCase('pt-BR') + emailName.slice(1);
+}
+
 function friendlyError(error: unknown): string {
   const raw = error instanceof Error ? error.message : String(error ?? '');
   const value = raw.toLowerCase();
@@ -379,7 +394,7 @@ export default function App() {
   }
 
   const isAdmin = platformOwner || company?.role === 'owner' || company?.role === 'admin';
-  const userLabel = session?.user.user_metadata?.full_name || session?.user.email?.split('@')[0] || 'Bem-vindo';
+  const userLabel = getUserDisplayName(session?.user ?? null);
   const pageTitle = navigation.find(item => item.id === page)?.label ?? 'Início';
   const visibleNavigation = navigation.filter(item => item.platformOnly ? platformOwner : (!item.admin || isAdmin));
 
