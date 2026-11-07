@@ -294,8 +294,8 @@ export default function App() {
           setPlatformOwner(true);
           setAvailableCompanies(companyList ?? []);
           setCompany(null);
-          setPage('administracao');
-          window.history.replaceState({ kidsLocApp: true, page: 'administracao' }, '', pathForPage('administracao'));
+          setPage('inicio');
+          window.history.replaceState({ kidsLocApp: true, page: 'inicio' }, '', pathForPage('inicio'));
           feedback('');
           return;
         }
@@ -454,7 +454,33 @@ export default function App() {
   );
 
   if (companyLoading) return <main className="legacy-auth-screen"><section className="legacy-auth-card"><div className="legacy-auth-brand"><div className="legacy-auth-wordmark"><strong>KidsLoc <span>App</span></strong><small>GESTÃO DE LOCAÇÕES</small></div><div className="legacy-login-accent" /></div><div className="legacy-loading">Carregando os dados da empresa...</div></section></main>;
-  if (!company && platformOwner) return <main className="legacy-auth-screen"><section className="legacy-auth-card" style={{ width: 'min(1100px, 100%)' }}><div className="legacy-auth-brand"><div className="legacy-auth-wordmark"><strong>KidsLoc <span>App</span></strong><small>ADMINISTRAÇÃO DA PLATAFORMA</small></div><div className="legacy-login-accent" /></div><PlatformAdminPage currentCompanyId="" companies={availableCompanies} onCompaniesChanged={setAvailableCompanies} /><button onClick={logout} disabled={busy} className="legacy-secondary-button">Sair</button></section></main>;
+  if (!company && platformOwner) return (
+    <main className="legacy-auth-screen">
+      <section className="legacy-auth-card" style={{ width: 'min(1100px, 100%)' }}>
+        <div className="legacy-auth-brand">
+          <div className="legacy-auth-wordmark"><strong>KidsLoc <span>App</span></strong><small>ÁREA DO PROPRIETÁRIO</small></div>
+          <div className="legacy-login-accent" />
+        </div>
+        <h1>Escolha uma empresa</h1>
+        <p className="legacy-intro">Acesse o aplicativo normalmente e consulte os dados de cada empresa. Selecione uma empresa para abrir todas as funcionalidades de gestão.</p>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14, margin: '22px 0' }}>
+          {availableCompanies.map(item => (
+            <button key={item.id} type="button" className="legacy-dashboard-card" style={{ minHeight: 130, textAlign: 'left', cursor: 'pointer' }}
+              onClick={() => {
+                setCompany({ id: item.id, name: item.name, role: 'owner' });
+                setPage('inicio');
+                window.history.replaceState({ kidsLocApp: true, page: 'inicio' }, '', pathForPage('inicio'));
+                feedback('');
+              }}>
+              <span className="legacy-card-icon">▦</span><strong>{item.name}</strong><small>Abrir painel e funcionalidades</small>
+            </button>
+          ))}
+        </div>
+        {availableCompanies.length === 0 && <p className="legacy-feedback">Nenhuma empresa cadastrada foi encontrada.</p>}
+        <button onClick={logout} disabled={busy} className="legacy-secondary-button">Sair</button>
+      </section>
+    </main>
+  );
   if (!company) return <main className="legacy-auth-screen"><section className="legacy-auth-card"><div className="legacy-auth-brand"><div className="legacy-auth-wordmark"><strong>KidsLoc <span>App</span></strong><small>GESTÃO DE LOCAÇÕES</small></div><div className="legacy-login-accent" /></div><h1>Acesso sem empresa vinculada</h1><p className="legacy-intro">{message || 'Esta conta não está vinculada a uma empresa.'}</p><button onClick={logout} disabled={busy} className="legacy-primary-button">Sair</button></section></main>;
 
   return (
@@ -468,7 +494,9 @@ export default function App() {
             <button type="button" className="legacy-menu-trigger" aria-label="Abrir menu" aria-expanded={menuOpen} onClick={() => setMenuOpen(value => !value)}><span /><span /><span /></button>
           </div>
         </div>
-        <div className="legacy-greeting">Olá, {userLabel} 👋<small>{company.name} · Gestão de locações sincronizada.</small></div>
+        <div className="legacy-greeting">Olá, {userLabel} 👋<small>{company.name} · Gestão de locações sincronizada.</small>
+            {platformOwner && <button type="button" className="legacy-help-button" style={{ marginTop: 8 }} onClick={() => { setCompany(null); setPage('inicio'); setMenuOpen(false); window.history.replaceState({ kidsLocApp: true, page: 'inicio' }, '', pathForPage('inicio')); }}>Escolher outra empresa</button>}
+          </div>
       </header>
       {menuOpen && <button className="legacy-menu-backdrop" aria-label="Fechar menu" onClick={() => setMenuOpen(false)} />}
       <nav className={menuOpen ? 'legacy-menu-panel open' : 'legacy-menu-panel'} aria-label="Menus de navegação">
