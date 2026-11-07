@@ -9,7 +9,7 @@ const sources = [
   {
     label: 'Flutter',
     path: 'apps/mobile_flutter/lib/features/rentals/rental_repository.dart',
-    expected: "products(name), rental_item_units(product_unit_id, product_units(asset_code))), ' +\n      'rental_responsibles(user_id, employee_name_snapshot)',",
+    expected: "products(name), rental_item_units(product_unit_id, product_units(asset_code))), '\n      'rental_responsibles(user_id, employee_name_snapshot)',",
   },
 ];
 
