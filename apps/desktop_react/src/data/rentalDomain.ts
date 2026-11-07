@@ -20,6 +20,11 @@ export type RentalDraftValidationInput = {
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const TIME_PATTERN = /^(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d)?$/;
 
+function timeToSeconds(value: string): number {
+  const [hours, minutes, seconds = '0'] = value.split(':');
+  return Number(hours) * 3600 + Number(minutes) * 60 + Number(seconds);
+}
+
 function isRealDate(value: string): boolean {
   if (!DATE_PATTERN.test(value)) return false;
   const date = new Date(`${value}T12:00:00.000Z`);
@@ -35,7 +40,7 @@ export function validateRentalDraft(input: RentalDraftValidationInput): void {
   if (!TIME_PATTERN.test(input.startTime) || !TIME_PATTERN.test(input.endTime)) {
     throw new Error('Informe horários válidos para a locação.');
   }
-  if (input.startDate === input.endDate && input.endTime <= input.startTime) {
+  if (input.startDate === input.endDate && timeToSeconds(input.endTime) <= timeToSeconds(input.startTime)) {
     throw new Error('O horário de término precisa ser posterior ao início.');
   }
   if (!['pending', 'confirmed', 'ongoing', 'completed', 'cancelled'].includes(input.status)) {
