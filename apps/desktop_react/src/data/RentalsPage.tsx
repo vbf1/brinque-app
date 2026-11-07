@@ -20,6 +20,8 @@ export function RentalsPage({ companyId }: { companyId: string }) {
   const repo = useMemo(() => createRentalRepository(supabase, companyId), [companyId]);
   const [rentals, setRentals] = useState<Row[]>([]);
   const [customers, setCustomers] = useState<CustomerOption[]>([]);
+  const [customersLoading, setCustomersLoading] = useState(false);
+  const [customerLoadError, setCustomerLoadError] = useState('');
   const [products, setProducts] = useState<Row[]>([]);
   const [employees, setEmployees] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
@@ -81,25 +83,15 @@ export function RentalsPage({ companyId }: { companyId: string }) {
   const days = Math.max(0, Math.round((new Date(`${endDate}T12:00:00`).getTime() - new Date(`${startDate}T12:00:00`).getTime()) / 86400000) + 1);
 
   async function openForm(rental?: Row) {
-    // Limpa mensagens antigas antes de buscar os clientes novamente.
     setMessage('');
-    let customerLoadMessage = '';
-    try {
-      // Busca diretamente na empresa ativa ao abrir o formulário, sem depender do cache da tela.
-      const latestCustomers = await repo.fetchCustomers();
-      setCustomers(latestCustomers as CustomerOption[]);
-      if (!latestCustomers.length) {
-        customerLoadMessage = 'Nenhum cliente cadastrado nesta empresa. Confira se a empresa selecionada é a correta ou cadastre um cliente na seção Clientes.';
-      }
-    } catch (error) {
-      customerLoadMessage = 'Não foi possível carregar os clientes: ' + (error instanceof Error ? error.message : 'erro desconhecido');
-    }
+    setCustomerLoadError('');
+    setCustomersLoading(true);
     setEditing(rental ?? null);
     setCustomerId(rental?.customer_id ?? '');
     setStartDate(rental?.start_date ?? isoToday());
     setEndDate(rental?.end_date ?? addDays(isoToday(), 1));
-    setStartTime(rental?.start_time ? String(rental.start_time).slice(0,5) : rental ? '00:00' : '09:00');
-    setEndTime(rental?.end_time ? String(rental.end_time).slice(0,5) : rental ? '23:59' : '17:00');
+    setStartTime(rental?.start_time ? String(rental.start_time).slice(0, 5) : rental ? '00:00' : '09:00');
+    setEndTime(rental?.end_time ? String(rental.end_time).slice(0, 5) : rental ? '23:59' : '17:00');
     setStatus(rental?.status ?? 'pending');
     setDeliveryMethod(rental?.delivery_method ?? 'customer_pickup');
     setDeliveryAddress(rental?.delivery_address ?? '');
@@ -117,8 +109,19 @@ export function RentalsPage({ companyId }: { companyId: string }) {
     }));
     setItems(oldItems.length ? oldItems : [{ productId: '', quantity: 1, price: '0' }]);
     setFormOpen(true);
-    // Mantém visível a causa quando a consulta falha ou a empresa não possui clientes.
-    if (customerLoadMessage) setMessage(customerLoadMessage);
+
+    try {
+      // Always query the active company's customer table when opening the form.
+      const latestCustomers = await repo.fetchCustomers();
+      setCustomers(latestCustomers as CustomerOption[]);
+      if (!latestCustomers.length) {
+        setCustomerLoadError('Nenhum cliente foi retornado para esta empresa. Confira a empresa ativa e o cadastro em Clientes.');
+      }
+    } catch (error) {
+      setCustomerLoadError('Falha ao consultar clientes: ' + (error instanceof Error ? error.message : 'erro desconhecido'));
+    } finally {
+      setCustomersLoading(false);
+    }
   }
 
   async function save(event: FormEvent<HTMLFormElement>) {
@@ -186,7 +189,7 @@ export function RentalsPage({ companyId }: { companyId: string }) {
     {!canManageRentals && <p className="module-description">Nesta versão, a edição de locações fica restrita ao proprietário e aos administradores para preservar todos os funcionários responsáveis vinculados.</p>}
     {formOpen && <form className="customer-form rental-form" onSubmit={save}>
       <h3>{editing ? 'Editar locação' : 'Nova locação'}</h3>
-      <label>Cliente *<CustomerPicker customers={customers} value={customerId} onChange={setCustomerId} />{customers.length === 0 && <small className="module-description">A lista é atualizada diretamente do cadastro da empresa ao abrir esta tela. Confira também a mensagem de carregamento acima.</small>}</label>
+      <label>Cliente *<CustomerPicker customers={customers} value={customerId} onChange={setCustomerId} loading={customersLoading} error={customerLoadError} />{customers.length === 0 && <small className="module-description">A lista é atualizada diretamente do cadastro da empresa ao abrir esta tela. Confira também a mensagem de carregamento acima.</small>}</label>
       <div className="form-grid">
         <label>Data de início *<input type="date" required value={startDate} onChange={e => setStartDate(e.target.value)} /></label>
         <label>Horário de início *<input type="time" required value={startTime} onChange={e => setStartTime(e.target.value)} /></label>
