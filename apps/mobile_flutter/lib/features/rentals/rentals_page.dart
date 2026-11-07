@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import '../../data/company_data_repository.dart';
-import '../../data/rental_time.dart';
+import 'rental_repository.dart';
+import 'rental_time.dart';
 
 class RentalsPage extends StatefulWidget {
   const RentalsPage({super.key, required this.companyId});
@@ -13,7 +13,7 @@ class RentalsPage extends StatefulWidget {
 }
 
 class _RentalsPageState extends State<RentalsPage> {
-  late final CompanyDataRepository repo = CompanyDataRepository(
+  late final RentalRepository repo = RentalRepository(
     client: Supabase.instance.client, companyId: widget.companyId,
   );
   late Future<_RentalData> future = _load();
