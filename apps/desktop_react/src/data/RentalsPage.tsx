@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
 import { supabase } from '../lib/supabase';
-import { createCompanyDataRepository } from './companyDataRepository';
+import { createRentalRepository } from './rentalRepository';
 import { CustomerPicker } from '../components/CustomerPicker';
 
 type Row = Record<string, any>;
@@ -17,7 +17,7 @@ const money = (value: number) => value.toLocaleString('pt-BR', { style: 'currenc
 const dateLabel = (value: string) => new Date(`${value}T12:00:00`).toLocaleDateString('pt-BR');
 
 export function RentalsPage({ companyId }: { companyId: string }) {
-  const repo = useMemo(() => createCompanyDataRepository(supabase, companyId), [companyId]);
+  const repo = useMemo(() => createRentalRepository(supabase, companyId), [companyId]);
   const [rentals, setRentals] = useState<Row[]>([]);
   const [customers, setCustomers] = useState<CustomerOption[]>([]);
   const [products, setProducts] = useState<Row[]>([]);
@@ -148,8 +148,8 @@ export function RentalsPage({ companyId }: { companyId: string }) {
         deliveryAddress: deliveryMethod === 'delivery' ? deliveryAddress.trim() : null,
         responsibleUserIds: responsibleIds,
       };
-      if (editing) await repo.updateRentalWithItems({ rentalId: editing.id, ...payload });
-      else await repo.createRentalWithItems({ ...payload, status: status as 'pending' | 'confirmed' | 'ongoing' });
+      if (editing) await repo.updateRental(editing.id, payload);
+      else await repo.createRental(payload);
       setFormOpen(false); await load(); setMessage('Locação salva com sucesso.');
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Não foi possível salvar a locação.');
