@@ -72,17 +72,18 @@ export function RentalsPage({ companyId }: { companyId: string }) {
   const days = Math.max(0, Math.round((new Date(`${endDate}T12:00:00`).getTime() - new Date(`${startDate}T12:00:00`).getTime()) / 86400000) + 1);
 
   async function openForm(rental?: Row) {
+    // Limpa mensagens antigas antes de buscar os clientes novamente.
+    setMessage('');
+    let customerLoadMessage = '';
     try {
-      // Atualiza a lista ao abrir o formulário para evitar seletor vazio com dados desatualizados.
+      // Busca diretamente na empresa ativa ao abrir o formulário, sem depender do cache da tela.
       const latestCustomers = await repo.fetchCustomers();
       setCustomers(latestCustomers as Row[]);
       if (!latestCustomers.length) {
-        setMessage('Nenhum cliente cadastrado nesta empresa. Cadastre um cliente na seção Clientes e volte para criar a locação.');
-      } else {
-        setMessage('');
+        customerLoadMessage = 'Nenhum cliente cadastrado nesta empresa. Confira se a empresa selecionada é a correta ou cadastre um cliente na seção Clientes.';
       }
     } catch (error) {
-      setMessage('Não foi possível carregar os clientes: ' + (error instanceof Error ? error.message : 'erro desconhecido'));
+      customerLoadMessage = 'Não foi possível carregar os clientes: ' + (error instanceof Error ? error.message : 'erro desconhecido');
     }
     setEditing(rental ?? null);
     setCustomerId(rental?.customer_id ?? '');
@@ -104,7 +105,9 @@ export function RentalsPage({ companyId }: { companyId: string }) {
       price: String(item.unit_price ?? 0),
     }));
     setItems(oldItems.length ? oldItems : [{ productId: '', quantity: 1, price: '0' }]);
-    setFormOpen(true); setMessage('');
+    setFormOpen(true);
+    // Mantém visível a causa quando a consulta falha ou a empresa não possui clientes.
+    if (customerLoadMessage) setMessage(customerLoadMessage);
   }
 
   async function save(event: FormEvent<HTMLFormElement>) {
