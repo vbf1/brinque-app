@@ -61,7 +61,7 @@ jobs:
           # Stage every top-level file emitted by Vite (index.html, 404.html and public assets).
           while IFS= read -r -d '' file; do
             git add -A -- "$file"
-          done < <(find apps/desktop_react/dist -mindepth 1 -maxdepth 1 -type f -printf '%f\\0')
+          done < <(find apps/desktop_react/dist -mindepth 1 -maxdepth 1 -type f -printf '%f\0')
 
           if git diff --cached --quiet; then
             echo 'No published changes.'
