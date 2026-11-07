@@ -35,10 +35,11 @@ export function OccurrencesPage({ companyId, role }: { companyId: string; role: 
   const isAdmin = role === 'owner' || role === 'admin';
 
   async function load() {
-    const { data: auth } = await supabase.auth.getUser();
-    setCurrentUserId(auth.user?.id ?? '');
     setLoading(true); setError('');
     try {
+      const { data: auth, error: authError } = await supabase.auth.getUser();
+      if (authError) throw authError;
+      setCurrentUserId(auth.user?.id ?? '');
       const [{ data, error: reportError }, { data: photoRows, error: photoError }] = await Promise.all([
         supabase.from('occurrence_reports').select('*').eq('company_id', companyId).order('occurred_at', { ascending: false }),
         supabase.from('occurrence_photos').select('id, occurrence_id, storage_path').eq('company_id', companyId).order('created_at'),
@@ -153,11 +154,15 @@ export function OccurrencesPage({ companyId, role }: { companyId: string; role: 
   }
 
   async function remove(item: Occurrence) {
-    const { data: auth } = await supabase.auth.getUser();
-    if (!auth.user || (!isAdmin && item.created_by !== auth.user.id)) { setError('Você não tem permissão para excluir este relato.'); return; }
-    if (!window.confirm('Excluir esta ocorrência e todas as fotos anexadas permanentemente?')) return;
-    setBusy(true); setError('');
     try {
+      const { data: auth, error: authError } = await supabase.auth.getUser();
+      if (authError) throw authError;
+      if (!auth.user || (!isAdmin && item.created_by !== auth.user.id)) {
+        setError('Você não tem permissão para excluir este relato.');
+        return;
+      }
+      if (!window.confirm('Excluir esta ocorrência e todas as fotos anexadas permanentemente?')) return;
+      setBusy(true); setError('');
       if (item.photos.length) {
         const { error: storageError } = await supabase.storage.from('occurrence-photos').remove(item.photos.map((photo) => photo.storage_path));
         if (storageError) throw storageError;
