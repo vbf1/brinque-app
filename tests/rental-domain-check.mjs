@@ -37,7 +37,7 @@ assert.throws(() => validateRentalDraft({
   items: [{ product_id: 'toy-1', quantity: 1, unit_price: -1 }],
 }), /preço unitário/i);
 
-process.stdout.write('Rental domain checks: 11 passed.\\n');
+process.stdout.write('Rental domain checks: 15 passed.\\n');
 
 const customers = [
   { id: 'customer-1', name: 'Ana Souza' },
