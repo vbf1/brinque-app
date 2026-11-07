@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kidsloc/features/rentals/rental_domain.dart';
+import 'package:kidsloc_mobile/features/rentals/rental_domain.dart';
 
 void main() {
   final valid = <String, dynamic>{
