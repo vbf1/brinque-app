@@ -85,6 +85,7 @@ export function RentalsPage({ companyId }: { companyId: string }) {
   async function openForm(rental?: Row) {
     setMessage('');
     setCustomerLoadError('');
+    setCustomers([]);
     setCustomersLoading(true);
     setEditing(rental ?? null);
     setCustomerId(rental?.customer_id ?? '');
