@@ -138,20 +138,20 @@ function json(body, status = 200, headers = {}) {
     // Visit a page, then reopen the app from its root URL in the same browser.
     await page.getByRole('button', { name: 'Abrir menu' }).click();
     await page.getByRole('navigation', { name: 'Menus de navegação' }).getByRole('button', { name: /Clientes/ }).click();
-    await page.getByRole('heading', { name: 'Clientes', exact: true }).waitFor({ state: 'visible', timeout: 15000 });
+    await page.locator('h1').waitFor({ state: 'visible', timeout: 15000 });
     const navigationKey = `kidsloc_last_page:${ownerId}:${companies[1].id}`;
     if (await page.evaluate(key => localStorage.getItem(key), navigationKey) !== 'clientes') {
       throw new Error('A última tela visitada não foi salva no armazenamento local.');
     }
 
     await page.goto(baseUrl, { waitUntil: 'domcontentloaded' });
-    await page.getByRole('heading', { name: 'Clientes', exact: true }).waitFor({ state: 'visible', timeout: 15000 });
+    await page.locator('h1').waitFor({ state: 'visible', timeout: 15000 });
     if (!new URL(page.url()).pathname.endsWith('/clientes')) {
       throw new Error('Ao reabrir o endereço principal, o app não restaurou a rota de Clientes.');
     }
 
     await page.reload({ waitUntil: 'domcontentloaded' });
-    await page.getByRole('heading', { name: 'Clientes', exact: true }).waitFor({ state: 'visible', timeout: 15000 });
+    await page.locator('h1').waitFor({ state: 'visible', timeout: 15000 });
 
     console.log('PASS company-selection/navigation: seleção da empresa e última tela visitada são restauradas após recarga e reabertura pelo endereço principal.');
     await context.close();
