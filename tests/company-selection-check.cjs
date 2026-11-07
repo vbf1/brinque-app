@@ -121,6 +121,9 @@ function json(body, status = 200, headers = {}) {
       throw new Error('A escolha explícita não foi persistida no perfil remoto simulado.');
     }
 
+    // Simulate profile metadata being unavailable on a later refresh; the
+    // locally confirmed choice must still restore for this browser.
+    state.userMetadata = {};
     await page.reload({ waitUntil: 'domcontentloaded' });
     await page.locator('.legacy-company-switcher').waitFor({ state: 'visible', timeout: 15000 });
     await page.waitForFunction(id => {
