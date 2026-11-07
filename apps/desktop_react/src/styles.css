@@ -10,7 +10,7 @@ button:hover{filter:brightness(1.04)}
 button:active{transform:translateY(1px)}
 button:disabled{opacity:.62;cursor:wait}
 input,select,textarea{width:100%;min-width:0;min-height:44px;padding:11px 12px;border:1px solid var(--line);border-radius:11px;background:var(--bg);color:var(--ink);margin:0 0 12px}
-input:focus,select:focus,textarea:focus{outline:2px solid #3478e533;border-color:var(--blue)}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--blue)}
 label{display:block;margin:9px 0 5px;color:var(--muted);font-size:12px;font-weight:650}
 textarea{resize:vertical}
 .legacy-auth-screen{width:100%;min-height:100vh;min-height:100svh;min-height:100dvh;display:grid;grid-template-columns:minmax(0,1fr);place-items:center;justify-items:center;padding:22px;background:radial-gradient(circle at 12% 10%,#3478e51b,transparent 34%),var(--bg)}
@@ -40,7 +40,7 @@ textarea{resize:vertical}
 .legacy-theme-button{font-size:20px}
 .legacy-menu-trigger{gap:5px;align-content:center}
 .legacy-menu-trigger span{display:block;width:21px;height:2px;border-radius:4px;background:#fff}
-.legacy-menu-trigger:focus,.legacy-menu-trigger:focus-visible,.legacy-menu-trigger:active{outline:none;box-shadow:none;background:transparent;-webkit-tap-highlight-color:transparent}
+
 .legacy-greeting{margin-top:11px;font-size:20px;font-weight:750;line-height:1.3}
 .legacy-greeting small{display:block;margin-top:4px;color:#c6d3e5;font-size:11px;font-weight:400;line-height:1.4}
 .legacy-menu-backdrop{position:fixed;inset:0;z-index:11;background:#08142655;border-radius:0}
@@ -147,7 +147,7 @@ textarea{resize:vertical}
 .rental-responsible-option{display:flex!important;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)}
 .rental-responsible-option input{width:auto!important;min-height:auto!important;margin:0!important}
 .rental-row-actions{display:flex;align-items:center;gap:8px;flex-shrink:0}
-button:focus-visible{outline:3px solid #3478e566;outline-offset:2px}
+
 @media(min-width:700px){.legacy-main{padding:25px 24px 48px}.legacy-dashboard-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:640px){.legacy-header{padding:11px 12px 13px}.legacy-greeting{font-size:19px}.legacy-main{padding:14px 12px 88px}.legacy-menu-panel{top:calc(env(safe-area-inset-top,0px) + 145px);right:10px;max-height:calc(100dvh - 160px)}.module-header,.data-page-heading{align-items:flex-start;flex-direction:column}.module-toolbar{flex-direction:row}.form-grid{grid-template-columns:minmax(0,1fr)}.customer-row{gap:9px}.customer-row button{padding:8px 10px}.team-chat-layout{grid-template-columns:1fr}.team-chat-panel{min-height:420px}.team-chat-message-list{max-height:45vh}.legacy-page-heading h1{font-size:22px}}
 @media(max-width:390px){.legacy-dashboard-card{min-height:126px;padding:12px}.legacy-card-icon{width:35px;height:35px}.legacy-auth-card{padding:22px 18px}.legacy-welcome-panel{align-items:flex-start;flex-direction:column}.data-list-row{grid-template-columns:minmax(0,1fr) auto}.data-row-actions{grid-column:1/-1;justify-content:flex-end}}
@@ -318,7 +318,7 @@ button:focus-visible{outline:3px solid #3478e566;outline-offset:2px}
 @media(max-width:480px){.legacy-auth-screen{place-items:center;padding:16px}.legacy-auth-card{padding:22px 19px;border-radius:22px}.legacy-auth-brand{margin-bottom:20px}.legacy-auth-brand img{width:104px;height:104px}}
 /* Selects: mantém o controle nativo e melhora a aparência visível em navegadores compatíveis. */
 select{appearance:none;-webkit-appearance:none;padding-right:42px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%23718096' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 13px center;cursor:pointer}
-select:focus-visible{outline:3px solid #3478e52b;outline-offset:1px}
+
 
 /* Painel de usuários: cartões responsivos e leitura rápida de dados cadastrais. */
 .users-page{display:grid;gap:14px}.users-toolbar{align-items:center}.users-toolbar h2{margin:0;font-size:19px}.users-toolbar p{margin:4px 0 0;color:var(--muted);font-size:12px}
@@ -507,7 +507,7 @@ select:focus-visible{outline:3px solid #3478e52b;outline-offset:1px}
 /* Componentes de seleção e modais: padrão único, acessível e confortável no Android/WebView. */
 .app-select{position:relative;width:100%;min-width:0;margin:0 0 12px}
 .app-select-trigger{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;min-height:48px;padding:11px 14px;border:1px solid var(--line);border-radius:13px;background:var(--surface);color:var(--ink);text-align:left;font-size:14px;font-weight:600;box-shadow:0 2px 7px #172b4d08}
-.app-select-trigger:focus-visible{outline:3px solid #3478e533;outline-offset:2px;border-color:var(--blue)}
+
 .app-select-value,.app-select-placeholder{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .app-select-placeholder{color:var(--muted);font-weight:500}
 .app-select-chevron{flex:0 0 auto;color:var(--muted);font-size:20px;line-height:1;transition:transform .18s}
@@ -570,10 +570,10 @@ select:focus-visible{outline:3px solid #3478e52b;outline-offset:1px}
 /* Refinamento da experiência de seleção e diálogos no celular. */
 .app-select-search-wrap{padding:10px 14px 2px;border-bottom:1px solid var(--line)}
 .app-select-search-wrap input{width:100%;min-height:42px;padding:10px 12px;border:1px solid var(--line);border-radius:11px;background:var(--bg);color:var(--ink);font:inherit;font-size:13px}
-.app-select-search-wrap input:focus{outline:3px solid #3478e533;border-color:var(--blue)}
+.app-select-search-wrap input:focus{outline:none;border-color:var(--blue)}
 .app-select-dialog{max-height:min(70dvh,610px)}
 .app-select-menu{min-height:0}
-.app-select-option:focus-visible{outline:3px solid #3478e544;outline-offset:1px;border-color:var(--blue)}
+
 .app-select-overlay{overscroll-behavior:contain}
 @media(max-width:600px){
  .app-select-dialog{max-height:min(64dvh,540px);border-radius:19px 19px 0 0}
@@ -597,7 +597,7 @@ select:focus-visible{outline:3px solid #3478e52b;outline-offset:1px}
 
 .app-confirm-note{display:grid;gap:8px;margin-top:16px;color:var(--ink);font-size:13px;font-weight:700}
 .app-confirm-note textarea{width:100%;min-height:100px;padding:12px;border:1px solid var(--line);border-radius:12px;background:var(--bg);color:var(--ink);font:inherit;font-weight:400;resize:vertical}
-.app-confirm-note textarea:focus{outline:2px solid var(--blue);outline-offset:1px}
+
 
 
 /* Ajustes finais do cabeçalho e da tela de acesso solicitados nas capturas mobile. */
@@ -652,10 +652,7 @@ select:focus-visible{outline:3px solid #3478e52b;outline-offset:1px}
 .legacy-company-switcher-label .app-select-value{color:#fff;font-weight:700}
 .legacy-company-switcher-label .app-select-placeholder,
 .legacy-company-switcher-label .app-select-chevron{color:#c6d8ef}
-.legacy-company-switcher-label .app-select-trigger:focus-visible{
-  outline:3px solid #8db9ff66;
-  border-color:#a9caff;
-}
+
 @media(max-width:600px){
   .legacy-auth-screen{padding:10px 12px}
   .legacy-auth-card{padding:18px 18px 15px;max-height:calc(100dvh - 20px)}
@@ -767,3 +764,12 @@ select:focus-visible{outline:3px solid #3478e52b;outline-offset:1px}
  }
 }
 
+
+
+/* Neutraliza indicadores visuais de foco em controles e navegação do aplicativo. */
+:where(button,a,[role="button"],[role="link"],input,select,textarea,[tabindex]):focus,
+:where(button,a,[role="button"],[role="link"],input,select,textarea,[tabindex]):focus-visible{
+  outline:none!important;
+  box-shadow:none!important;
+  -webkit-tap-highlight-color:transparent!important;
+}
