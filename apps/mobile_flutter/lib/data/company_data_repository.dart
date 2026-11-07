@@ -128,6 +128,42 @@ class CompanyDataRepository {
     if (updated == null) throw StateError('Unidade não encontrada ou sem permissão para atualizar.');
   }
 
+  // Shared read/payment adapters remain for agenda, finance and statistics.
+  // Rental create/edit operations live exclusively in RentalRepository.
+  Future<List<Map<String, dynamic>>> fetchRentals() async {
+    final rows = await _client.from('rentals').select(
+      '*, customers(name), '
+      'rental_items(id, product_id, quantity, unit_price, subtotal, '
+      'products(name), rental_item_units(product_unit_id, product_units(asset_code))), '
+      'rental_responsibles(user_id, employee_name_snapshot)',
+    ).eq('company_id', companyId).order('start_date');
+    return List<Map<String, dynamic>>.from(rows);
+  }
+
+  Future<String> registerRentalPayment({
+    required String rentalId,
+    required num amount,
+    required String paymentMethod,
+    String? notes,
+  }) async {
+    if (amount <= 0) throw ArgumentError('Informe um valor maior que zero.');
+    final result = await _client.rpc('register_rental_payment', params: {
+      'p_company_id': companyId,
+      'p_rental_id': rentalId,
+      'p_amount': amount,
+      'p_payment_method': paymentMethod,
+      'p_notes': _nullableTrim(notes),
+    });
+    return result as String;
+  }
+
+  Future<Map<String, dynamic>> fetchRentalPayment(String paymentId) async {
+    final row = await _client.from('payments')
+        .select('id, company_id, rental_id, amount, payment_method, paid_at, notes, rentals(rental_number, customers(name))')
+        .eq('id', paymentId).eq('company_id', companyId).single();
+    return Map<String, dynamic>.from(row);
+  }
+
   Future<Map<String, dynamic>> saveProduct({
     String? productId,
     required String name,
