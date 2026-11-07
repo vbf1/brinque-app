@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { validateRentalDraft } from '../apps/desktop_react/src/data/rentalDomain.ts';
+import { filterRentalCustomers, validateRentalDraft } from '../apps/desktop_react/src/data/rentalDomain.ts';
 
 const valid = {
   customerId: 'customer-1',
@@ -38,3 +38,13 @@ assert.throws(() => validateRentalDraft({
 }), /preço unitário/i);
 
 process.stdout.write('Rental domain checks: 11 passed.\\n');
+
+const customers = [
+  { id: 'customer-1', name: 'Ana Souza' },
+  { id: 'customer-2', name: 'Bruno Lima' },
+  { id: 'customer-3', name: 'Carla Santos' },
+];
+assert.equal(filterRentalCustomers(customers, '').length, 3);
+assert.deepEqual(filterRentalCustomers(customers, ' bruno '), [customers[1]]);
+assert.deepEqual(filterRentalCustomers(customers, 'SANTOS'), [customers[2]]);
+assert.equal(filterRentalCustomers(customers, 'cliente inexistente').length, 0);
