@@ -71,3 +71,16 @@ export function validateRentalDraft(input: RentalDraftValidationInput): void {
     }
   }
 }
+
+export type RentalCustomerOption = { id: string; name: string };
+
+/** Keeps customer filtering deterministic and independent from the visual picker. */
+export function filterRentalCustomers(
+  customers: RentalCustomerOption[],
+  query: string,
+): RentalCustomerOption[] {
+  const term = query.trim().toLocaleLowerCase('pt-BR');
+  return customers.filter(customer =>
+    !term || customer.name.toLocaleLowerCase('pt-BR').includes(term),
+  );
+}
