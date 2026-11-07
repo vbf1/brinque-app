@@ -87,7 +87,7 @@ function clearSavedPage(userId: string, companyId: string | null): void {
 function hasExplicitPagePath(): boolean {
   const base = import.meta.env.BASE_URL;
   const pathname = window.location.pathname;
-  const relativePath = pathname.startsWith(base) ? pathname.slice(base.length) : pathname.replace(/^\\/+/, '');
+  const relativePath = pathname.startsWith(base) ? pathname.slice(base.length) : pathname.replace(/^\/+/, '');
   return relativePath.split('/').filter(Boolean).length > 0;
 }
 const PASSWORD_RESET_REDIRECT = 'https://vbf1.github.io/kidsloc-app/';
